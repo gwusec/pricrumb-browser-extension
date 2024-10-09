@@ -2,12 +2,10 @@
   "manifest_version": 3,
   "name": "Cookie Checker",
   "version": "1.0",
-  "permissions": ["cookies", "activeTab", "storage", "downloads"],
-  "host_permissions": ["*://*/*"],
+  "permissions": ["cookies", "activeTab", "storage", "downloads", "history", "tabs"],
+  "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "background.js"
   },
-  "action": {
-    "default_popup": "popup.html"
-  }
+  "action": {}
 }
