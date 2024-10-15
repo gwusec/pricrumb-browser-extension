@@ -9,7 +9,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       let filteredCookies = cookies.filter(cookie => cookieNames.includes(cookie.name));
       sendResponse({ cookies: filteredCookies });
     });
-    return true; 
+    return true;
   } else if (request.action === 'downloadCookies') {
     const cookieList = request.cookies.map(cookie => ({
       name: cookie.name,
@@ -29,9 +29,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   } else if (request.action === 'getHistory') {
     const domain = standardizeDomain(request.domain);
     const timeframe = request.timeframe || 365 * 24 * 60 * 60 * 1000; // Default to 1 year if no timeframe
-
     getAllHistory(domain, timeframe, sendResponse);
-    return true; 
+    return true;
+  } else if (request.action === 'checkConsent') {
+    checkConsentCookies(sendResponse);
+    return true;
   }
 });
 
@@ -115,4 +117,71 @@ function domainMatch(historyDomain, cookieDomain) {
 
   // Check the match is for subdomains
   return historyDomain.endsWith('.' + cookieDomain);
+}
+
+// Function to extract root domain
+function extractRootDomain(domain) {
+  let parts = domain.split('.');
+  let domainLength = parts.length;
+  return domainLength > 1 ? `${parts[domainLength - 2]}.${parts[domainLength - 1]}` : domain;
+}
+
+// Parse cookie consent values
+function parseConsentCookie(cookie) {
+  const parsedValues = {};
+  const valueEntries = cookie.value ? cookie.value.split(',') : [];
+
+  valueEntries.forEach(entry => {
+    const [key, val] = entry.split(':', 2); // Split by the first occurrence of ":"
+    if (key && val) {
+      parsedValues[key.trim()] = val.trim();
+    }
+  });
+
+  return parsedValues;
+}
+
+// Function to check consent cookies
+async function checkConsentCookies(sendResponse) {
+  const cookieyesList = [];
+  const cookiebotList = [];
+  const domainCount = {};
+  const uniqueDomainsWithCookies = new Set();
+  const allUniqueDomains = new Set();
+
+  // Fetch cookies from the current domain
+  let cookies = await chrome.cookies.getAll({});
+
+  cookies.forEach(cookie => {
+    let domain = cookie.domain;
+    if (domain) {
+      let rootDomain = extractRootDomain(domain);
+      allUniqueDomains.add(rootDomain);
+
+      // Count the domain occurrences
+      if (!domainCount[rootDomain]) domainCount[rootDomain] = 0;
+      domainCount[rootDomain] += 1;
+
+      // Check for 'cookieyes-consent' and 'CookieConsent' cookies and parse them
+      if (cookie.name === 'cookieyes-consent') {
+        cookie.parsed_values = parseConsentCookie(cookie);  // Parse and store values
+        cookieyesList.push(cookie);
+        uniqueDomainsWithCookies.add(rootDomain);
+      } else if (cookie.name === 'CookieConsent') {
+        cookie.parsed_values = parseConsentCookie(cookie);  // Parse and store values
+        cookiebotList.push(cookie);
+        uniqueDomainsWithCookies.add(rootDomain);
+      }
+    }
+  });
+
+  let cookieCaptureProportion = uniqueDomainsWithCookies.size / allUniqueDomains.size;
+  console.log("Proportion of consent cookies found:", cookieCaptureProportion);
+
+  sendResponse({
+    cookieyesList,
+    cookiebotList,
+    domainCount,
+    cookieCaptureProportion
+  });
 }
