@@ -1,106 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
   const cookieNames = [
-    "cookieyes-consent",
-    "CookieConsent",
-    "CookieConsentBulkTicket",
-    "OptanonConsent",
-    "OptanonAlertBoxClosed",
-    "cookiescriptaccept",
-    "cookiescriptreject",
-    "TRUSTe",
-    "TRUSTeConsent",
-    "__qca",
-    "__qcb",
-    "CivicCookieControl",
-    "CivicCookieControlBulkTicket",
-    "usercentrics_consent",
-    "usercentrics_bulk_ticket",
-    "cookieyes-consent",
-    "cookieyes-reject",
-    "consentmanager",
-    "consentmanager_bulk_ticket",
-    "_pk_id",
-    "_pk_ses",
-    "axeptio_consent",
-    "axeptio_bulk_ticket",
-    "didomi_token",
-    "didomi_bulk_ticket",
-    "clym_consent",
-    "clym_bulk_ticket",
-    "cp_consent",
-    "cp_bulk_ticket",
-    "termly_consent",
-    "termly_bulk_ticket",
-    "iubenda_consent",
-    "iubenda_bulk_ticket",
-    "osano_consent",
-    "osano_bulk_ticket",
-    "secureprivacy_consent",
-    "secureprivacy_bulk_ticket",
-    "privacytools_consent",
-    "privacytools_bulk_ticket",
-    "seers_consent",
-    "seers_bulk_ticket",
-    "cookiepro_consent",
-    "cookiepro_bulk_ticket",
-    "civicuk_consent",
-    "civicuk_bulk_ticket",
-    "trustcommander_consent",
-    "trustcommander_bulk_ticket",
-    "consentmanager_net_consent",
-    "consentmanager_net_bulk_ticket",
-    "cookiehub_consent",
-    "cookiehub_bulk_ticket",
-    "cookiefirst_consent",
-    "cookiefirst_bulk_ticket",
-    "cookielawinfo_consent",
-    "cookielawinfo_bulk_ticket",
-    "cookiecontrol_consent",
-    "cookiecontrol_bulk_ticket",
-    "cookieconsent_consent",
-    "cookieconsent_bulk_ticket",
-    "cookiguard_consent",
-    "cookiguard_bulk_ticket",
-    "cookienotice_consent",
-    "cookienotice_bulk_ticket",
-    "cookiemanager_consent",
-    "cookiemanager_bulk_ticket",
-    "cookiepolicy_consent",
-    "cookiepolicy_bulk_ticket",
-    "cookiesettings_consent",
-    "cookiesettings_bulk_ticket",
-    "cookiebanner_consent",
-    "cookiebanner_bulk_ticket",
-    "cookiecompliance_consent",
-    "cookiecompliance_bulk_ticket",
-    "cookiepreferences_consent",
-    "cookiepreferences_bulk_ticket",
-    "cookiesettingsmanager_consent",
-    "cookiesettingsmanager_bulk_ticket",
-    "cookieconsentmanager_consent",
-    "cookieconsentmanager_bulk_ticket",
-    "cookiecontrolmanager_consent",
-    "cookiecontrolmanager_bulk_ticket",
-    "cookiepolicymanager_consent",
-    "cookiepolicymanager_bulk_ticket",
-    "cookienoticemanager_consent",
-    "cookienoticemanager_bulk_ticket",
-    "cookiemanagerpro_consent",
-    "cookiemanagerpro_bulk_ticket",
-    "cookiesettingspro_consent",
-    "cookiesettingspro_bulk_ticket",
-    "cookieconsentpro_consent",
-    "cookieconsentpro_bulk_ticket",
-    "cookiecontrolpro_consent",
-    "cookiecontrolpro_bulk_ticket",
-    "cookiepolicypro_consent",
-    "cookiepolicypro_bulk_ticket",
-    "cookienoticepro_consent",
-    "cookienoticepro_bulk_ticket",
-    "cookiemanagerplus_consent",
-    "cookiemanagerplus_bulk_ticket",
-    "cookiesettingsplus_consent",
-    "cookiesettingsplus_bulk_ticket"
+    "cookieyes-consent", "CookieConsent", "CookieConsentBulkTicket", "OptanonConsent",
   ];
 
   let fetchedCookies = [];
@@ -108,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // fetch and display cookies
   function fetchAndDisplayCookies() {
     chrome.runtime.sendMessage({ action: 'checkCookies', cookieNames: cookieNames }, (response) => {
-      fetchedCookies = response.cookies; // Store the cookies for download
+      fetchedCookies = response.cookies;
       let cookieListDiv = document.getElementById('cookieList');
       cookieListDiv.innerHTML = '';
 
@@ -116,18 +16,14 @@ document.addEventListener('DOMContentLoaded', () => {
         let cookieDiv = document.createElement('div');
         cookieDiv.className = 'cookie';
 
-        // cookie value
         let formattedValue = cookie.value.split(',').join('<br>');
 
-        // Creation date
         let creationDate = cookie.hasOwnProperty('creationDate') ? 
           new Date(cookie.creationDate * 1000).toLocaleString() : 'Unknown';
 
-        // Expiration date
         let expirationDate = cookie.hasOwnProperty('expirationDate') ? 
           new Date(cookie.expirationDate * 1000).toLocaleString() : 'Session Cookie';
 
-        // Display cookie info
         cookieDiv.innerHTML = `
           <strong>Name:</strong> ${cookie.name}<br>
           <strong>Domain:</strong> ${cookie.domain}<br>
@@ -153,12 +49,125 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Function to display both CookieYes and CookieBot consent cookies
+  function fetchAndDisplayConsentCookies() {
+    chrome.runtime.sendMessage({ action: 'checkConsent' }, (response) => {
+      let consentDiv = document.getElementById('consentList');
+      consentDiv.innerHTML = '';
+
+      const cookieYesCategories = ['necessary', 'functional', 'analytics', 'advertisement'];
+      const cookieBotCategories = ['necessary', 'preferences', 'statistics', 'marketing'];
+
+      // Function to format consent details for CookieYes
+      function formatCookieYesConsent(parsedValues) {
+        const consentedCookies = [];
+        const notConsentedCookies = [];
+
+        cookieYesCategories.forEach(category => {
+          if (parsedValues[category] === 'yes') {
+            consentedCookies.push(category);
+          } else if (parsedValues[category] === 'no') {
+            notConsentedCookies.push(category);
+          }
+        });
+
+        return {
+          consented: consentedCookies.length > 0 ? consentedCookies.join(', ') : 'none',
+          notConsented: notConsentedCookies.length > 0 ? notConsentedCookies.join(', ') : 'none'
+        };
+      }
+
+      // Function to format consent details for CookieBot (correctly parse values)
+      function formatCookieBotConsent(parsedValues) {
+        const consentedCookies = [];
+        const notConsentedCookies = [];
+
+        // Log the parsed values for debugging
+        console.log("Parsed CookieBot Consent Values:", parsedValues);
+
+        cookieBotCategories.forEach(category => {
+          // Parse as true/false, ensuring correct comparison for values
+          if (parsedValues[category] === 'true' || parsedValues[category] === true) {
+            consentedCookies.push(category);
+          } else if (parsedValues[category] === 'false' || parsedValues[category] === false) {
+            notConsentedCookies.push(category);
+          }
+        });
+
+        return {
+          consented: consentedCookies.length > 0 ? consentedCookies.join(', ') : 'none',
+          notConsented: notConsentedCookies.length > 0 ? notConsentedCookies.join(', ') : 'none'
+        };
+      }
+
+      // Display CookieYes consent cookies
+      response.cookieyesList.forEach(cookie => {
+        let cookieDiv = document.createElement('div');
+        cookieDiv.className = 'consent';
+
+        const parsedValues = cookie.parsed_values || {};
+        const consentDetails = formatCookieYesConsent(parsedValues);
+
+        const creationDate = cookie.hasOwnProperty('creationDate') ? 
+          new Date(cookie.creationDate * 1000).toLocaleString() : 'Unknown';
+        const expirationDate = cookie.hasOwnProperty('expirationDate') ? 
+          new Date(cookie.expirationDate * 1000).toLocaleString() : 'Session Cookie';
+
+        cookieDiv.innerHTML = `
+          <strong>CookieYes Consent Cookie:</strong> ${cookie.name}<br>
+          <strong>Domain:</strong> ${cookie.domain}<br>
+          <strong>Creation Date:</strong> ${creationDate}<br>
+          <strong>Expiration Date:</strong> ${expirationDate}<br>
+          <strong>Consented to:</strong> ${consentDetails.consented}<br>
+          <strong>Not Consented to:</strong> ${consentDetails.notConsented}<br>
+        `;
+        consentDiv.appendChild(cookieDiv);
+      });
+
+      // Display CookieBot consent cookies
+      response.cookiebotList.forEach(cookie => {
+        let cookieDiv = document.createElement('div');
+        cookieDiv.className = 'consent';
+
+        // Decode the value if it's URL-encoded
+        const decodedValue = decodeURIComponent(cookie.value);
+        console.log("CookieBot Decoded Value:", decodedValue); // Debugging
+
+        // Split the decoded value and extract key-value pairs (assuming format like 'necessary:true, preferences:false,...')
+        const parsedValues = decodedValue.split(',').reduce((acc, item) => {
+          const [key, value] = item.split(':');
+          acc[key.trim()] = value.trim();
+          return acc;
+        }, {});
+        
+        const consentDetails = formatCookieBotConsent(parsedValues);
+
+        const creationDate = cookie.hasOwnProperty('creationDate') ? 
+          new Date(cookie.creationDate * 1000).toLocaleString() : 'Unknown';
+        const expirationDate = cookie.hasOwnProperty('expirationDate') ? 
+          new Date(cookie.expirationDate * 1000).toLocaleString() : 'Session Cookie';
+
+        cookieDiv.innerHTML = `
+          <strong>CookieBot Consent Cookie:</strong> ${cookie.name}<br>
+          <strong>Domain:</strong> ${cookie.domain}<br>
+          <strong>Creation Date:</strong> ${creationDate}<br>
+          <strong>Expiration Date:</strong> ${expirationDate}<br>
+          <strong>Consented to:</strong> ${consentDetails.consented}<br>
+          <strong>Not Consented to:</strong> ${consentDetails.notConsented}<br>
+        `;
+        consentDiv.appendChild(cookieDiv);
+      });
+    });
+  }
+
   fetchAndDisplayCookies();
+  fetchAndDisplayConsentCookies();
 
-  // Refresh button
-  document.getElementById('refresh').addEventListener('click', fetchAndDisplayCookies);
+  document.getElementById('refresh').addEventListener('click', () => {
+    fetchAndDisplayCookies();
+    fetchAndDisplayConsentCookies();
+  });
 
-  // Download cookies button
   document.getElementById('download').addEventListener('click', () => {
     chrome.runtime.sendMessage({ action: 'downloadCookies', cookies: fetchedCookies });
   });
