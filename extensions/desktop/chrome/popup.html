@@ -20,7 +20,7 @@
       margin-bottom: 20px;
     }
 
-    #refresh, #download {
+    #refresh, #download, #downloadTable {
       background-color: #007bff;
       color: white;
       border: none;
@@ -31,39 +31,29 @@
       transition: background-color 0.3s ease;
     }
 
-    #refresh:hover, #download:hover {
+    #refresh:hover, #download:hover, #downloadTable:hover {
       background-color: #0056b3;
     }
 
-    #cookieList, #consentList {
-      max-height: 250px;
-      overflow-y: auto;
-      background-color: #fff;
-      border: 1px solid #ccc;
-      padding: 10px;
-      border-radius: 10px;
-      text-align: left;
+    #cookieTable {
+      width: 100%;
+      border-collapse: collapse;
       margin-top: 20px;
     }
 
-    .cookie, .consent {
-      margin-bottom: 15px;
+    #cookieTable th, #cookieTable td {
+      border: 1px solid #ccc;
       padding: 10px;
+      text-align: left;
+    }
+
+    #cookieTable th {
+      background-color: #f0f0f0;
+      font-weight: bold;
+    }
+
+    #cookieTable tr:nth-child(even) {
       background-color: #f9f9f9;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      border-left: 5px solid #007bff;
-    }
-
-    .cookie strong, .consent strong {
-      color: #333;
-    }
-
-    h2 {
-      font-size: 20px;
-      color: #555;
-      margin-top: 30px;
-      margin-bottom: 10px;
     }
   </style>
 </head>
@@ -71,13 +61,26 @@
   <h1>Cookie Checker</h1>
   <button id="refresh">Refresh Cookies</button>
   <button id="download">Download Cookies</button>
-
-  <h2>Collected Cookies</h2>
-  <div id="cookieList"></div>
-
-  <h2>Consent Cookies</h2>
-  <div id="consentList"></div>
-
+  <button id="downloadTable">Download Table</button> <!-- New Button -->
+  <table id="cookieTable">
+    <thead>
+      <tr>
+        <th>Domain</th>
+        <th>CMP Name</th>
+        <th>Necessary</th>
+        <th>Functional</th>
+        <th>Performance</th>
+        <th>Advertising</th>
+        <th>Timestamp</th>
+        <th>Expiration</th>
+        <th>First Visited</th>
+        <th>Last Visited</th>
+        <th>Action Taken</th>
+        <th>Raw Cookie - Debugging</th>
+      </tr>
+    </thead>
+    <tbody id="cookieTableBody"></tbody>
+  </table>
   <script src="popup.js" defer></script>
 </body>
 </html>
