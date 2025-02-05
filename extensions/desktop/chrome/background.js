@@ -5,6 +5,39 @@ chrome.action.onClicked.addListener(() => {
   chrome.tabs.create({ url: chrome.runtime.getURL('popup.html') });
 });
 
+// Injection script that injects data into a target tab
+function injectScript(tabId, data) {
+  chrome.scripting.executeScript({
+    target: { tabId },
+    args: [data], // Pass data as an argument
+    func: (data) => {
+      window.postMessage(
+        { extensionActive: true, data: data, source: "pricrumbs-browser-extension" }, "http://localhost:5173"
+      );
+    }
+  });
+}
+
+/*=
+chrome.tabs.query({}, (tabs) => {
+  tabs.forEach((tab) => {
+    if (tab.url && tab.url.startsWith("http://localhost:5173")) {
+      injectScript(tab.id);
+    }
+  });
+});*/
+
+// Send data if a tab is updated and the tab is a specific url (pricrumbs survey tech)
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.status === "complete" && tab.url && tab.url.startsWith("http://localhost:5173")) {
+    const extensionData = {
+      message: "Test",
+      timestamp: Date.now()
+    };
+    injectScript(tabId, extensionData);
+  }
+});
+
 // Fetch all browsing history for a specific cookie domain
 function getAllHistoryForDomain(cookieDomain, callback) {
   fetchPaginatedHistory(cookieDomain, callback);
