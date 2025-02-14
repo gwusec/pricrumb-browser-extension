@@ -68,7 +68,7 @@ function domainMatch(historyDomain, cookieDomain) {
   return historyDomain === cookieDomain || historyDomain.endsWith(`.${cookieDomain}`);
 }
 
-// Listen for messages from the popup.js
+// Listen for messages from the popup.js or content.js
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'checkCookies') {
     const cookieNames = request.cookieNames;
