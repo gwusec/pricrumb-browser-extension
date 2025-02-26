@@ -34,11 +34,11 @@ A website can make requests to the browser extension, such as requesting the for
 
 ### How To Make A Request:
 
-1. Ensure website is listed in the extension's [manifest.json](extensions/desktop/chrome/manifest.json) as matching the content script:
+1. Ensure website is listed in the extension's [manifest.json](extensions/desktop/chrome/manifest.json) as matching the content script. It MUST include a /* after if you want the content script to be injected on the entire website:
 ```
 "content_scripts": [
     {
-      "matches": ["https://example.com/", "YOUR_WEBSITE_HERE"],
+      "matches": ["https://example.com/*", "YOUR_WEBSITE_HERE/*"],
       "js": ["content.js"]
     }
   ],
@@ -46,24 +46,31 @@ A website can make requests to the browser extension, such as requesting the for
 2. Ensure your browser has the extension installed
 3. On your website, create a ```window.postMessage``` of type "FROM_WEBSITE" and specify the request you want to make as the action in the payload. For example:
 ```
-window.postMessage({ type: "FROM_WEBSITE", payload: { action: "fetchAllCookies" } }, "*");
+window.postMessage({ type: "FROM_SURVEY", payload: { action: "fetchAllCookies" } }, "*");
 ```
-4. To receive data from the extension, create a ```window.addEventListener``` of type "EventAPI" to listen for the extension's response. To confirm the response is from the extension, confirm the type is "FROM_EXTENSION". For example:
+4. To receive data from the extension, create a ```window.addEventListener``` to listen for the extension's response. To confirm the response is from the extension, confirm the type is "FROM_EXTENSION". I recommend placing this in a React hook. For example:
 ```
-window.addEventListener("EventAPI", (event) => {
-      if (event.data.type === "FROM_EXTENSION") {
-        console.log("Data received from extension:", event.data.payload);     
-      }
-    });
+useEffect(() => {
+// Listen for response from extension
+const handleMessage = (event) => {
+  if (event.data.type === "FROM_EXTENSION") {
+    console.log("Data received from extension:", event.data.payload);
+  }
+};
+window.addEventListener("message", handleMessage);
+return () => {
+  window.removeEventListener("message", handleMessage);
+};
+}, []);
 ```
-5. Your ```event.data``` contains the requested data. In this example, it contains the entire formatted cookie list from your browser.
+5. Your ```event.data.payload``` contains the requested data. In this example, it contains the entire formatted cookie list from your browser.
 
 ### How To Add More Requests To The Extension
 
 In [background.js](extensions/desktop/chrome/background.js), create the following code (or add a new if statement to existing code):
 ```
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action === 'YOUR_REQUEST_TYPE') {
+    if (request.payload?.action === 'YOUR_REQUEST_TYPE') {
         ...
 
         sendResponse({ DATA });
