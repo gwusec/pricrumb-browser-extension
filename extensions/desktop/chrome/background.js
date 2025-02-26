@@ -99,13 +99,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true; // Keep the message channel open
   }
 
-  if (request.payload.action === "fetchAllCookies" || request.action === 'fetchAllCookies') {
+  if (request.payload?.action === "fetchAllCookies" || request.action === 'fetchAllCookies') {
     // Fetch all cookies
     chrome.cookies.getAll({}, (cookies) => {
       if (chrome.runtime.lastError) {
         console.error("Error fetching cookies:", chrome.runtime.lastError);
         sendResponse({ cookies: [] });
       } else {
+        console.log("Sending cookies response:", cookies); // Debugging statement
         sendResponse({ cookies });
       }
     });

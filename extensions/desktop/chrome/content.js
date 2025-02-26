@@ -7,8 +7,12 @@ window.addEventListener("message", (event) => {
 
   // Forward message to the background script
   chrome.runtime.sendMessage(event.data, (response) => {
-      // Send the response back to the webpage
+    if (response) { // Ensure response exists before sending it back
+      console.log("Received response from background:", response);
       window.postMessage({ type: "FROM_EXTENSION", payload: response }, "*");
+    } else {
+      console.warn("No response received from background script.");
+    }
   });
 });
 
