@@ -6,10 +6,6 @@
 
 
 //We are only showing the domain / website name ,and aaksing users specific questions about it (without showing them thier options)
-// prefered_choices3.js
-// Analyze user preferences and browser history to find correlations between factors and user choices
-// prefered_choices3.js
-// Analyze user preferences and browser history to find correlations between factors and user choices
 
 document.addEventListener('DOMContentLoaded', () => {
     // Initialize view
@@ -168,7 +164,7 @@ function findMatchingWebsites(cookieData, userPreferences) {
             allDomains.push({
                 domain: formattedDomain,
                 originalDomain: cookie.domain,
-                favicon: `https://www.google.com/s2/favicons?domain=${formattedDomain}`,
+                favicon: `https://www.google.com/s2/favicons?domain=${formattedDomain}&sz=64`,
                 preferences: preferences,
                 cookie: cookie
             });
