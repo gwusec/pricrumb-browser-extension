@@ -331,10 +331,10 @@ function updateDomainDisplay() {
         
         // Highlight the selected button
         if (value === true) {
-            acceptBtn.style.backgroundColor = '#3498db';  // for consistincy, all blue
+            acceptBtn.style.backgroundColor = '#4c7aaf';  // for consistincy, all blue
             acceptBtn.style.color = 'white';
         } else {
-            rejectBtn.style.backgroundColor = '#3498db';  // for consistincy, all blue
+            rejectBtn.style.backgroundColor = '#4c7aaf';  // for consistincy, all blue
             rejectBtn.style.color = 'white';
         }
         
