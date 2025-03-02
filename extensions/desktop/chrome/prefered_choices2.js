@@ -296,10 +296,10 @@ function getSelectionStatus(domain, category) {
     const button = document.createElement('button');
     
     if (isAccepted) {
-        button.textContent = 'Accept';
+        button.textContent = 'Accepted';
         button.className = 'toggle-btn accept selected';
     } else {
-        button.textContent = 'Reject';
+        button.textContent = 'Rejected';
         button.className = 'toggle-btn reject selected';
     }
     
