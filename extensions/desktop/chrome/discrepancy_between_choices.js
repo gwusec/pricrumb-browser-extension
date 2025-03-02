@@ -211,7 +211,7 @@ function findDiscrepancyWebsites(cookieData, userPreferences) {
             discrepancies.push({
                 domain: formattedDomain,
                 originalDomain: originalDomain,
-                favicon: `https://www.google.com/s2/favicons?domain=${formattedDomain}`,
+                favicon: `https://www.google.com/s2/favicons?domain=${formattedDomain}&sz=64`,
                 statedPreferences: statedPreferences,
                 actualPreferences: actualPreferences,
                 cookie: cookie,
