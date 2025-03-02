@@ -55,11 +55,11 @@ async function loadCookies() {
             
             // Add favicon URLs to domains
             mostRecentDomains.forEach(domain => {
-                domain.favicon = `https://www.google.com/s2/favicons?domain=${formatDomainForDisplay(domain.domain)}&sz=64`;
+                domain.favicon = `https://www.google.com/s2/favicons?domain=${formatDomainForDisplay(domain.domain)}&sz=32`;
             });
             
             leastRecentDomains.forEach(domain => {
-                domain.favicon = `https://www.google.com/s2/favicons?domain=${formatDomainForDisplay(domain.domain)}&sz=64`;
+                domain.favicon = `https://www.google.com/s2/favicons?domain=${formatDomainForDisplay(domain.domain)}&sz=32`;
             });
             
             // Combine all domains
@@ -262,10 +262,10 @@ function updateDomainDisplay() {
     
     // Favicon image
     const favicon = document.createElement('img');
-    favicon.src = currentDomain.favicon || `https://www.google.com/s2/favicons?domain=${currentDomain.domain}`;
+    favicon.src = currentDomain.favicon || `https://www.google.com/s2/favicons?domain=${currentDomain.domain}&sz=32`;
     favicon.alt = '';
-    favicon.width = 16;
-    favicon.height = 16;
+    // favicon.width = 16;
+    // favicon.height = 16;
     
     // Handle favicon loading errors
     favicon.onerror = function() {
