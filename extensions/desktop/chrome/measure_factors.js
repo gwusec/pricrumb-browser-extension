@@ -164,7 +164,7 @@ function findMatchingWebsites(cookieData, userPreferences) {
             allDomains.push({
                 domain: formattedDomain,
                 originalDomain: cookie.domain,
-                favicon: `https://www.google.com/s2/favicons?domain=${formattedDomain}&sz=64`,
+                favicon: `https://www.google.com/s2/favicons?domain=${formattedDomain}&sz=32`,
                 preferences: preferences,
                 cookie: cookie
             });
