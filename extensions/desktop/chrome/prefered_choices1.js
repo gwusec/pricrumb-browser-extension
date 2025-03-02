@@ -55,11 +55,11 @@ async function loadCookies() {
             
             // Add favicon URLs to domains
             mostRecentDomains.forEach(domain => {
-                domain.favicon = `https://www.google.com/s2/favicons?domain=${formatDomainForDisplay(domain.domain)}`;
+                domain.favicon = `https://www.google.com/s2/favicons?domain=${formatDomainForDisplay(domain.domain)}&sz=64`;
             });
             
             leastRecentDomains.forEach(domain => {
-                domain.favicon = `https://www.google.com/s2/favicons?domain=${formatDomainForDisplay(domain.domain)}`;
+                domain.favicon = `https://www.google.com/s2/favicons?domain=${formatDomainForDisplay(domain.domain)}&sz=64`;
             });
             
             // Combine all domains
