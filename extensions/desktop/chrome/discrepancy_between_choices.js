@@ -283,8 +283,8 @@ function createComparisonRow(cookieType, statedValue, actualValue) {
     return `
         <tr class="${isDifferent}">
             <td>${cookieType}</td>
-            <td class="${statedClass}">${statedValue ? 'Accept' : 'Reject'}</td>
-            <td class="${actualClass}">${actualValue ? 'Accept' : 'Reject'}</td>
+            <td class="${statedClass}">${statedValue ? 'Accepted' : 'Rejected'}</td>
+            <td class="${actualClass}">${actualValue ? 'Accepted' : 'Rejected'}</td>
         </tr>
     `;
 }
