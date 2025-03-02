@@ -219,7 +219,7 @@ function displayWebsites(domains, tableId) {
         
         // Create favicon image element
         const favicon = document.createElement('img');
-        favicon.src = `https://www.google.com/s2/favicons?domain=${formattedDomain}`;
+        favicon.src = `https://www.google.com/s2/favicons?domain=${formattedDomain}&sz=64`;
         favicon.alt = '';
         favicon.width = 16;
         favicon.height = 16;
