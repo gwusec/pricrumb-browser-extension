@@ -1356,9 +1356,9 @@ document.getElementById('openConsentPage4')?.addEventListener('click', () => {
       
 
 });
-  // Download buttons
-  setupDownloadCookiesListener();
-  setupDownloadTableListener();
+  // // Download buttons
+  // setupDownloadCookiesListener();
+  // setupDownloadTableListener();
 
 
 
