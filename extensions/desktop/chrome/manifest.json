@@ -13,5 +13,11 @@
       "js": ["content.js"]
     }
   ],
+  "web_accessible_resources": [
+    {
+      "matches": ["http://localhost:5173/*"],
+      "resources": ["prefered_choices.html"]
+    }
+  ],
   "action": {}
 }

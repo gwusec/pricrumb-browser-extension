@@ -9,7 +9,7 @@ window.addEventListener("message", (event) => {
   chrome.runtime.sendMessage(event.data, (response) => {
     if (response) { // Ensure response exists before sending it back
       console.log("Received response from background:", response);
-      window.postMessage({ type: "FROM_EXTENSION", payload: response }, "*");
+      window.postMessage({ type: "FROM_EXTENSION", payload: response, tabId: event.data.tabId || null }, "*");
     } else {
       console.warn("No response received from background script.");
     }

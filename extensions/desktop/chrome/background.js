@@ -146,6 +146,27 @@ function domainMatch(historyDomain, cookieDomain) {
   return historyDomain === cookieDomain || historyDomain.endsWith(`.${cookieDomain}`);
 }
 
+// Gives a way to inject html content from this extension into a webpage as an iframe
+// elementID = ID of element where iframe should be injected into
+// html = name of .html file
+function injectHTML(elementId, htmlFile) {
+  fetch(chrome.runtime.getURL(htmlFile)) // Fetch the contents from the extension
+    .then(response => {
+      if (!response.ok) throw new Error(`Failed to fetch ${htmlFile}`);
+      return response.text(); // Convert response to text (HTML content)
+    })
+    .then(html => {
+      const targetElement = document.getElementById(elementId);
+      if (targetElement) {
+        targetElement.innerHTML = html; // Inject the fetched HTML into the page
+      } else {
+        console.error(`Target element #${elementId} not found.`);
+      }
+    })
+    .catch(error => console.error("Error injecting HTML:", error));
+}
+
+
 // Listen for messages from the popup.js or content.js
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
@@ -210,6 +231,31 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         sendResponse({ cookies });
       }
     });
+    return true; // Keep the message channel open
+  }
+
+  if (request.payload?.action === "injectPreferredChoicesHTML") {
+    const tabId = sender.tab ? sender.tab.id : request.tabId; // Get tab ID
+
+    if (!tabId) {
+      console.error("Invalid tabID");
+      return;
+    }
+
+    // Call the inject function
+    chrome.scripting.executeScript({
+      target: { tabId: tabId },
+      function: injectHTML,
+      args: ["extensionPageID", "prefered_choices.html"] // Function parameters: elementId, html
+    }).then(() => {
+        // Send success message back to content script
+        sendResponse({ success: true });
+    }).catch(error => {
+        // Send failure message back to content script
+        console.error("Error injecting script:", error);
+        sendResponse({ success: false, error });
+    });
+    
     return true; // Keep the message channel open
   }
 
