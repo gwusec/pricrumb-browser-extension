@@ -148,9 +148,10 @@ function domainMatch(historyDomain, cookieDomain) {
 
 // Gives a way to inject html content from this extension into a webpage as an iframe
 // elementID = ID of element where iframe should be injected into
-// html = name of .html file
-function injectHTML(elementId, htmlFile) {
-  fetch(chrome.runtime.getURL(htmlFile)) // Fetch the contents from the extension
+// htmlFile = name of .html file
+// scriptFile = name of associated .js script
+function injectHTML(elementId, htmlFile, scriptFile) {
+  fetch(chrome.runtime.getURL(htmlFile)) // Fetch the HTML file from the extension
     .then(response => {
       if (!response.ok) throw new Error(`Failed to fetch ${htmlFile}`);
       return response.text(); // Convert response to text (HTML content)
@@ -159,6 +160,13 @@ function injectHTML(elementId, htmlFile) {
       const targetElement = document.getElementById(elementId);
       if (targetElement) {
         targetElement.innerHTML = html; // Inject the fetched HTML into the page
+
+        // Manually inject and execute the script
+        const script = document.createElement("script");
+        script.src = chrome.runtime.getURL(scriptFile); // Load the script from the extension
+        script.onload = () => console.log(`${scriptFile} loaded successfully!`);
+        script.onerror = () => console.error(`Failed to load ${scriptFile}`);
+        document.body.appendChild(script);
       } else {
         console.error(`Target element #${elementId} not found.`);
       }
@@ -246,7 +254,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     chrome.scripting.executeScript({
       target: { tabId: tabId },
       function: injectHTML,
-      args: ["extensionPageID", "prefered_choices.html"] // Function parameters: elementId, html
+      args: ["extensionPageID", "prefered_choices.html", "prefered_choices.js"] // Function parameters: elementId, htmlFile, scriptFile
     }).then(() => {
         // Send success message back to content script
         sendResponse({ success: true });
