@@ -13,8 +13,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Add event listener for the "Next" button on page 2, to take us to option3
 
     document.getElementById('nextBtn2').addEventListener('click', () => {
-        // Redirect to main page or close
-        window.location.href = 'prefered_choices2.html';  
+        // Redirect to next option
+        window.location.href = 'measure_factors.html';  
     });    
 });
 
