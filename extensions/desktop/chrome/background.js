@@ -293,19 +293,28 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true; // Keep the message channel open
   }
 
-  if (request.payload?.action === "injectPreferredChoicesHTML") {
+  if (request.payload?.action === "injectHTML") {
     const tabId = sender.tab ? sender.tab.id : request.tabId; // Get tab ID
+
+    if(!request.payload.html) {
+      console.error("No html file provided");
+      return;
+    }
 
     if (!tabId) {
       console.error("Invalid tabID");
       return;
     }
 
+    // Remove the ".html" portion of the page name to get the element ID
+    elementId = request.payload.html.slice(0, -5);
+    console.log(elementId);
+
     // Call the inject function
     chrome.scripting.executeScript({
       target: { tabId: tabId },
       function: injectHTML,
-      args: ["extensionPageID", "prefered_choices1.html"] // Function parameters: elementId, htmlFile
+      args: [elementId, request.payload.html] // Function parameters: elementId, htmlFile
     }).then(() => {
         // Send success message back to content script
         sendResponse({ success: true });
@@ -370,26 +379,139 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 
 // Function to check if the element with ID "extensionPageID" exists
 function checkForSurveyElement() {
-  const elementID = "extensionPageID";
+  const elementId_main = "popup"; // popup.html
+  const elementId_1_1 = "pricrumbs_preferred_cookie_choices_functional"; // pricrumbs_preferred_cookie_choices_functional.html
+  const elementId_1_2 = "pricrumbs_preferred_cookie_choices_performance"; // pricrumbs_preferred_cookie_choices_performance.html
+  const elementId_1_3 = "pricrumbs_preferred_cookie_choices_advertising"; // pricrumbs_preferred_cookie_choices_advertising.html
+  const elementId_2_1 = "pricrumbs_consent_history_top_websites"; // pricrumbs_consent_history_top_websites.html
+  const elementId_2_2 = "pricrumbs_consent_history_bottom_websites"; // pricrumbs_consent_history_bottom_websites.html
+  const elementId_3_1 = "pricrumbs_website_all_cookies_accepted"; // pricrumbs_website_all_cookies_accepted.html
+  const elementId_3_2 = "pricrumbs_website_all_cookies_rejected"; // pricrumbs_website_all_cookies_rejected.html
+  const elementId_3_3 = "pricrumbs_website_advertising_cookies_rejected"; // pricrumbs_website_advertising_cookies_rejected.html
 
-  const observer = new MutationObserver((mutations, observer) => {
-      const targetElement = document.getElementById(elementID);
+  // Look for element with target ID on page
+  const observer_main = new MutationObserver((mutations, observer) => {
+      const targetElement = document.getElementById(elementId_main);
       if (targetElement && !targetElement.querySelector("iframe")) {
-          observer.disconnect(); // Stop observing once found
+        observer.disconnect(); // Stop observing once found
 
           // Sends message to content script from webpage to embed iframe
-          window.postMessage({ type: "FROM_SURVEY", tabId: chrome.runtime.id, payload: { action: "injectPreferredChoicesHTML" } }, "*");
+          window.postMessage({ type: "FROM_SURVEY", tabId: chrome.runtime.id, payload: { action: "injectHTML", html: "popup.html" } }, "*");
       }
   });
+  const observer_1_1 = new MutationObserver((mutations, observer) => {
+    const targetElement = document.getElementById(elementId_1_1);
+    if (targetElement && !targetElement.querySelector("iframe")) {
+        observer.disconnect();
+        window.postMessage({ type: "FROM_SURVEY", tabId: chrome.runtime.id, payload: { action: "injectHTML", html: "pricrumbs_preferred_cookie_choices_functional.html" } }, "*");
+    }
+  });
+  const observer_1_2 = new MutationObserver((mutations, observer) => {
+    const targetElement = document.getElementById(elementId_1_2);
+    if (targetElement && !targetElement.querySelector("iframe")) {
+        observer.disconnect();
+        window.postMessage({ type: "FROM_SURVEY", tabId: chrome.runtime.id, payload: { action: "injectHTML", html: "pricrumbs_preferred_cookie_choices_performance.html" } }, "*");
+    }
+  });
+  const observer_1_3 = new MutationObserver((mutations, observer) => {
+    const targetElement = document.getElementById(elementId_1_3);
+    if (targetElement && !targetElement.querySelector("iframe")) {
+        observer.disconnect();
+        window.postMessage({ type: "FROM_SURVEY", tabId: chrome.runtime.id, payload: { action: "injectHTML", html: "pricrumbs_preferred_cookie_choices_advertising.html" } }, "*");
+    }
+  });
+  const observer_2_1 = new MutationObserver((mutations, observer) => {
+    const targetElement = document.getElementById(elementId_2_1);
+    if (targetElement && !targetElement.querySelector("iframe")) {
+        observer.disconnect();
+        window.postMessage({ type: "FROM_SURVEY", tabId: chrome.runtime.id, payload: { action: "injectHTML", html: "pricrumbs_consent_history_top_websites.html" } }, "*");
+    }
+  });
+  const observer_2_2 = new MutationObserver((mutations, observer) => {
+    const targetElement = document.getElementById(elementId_2_2);
+    if (targetElement && !targetElement.querySelector("iframe")) {
+        observer.disconnect();
+        window.postMessage({ type: "FROM_SURVEY", tabId: chrome.runtime.id, payload: { action: "injectHTML", html: "pricrumbs_consent_history_bottom_websites.html" } }, "*");
+    }
+  });
+  const observer_3_1 = new MutationObserver((mutations, observer) => {
+    const targetElement = document.getElementById(elementId_3_1);
+    if (targetElement && !targetElement.querySelector("iframe")) {
+        observer.disconnect();
+        window.postMessage({ type: "FROM_SURVEY", tabId: chrome.runtime.id, payload: { action: "injectHTML", html: "pricrumbs_website_all_cookies_accepted.html" } }, "*");
+    }
+  });
+  const observer_3_2 = new MutationObserver((mutations, observer) => {
+    const targetElement = document.getElementById(elementId_3_2);
+    if (targetElement && !targetElement.querySelector("iframe")) {
+        observer.disconnect();
+        window.postMessage({ type: "FROM_SURVEY", tabId: chrome.runtime.id, payload: { action: "injectHTML", html: "pricrumbs_website_all_cookies_rejected.html" } }, "*");
+    }
+  });
+  const observer_3_3 = new MutationObserver((mutations, observer) => {
+    const targetElement = document.getElementById(elementId_3_3);
+    if (targetElement && !targetElement.querySelector("iframe")) {
+        observer.disconnect();
+        window.postMessage({ type: "FROM_SURVEY", tabId: chrome.runtime.id, payload: { action: "injectHTML", html: "pricrumbs_website_advertising_cookies_rejected.html" } }, "*");
+    }
+  });
 
-  observer.observe(document.body, { childList: true, subtree: true });
+  // Start the observers
+  observer_main.observe(document.body, { childList: true, subtree: true });
+  observer_1_1.observe(document.body, { childList: true, subtree: true });
+  observer_1_2.observe(document.body, { childList: true, subtree: true });
+  observer_1_3.observe(document.body, { childList: true, subtree: true });
+  observer_2_1.observe(document.body, { childList: true, subtree: true });
+  observer_2_2.observe(document.body, { childList: true, subtree: true });
+  observer_3_1.observe(document.body, { childList: true, subtree: true });
+  observer_3_2.observe(document.body, { childList: true, subtree: true });
+  observer_3_3.observe(document.body, { childList: true, subtree: true });
 
   // Check immediately in case the element is already present
-  const existingElement = document.getElementById(elementID);
-  if (existingElement && !existingElement.querySelector("iframe")) {
-      observer.disconnect();
+  const existingElement_main = document.getElementById(elementId_main);
+  const existingElement_1_1 = document.getElementById(elementId_1_1);
+  const existingElement_1_2 = document.getElementById(elementId_1_2);
+  const existingElement_1_3 = document.getElementById(elementId_1_3);
+  const existingElement_2_1 = document.getElementById(elementId_2_1);
+  const existingElement_2_2 = document.getElementById(elementId_2_2);
+  const existingElement_3_1 = document.getElementById(elementId_3_1);
+  const existingElement_3_2 = document.getElementById(elementId_3_2);
+  const existingElement_3_3 = document.getElementById(elementId_3_3);
 
-      // Sends message to content script from webpage to embed iframe
-      window.postMessage({ type: "FROM_SURVEY", tabId: chrome.runtime.id, payload: { action: "injectPreferredChoicesHTML" } }, "*");
+  if (existingElement_main && !existingElement_main.querySelector("iframe")) {
+      observer_main.disconnect();
+      window.postMessage({ type: "FROM_SURVEY", tabId: chrome.runtime.id, payload: { action: "injectHTML", html: "popup.html" } }, "*");
+  }
+  if (existingElement_1_1 && !existingElement_1_1.querySelector("iframe")) {
+    observer_1_1.disconnect();
+    window.postMessage({ type: "FROM_SURVEY", tabId: chrome.runtime.id, payload: { action: "injectHTML", html: "pricrumbs_preferred_cookie_choices_functional.html" } }, "*");
+  }
+  if (existingElement_1_2 && !existingElement_1_2.querySelector("iframe")) {
+    observer_1_2.disconnect();
+    window.postMessage({ type: "FROM_SURVEY", tabId: chrome.runtime.id, payload: { action: "injectHTML", html: "pricrumbs_preferred_cookie_choices_performance.html" } }, "*");
+  }
+  if (existingElement_1_3 && !existingElement_1_3.querySelector("iframe")) {
+    observer_1_3.disconnect();
+    window.postMessage({ type: "FROM_SURVEY", tabId: chrome.runtime.id, payload: { action: "injectHTML", html: "pricrumbs_preferred_cookie_choices_advertising.html" } }, "*");
+  }
+  if (existingElement_2_1 && !existingElement_2_1.querySelector("iframe")) {
+    observer_2_1.disconnect();
+    window.postMessage({ type: "FROM_SURVEY", tabId: chrome.runtime.id, payload: { action: "injectHTML", html: "pricrumbs_consent_history_top_websites.html" } }, "*");
+  }
+  if (existingElement_2_2 && !existingElement_2_2.querySelector("iframe")) {
+    observer_2_2.disconnect();
+    window.postMessage({ type: "FROM_SURVEY", tabId: chrome.runtime.id, payload: { action: "injectHTML", html: "pricrumbs_consent_history_bottom_websites.html" } }, "*");
+  }
+  if (existingElement_3_1 && !existingElement_3_1.querySelector("iframe")) {
+    observer_3_1.disconnect();
+    window.postMessage({ type: "FROM_SURVEY", tabId: chrome.runtime.id, payload: { action: "injectHTML", html: "pricrumbs_website_all_cookies_accepted.html" } }, "*");
+  }
+  if (existingElement_3_2 && !existingElement_3_2.querySelector("iframe")) {
+    observer_3_2.disconnect();
+    window.postMessage({ type: "FROM_SURVEY", tabId: chrome.runtime.id, payload: { action: "injectHTML", html: "pricrumbs_website_all_cookies_rejected.html" } }, "*");
+  }
+  if (existingElement_3_3 && !existingElement_3_3.querySelector("iframe")) {
+    observer_3_3.disconnect();
+    window.postMessage({ type: "FROM_SURVEY", tabId: chrome.runtime.id, payload: { action: "injectHTML", html: "pricrumbs_website_advertising_cookies_rejected.html" } }, "*");
   }
 }
