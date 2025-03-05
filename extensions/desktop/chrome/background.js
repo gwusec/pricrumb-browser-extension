@@ -356,3 +356,38 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   //   }
 
 });
+
+// Listens for active tab to be updated
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.status === "complete" && tab.url) {
+      // Inject content script to check for the element with ID "extensionPageID"
+      chrome.scripting.executeScript({
+          target: { tabId: tabId },
+          func: checkForSurveyElement
+      });
+  }
+});
+
+// Function to check if the element with ID "extensionPageID" exists
+function checkForSurveyElement() {
+  const elementID = "extensionPageID";
+
+  const observer = new MutationObserver((mutations, observer) => {
+      if (document.getElementById(elementID)) {
+          observer.disconnect(); // Stop observing once found
+          
+          // Sends message to content script from webpage to embed iframe
+          window.postMessage({ type: "FROM_SURVEY", tabId: chrome.runtime.id, payload: { action: "injectPreferredChoicesHTML" } }, "*");
+      }
+  });
+
+  observer.observe(document.body, { childList: true, subtree: true });
+
+  // Check immediately in case the element is already present
+  if (document.getElementById(elementID)) {
+      observer.disconnect();
+
+      // Sends message to content script from webpage to embed iframe
+      window.postMessage({ type: "FROM_SURVEY", tabId: chrome.runtime.id, payload: { action: "injectPreferredChoicesHTML" } }, "*");
+  }
+}
