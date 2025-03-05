@@ -47,9 +47,12 @@ async function loadCookies() {
             displayWebsites(leastRecentDomains, 'leastRecentWebsitesList');
             
             // Hide loading message and show tables
+            // document.getElementById('loading').style.display = 'none';
+            // document.getElementById('mostRecentTable').style.display = 'table';
+            // document.getElementById('leastRecentTable').style.display = 'table';
             document.getElementById('loading').style.display = 'none';
             document.getElementById('mostRecentTable').style.display = 'table';
-            document.getElementById('leastRecentTable').style.display = 'table';
+
         } else {
             document.getElementById('loading').textContent = 'No cookie data found. Please visit the Cookie Checker first.';
         }
