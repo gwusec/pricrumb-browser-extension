@@ -252,5 +252,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Initialize by fetching and displaying websites
+    console.log("Websites fetched and displayed!");
     fetchAndDisplayWebsites();
 });

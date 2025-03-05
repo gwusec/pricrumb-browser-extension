@@ -151,27 +151,14 @@ function domainMatch(historyDomain, cookieDomain) {
 // htmlFile = name of .html file
 // scriptFile = name of associated .js script
 function injectHTML(elementId, htmlFile, scriptFile) {
-  fetch(chrome.runtime.getURL(htmlFile)) // Fetch the HTML file from the extension
-    .then(response => {
-      if (!response.ok) throw new Error(`Failed to fetch ${htmlFile}`);
-      return response.text(); // Convert response to text (HTML content)
-    })
-    .then(html => {
       const targetElement = document.getElementById(elementId);
       if (targetElement) {
-        targetElement.innerHTML = html; // Inject the fetched HTML into the page
-
-        // Manually inject and execute the script
-        const script = document.createElement("script");
-        script.src = chrome.runtime.getURL(scriptFile); // Load the script from the extension
-        script.onload = () => console.log(`${scriptFile} loaded successfully!`);
-        script.onerror = () => console.error(`Failed to load ${scriptFile}`);
-        document.body.appendChild(script);
+        const iframe = document.createElement('iframe');
+        iframe.src = chrome.runtime.getURL(htmlFile);
+        targetElement.appendChild(iframe);
       } else {
-        console.error(`Target element #${elementId} not found.`);
+        console.error("Error injecting iframe");
       }
-    })
-    .catch(error => console.error("Error injecting HTML:", error));
 }
 
 
