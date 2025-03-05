@@ -73,7 +73,6 @@ function fetchPaginatedHistory(cookieDomain, callback) {
 
               // If no meaningful visits were found, stop early
               if (meaningfulVisits.length === 0) {
-                console.warn(`No meaningful history entries for ${cookieDomain}.`);
                 finalizeHistory();
                 return;
             }
@@ -125,8 +124,6 @@ function fetchPaginatedHistory(cookieDomain, callback) {
 
   // Get finalized history data and cache it, preventing infinite recursion
   function finalizeHistory() {
-      console.log(`Finalizing history for ${cookieDomain}`);
-      
       let dailyVisitCounts = Array.from(dailyVisitMap.values());
       let avgDailyVisits = dailyVisitCounts.length > 0 
           ? Math.round((dailyVisitCounts.reduce((sum, count) => sum + count, 0) / dailyVisitCounts.length) * 10) / 10 
@@ -142,7 +139,6 @@ function fetchPaginatedHistory(cookieDomain, callback) {
 
       // Store in cache
       historyCache[cookieDomain] = historyData;
-      console.log(`Cached history for ${cookieDomain}`);
 
       callback(historyData);
   }
