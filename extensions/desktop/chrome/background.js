@@ -249,7 +249,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 }
             });
     
-            // Timeout if no response received in 5 seconds
+            // Timeout if no response received in 10 seconds
             setTimeout(() => {
                 if (!resolved) {
                     resolved = true;
@@ -262,7 +262,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                         avgDailyVisits: 0
                     });
                 }
-            }, 5000);
+            }, 10000);
         });
     });
     
