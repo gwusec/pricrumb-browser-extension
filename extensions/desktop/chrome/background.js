@@ -305,7 +305,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     chrome.scripting.executeScript({
       target: { tabId: tabId },
       function: injectHTML,
-      args: ["extensionPageID", "prefered_choices.html"] // Function parameters: elementId, htmlFile
+      args: ["extensionPageID", "prefered_choices1.html"] // Function parameters: elementId, htmlFile
     }).then(() => {
         // Send success message back to content script
         sendResponse({ success: true });

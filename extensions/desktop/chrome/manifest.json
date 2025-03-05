@@ -16,7 +16,7 @@
   "web_accessible_resources": [
     {
       "matches": ["http://localhost:5173/*"],
-      "resources": ["prefered_choices.html"]
+      "resources": ["prefered_choices1.html"]
     }
   ],
   "action": {}
