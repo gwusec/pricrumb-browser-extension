@@ -308,7 +308,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     // Remove the ".html" portion of the page name to get the element ID
     elementId = request.payload.html.slice(0, -5);
-    console.log(elementId);
 
     // Call the inject function
     chrome.scripting.executeScript({
