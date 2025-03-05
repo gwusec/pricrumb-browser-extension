@@ -460,11 +460,11 @@ function saveAllPreferences() {
     });
 }
 
-// Finish and save, then redirect
+// Finish and save, then redirect to the second option (option2)
 function finishAndSave() {
     saveAllPreferences();
     alert('Your preferences have been saved. Thank you!');
     
     // Redirect to main page or close
-    window.location.href = 'popup.html';  
+    window.location.href = 'prefered_choices2.html';  
 }
