@@ -718,6 +718,8 @@ document.addEventListener('DOMContentLoaded', () => {
    * @param {Array} cookies - Array of consent objects.
    */
   function displayCookies(cookies) {
+    console.log(`Displaying ${cookies.length} cookies in the table.`);
+
     const tableBody = document.getElementById("cookieTableBody");
     tableBody.innerHTML = "";
 
@@ -749,10 +751,18 @@ document.addEventListener('DOMContentLoaded', () => {
    * Fetches cookies and displays them in the popup.
    */
   function fetchAndDisplayCookies() {
+    console.log("Sending message to background.js to check cookies...");
+
     chrome.runtime.sendMessage({ action: "checkCookies", cookieNames }, (response) => {
       if (chrome.runtime.lastError) {
         console.error("Error fetching cookies:", chrome.runtime.lastError);
       } else {
+        if (!response || !response.cookies) {
+          console.warn("No cookies received from background.js");
+          alert("No cookies received.");
+          return;
+        }
+        
         const allFetchedCookies = response.cookies;
         console.log("Fetched Cookies:", allFetchedCookies);
         // Filter consent cookies (excluding OptanonAlertBoxClosed and Complianz ancillary cookies)

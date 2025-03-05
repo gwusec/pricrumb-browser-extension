@@ -1,5 +1,7 @@
 // background.js
 
+const historyCache = {}; // Cache to store history data per domain
+
 // Opens the popup.html when the extension icon is clicked
 chrome.action.onClicked.addListener(() => {
   chrome.tabs.create({ 
@@ -14,122 +16,140 @@ function getAllHistoryForDomain(cookieDomain, callback) {
 
 // Recursive function to fetch paginated history for a domain
 function fetchPaginatedHistory(cookieDomain, callback) {
+  // Check if we already have cached data
+  if (historyCache[cookieDomain]) {
+      console.log(`Cache hit for ${cookieDomain}, returning cached history.`);
+      callback(historyCache[cookieDomain]); // Return cached result immediately
+      return;
+  }
+
   let allVisits = [];
-  let lastEndTime = Date.now();
-  let previousEndTime = null;
   let totalVisitCount = 0;
   let dailyVisitMap = new Map();
+  let lastEndTime = Date.now();
+  let previousEndTime = null;
+  let fetchAttempts = 0; // Track the number of fetch attempts
+  const MAX_FETCH_ATTEMPTS = 5; // Limit fetch attempts prevent infinite loops
 
+  // Fetch history data in batches until all history is found, max attempts reached,
+  // or no new data is found (to avoid infinite loops)
   function fetchNextBatch() {
-    chrome.history.search({ text: '', startTime: 0, endTime: lastEndTime, maxResults: 1000 }, (results) => {
-      if (results.length === 0 || lastEndTime === previousEndTime) {
-        // Calculate average visits per day
-        let dailyVisitCounts = Array.from(dailyVisitMap.values());
-        let avgDailyVisits = 0;
-        if (dailyVisitCounts.length > 0) {
-          avgDailyVisits = Math.round((dailyVisitCounts.reduce((sum, count) => sum + count, 0) / dailyVisitCounts.length) * 10) / 10;
-        }
-        
-        callback({
+      // Return if max fetch attempts have been reached for this cookie domain
+      if (fetchAttempts >= MAX_FETCH_ATTEMPTS) {
+          console.warn(`Max fetch attempts reached for ${cookieDomain}.`);
+          finalizeHistory();
+          return;
+      }
+      fetchAttempts++;
+
+      chrome.history.search(
+          { text: '', startTime: 0, endTime: lastEndTime, maxResults: 5000 },
+          (results) => {
+              if (chrome.runtime.lastError) {
+                  console.error("History API error:", chrome.runtime.lastError);
+                  finalizeHistory();
+                  return;
+              }
+
+              // Stop fetching if no new results were found or the last fetched timestamp
+              // hasn't changed (to prevent infinite loops).
+              if (results.length === 0 || lastEndTime === previousEndTime) {
+                  finalizeHistory();
+                  return;
+              }
+
+              // Update to track timestamps (ensuring new data is found every loop)
+              previousEndTime = lastEndTime;
+              
+              let meaningfulVisits = [];
+              results.forEach(item => {
+                  try {
+                      const url = new URL(item.url);
+                      if (domainMatch(url.hostname, cookieDomain)) {
+                          meaningfulVisits.push({ url: item.url, lastVisitTime: item.lastVisitTime });
+                      }
+                  } catch { }
+              });
+
+              // If no meaningful visits were found, stop early
+              if (meaningfulVisits.length === 0) {
+                console.warn(`No meaningful history entries for ${cookieDomain}.`);
+                finalizeHistory();
+                return;
+            }
+
+              // Process each meaningful visit
+              Promise.all(
+                  meaningfulVisits.map(item =>
+                      new Promise(resolve => {
+                          chrome.history.getVisits({ url: item.url }, visits => {
+                              if (chrome.runtime.lastError) {
+                                  console.error("Error fetching visit details:", chrome.runtime.lastError);
+                                  resolve();
+                                  return;
+                              }
+
+                              // Filter valid transitions (ignore redirects & reloads)
+                              const validVisits = visits.filter(visit => 
+                                  !['auto_redirect', 'auto_subframe', 'reload'].includes(visit.transition)
+                              );
+
+                              validVisits.forEach(visit => {
+                                  allVisits.push(visit.visitTime);
+                                  totalVisitCount++;
+                                  
+                                  const visitDate = new Date(visit.visitTime);
+                                  const dateKey = `${visitDate.getFullYear()}-${visitDate.getMonth() + 1}-${visitDate.getDate()}`;
+                                  dailyVisitMap.set(dateKey, (dailyVisitMap.get(dateKey) || 0) + 1);
+                              });
+
+                              resolve();
+                          });
+                      })
+                  )
+              ).then(() => {
+                  // Update `lastEndTime` and continue fetching if necessary
+                  if (meaningfulVisits.length > 0) {
+                      lastEndTime = Math.min(...meaningfulVisits.map(v => v.lastVisitTime)) - 1;
+                      fetchNextBatch();
+                  } else {
+                      finalizeHistory();
+                  }
+              }).catch(error => {
+                  console.error("Error processing visits:", error);
+                  finalizeHistory();
+              });
+          }
+      );
+  }
+
+  // Get finalized history data and cache it, preventing infinite recursion
+  function finalizeHistory() {
+      console.log(`Finalizing history for ${cookieDomain}`);
+      
+      let dailyVisitCounts = Array.from(dailyVisitMap.values());
+      let avgDailyVisits = dailyVisitCounts.length > 0 
+          ? Math.round((dailyVisitCounts.reduce((sum, count) => sum + count, 0) / dailyVisitCounts.length) * 10) / 10 
+          : 0;
+
+      const historyData = {
           firstVisited: allVisits.length > 0 ? Math.min(...allVisits) : null,
           lastVisited: allVisits.length > 0 ? Math.max(...allVisits) : null,
           totalVisitCount: totalVisitCount,
           avgDailyVisits: avgDailyVisits,
           daysVisited: dailyVisitMap.size,
-        });
-        return;
-      }
+      };
 
-      previousEndTime = lastEndTime;
+      // Store in cache
+      historyCache[cookieDomain] = historyData;
+      console.log(`Cached history for ${cookieDomain}`);
 
-      // Filter results for matching domains first
-      const matchingItems = results.filter(item => {
-        try {
-          const url = new URL(item.url);
-          return domainMatch(url.hostname, cookieDomain);
-        } catch {
-          return false; // Ignore invalid URLs
-        }
-      });
-
-      // Now further filter to remove background/asset requests
-      const meaningfulItems = matchingItems.filter(item => {
-        try {
-          const url = new URL(item.url);
-          
-          // Filter out likely background/asset requests
-          const pathLowerCase = url.pathname.toLowerCase();
-          const isAssetOrApi = 
-            pathLowerCase.includes('/api/') || 
-            pathLowerCase.includes('/assets/') ||
-            pathLowerCase.endsWith('.js') ||
-            pathLowerCase.endsWith('.css') ||
-            pathLowerCase.endsWith('.jpg') ||
-            pathLowerCase.endsWith('.png') ||
-            pathLowerCase.endsWith('.gif') ||
-            pathLowerCase.endsWith('.svg') ||
-            pathLowerCase.endsWith('.woff') ||
-            pathLowerCase.endsWith('.json');
-          
-          return !isAssetOrApi;
-        } catch {
-          return false;
-        }
-      });
-
-      // Process each meaningful URL
-      const visitPromises = meaningfulItems.map(item => {
-        return new Promise(resolve => {
-          // Get detailed visit information
-          chrome.history.getVisits({ url: item.url }, visits => {
-            // Filter redirects and background transitions
-            const meaningfulVisits = visits.filter(visit => {
-              // Exclude auto redirects and reloads
-              return !(
-                visit.transition === 'auto_redirect' ||
-                visit.transition === 'auto_subframe' ||
-                visit.transition === 'reload'
-              );
-            });
-            
-            // Add visit times to allVisits array
-            meaningfulVisits.forEach(visit => {
-              allVisits.push(visit.visitTime);
-            });
-            
-            // Count meaningful visits
-            totalVisitCount += meaningfulVisits.length;
-            
-            // Group visits by day
-            meaningfulVisits.forEach(visit => {
-              const visitDate = new Date(visit.visitTime);
-              const dateKey = `${visitDate.getFullYear()}-${visitDate.getMonth() + 1}-${visitDate.getDate()}`;
-              
-              if (dailyVisitMap.has(dateKey)) {
-                dailyVisitMap.set(dateKey, dailyVisitMap.get(dateKey) + 1);
-              } else {
-                dailyVisitMap.set(dateKey, 1);
-              }
-            });
-            
-            resolve();
-          });
-        });
-      });
-
-      // Wait for all visit processing to complete
-      Promise.all(visitPromises).then(() => {
-        // Update lastEndTime for next batch
-        if (results.length > 0) {
-          lastEndTime = Math.min(...results.map(r => r.lastVisitTime)) - 1;
-          fetchNextBatch();
-        }
-      });
-    });
+      callback(historyData);
   }
 
   fetchNextBatch();
 }
+
 
 // Standardize domain by removing leading dots and converting to lowercase
 function standardizeDomain(domain) {
@@ -150,11 +170,16 @@ function domainMatch(historyDomain, cookieDomain) {
 // elementID = ID of element where iframe should be injected into
 // htmlFile = name of .html file
 // scriptFile = name of associated .js script
-function injectHTML(elementId, htmlFile, scriptFile) {
+function injectHTML(elementId, htmlFile) {
       const targetElement = document.getElementById(elementId);
       if (targetElement) {
         const iframe = document.createElement('iframe');
         iframe.src = chrome.runtime.getURL(htmlFile);
+
+        iframe.style.width = "100%";
+        iframe.style.height = "600px";
+        iframe.style.border = "none"; 
+
         targetElement.appendChild(iframe);
       } else {
         console.error("Error injecting iframe");
@@ -185,29 +210,72 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   //   return true; // Keep message channel open
   // }
   if (request.action === 'checkCookies') {
+    console.log("Received request to check cookies.");
     const cookieNames = request.cookieNames;
 
     // Fetch all cookies and filter them
     chrome.cookies.getAll({}, async (cookies) => {
+      if (chrome.runtime.lastError) {
+        console.error("Error fetching cookies:", chrome.runtime.lastError);
+        sendResponse({ cookies: [] });
+        return;
+      }
+  
+      console.log(`Total cookies retrieved: ${cookies.length}`);
+
       const filteredCookies = cookies.filter(cookie => cookieNames.includes(cookie.name));
 
       // Add domain history to cookies
       const domainPromises = filteredCookies.map(cookie => {
-        return new Promise(resolve => {
-          getAllHistoryForDomain(cookie.domain, (historyData) => {
-            resolve({
-              ...cookie,
-              firstVisited: historyData.firstVisited,
-              lastVisited: historyData.lastVisited,
-              totalVisitCount: historyData.totalVisitCount,
-              avgDailyVisits: historyData.avgDailyVisits
+        return new Promise((resolve) => {
+            // If cache already contains history for domain, use that data instead of fetching it again
+            if (historyCache[cookie.domain]) {
+                resolve({
+                    ...cookie,
+                    ...historyCache[cookie.domain] // Merge cached history data
+                });
+                return;
+            }
+    
+            let resolved = false;
+    
+            getAllHistoryForDomain(cookie.domain, (historyData) => {
+                if (!resolved) {
+                    resolved = true;
+                    historyCache[cookie.domain] = historyData; // Store in cache
+                    resolve({
+                        ...cookie,
+                        firstVisited: historyData.firstVisited ?? null,
+                        lastVisited: historyData.lastVisited ?? null,
+                        totalVisitCount: historyData.totalVisitCount ?? 0,
+                        avgDailyVisits: historyData.avgDailyVisits ?? 0
+                    });
+                }
             });
-          });
+    
+            // Timeout if no response received in 5 seconds
+            setTimeout(() => {
+                if (!resolved) {
+                    resolved = true;
+                    console.warn(`Timeout fetching history for ${cookie.domain}, resolving with defaults.`);
+                    resolve({
+                        ...cookie, // Retain original cookie data in case of timeout
+                        firstVisited: null,
+                        lastVisited: null,
+                        totalVisitCount: 0,
+                        avgDailyVisits: 0
+                    });
+                }
+            }, 5000);
         });
-      });
+    });
+    
+
+      console.log("Waiting for promises to resolve...");
 
       // Wait for all domain promises to resolve
       Promise.all(domainPromises).then(cookiesWithHistory => {
+        console.log("Promises resolved! Sending response with cookies...")
         sendResponse({ cookies: cookiesWithHistory });
       });
     });
@@ -241,7 +309,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     chrome.scripting.executeScript({
       target: { tabId: tabId },
       function: injectHTML,
-      args: ["extensionPageID", "prefered_choices.html", "prefered_choices.js"] // Function parameters: elementId, htmlFile, scriptFile
+      args: ["extensionPageID", "prefered_choices.html"] // Function parameters: elementId, htmlFile
     }).then(() => {
         // Send success message back to content script
         sendResponse({ success: true });
