@@ -10,6 +10,12 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('page1').style.display = 'none';
         document.getElementById('page2').style.display = 'block';
     });
+    // Add event listener for the "Next" button on page 2, to take us to option3
+
+    document.getElementById('nextBtn2').addEventListener('click', () => {
+        // Redirect to main page or close
+        window.location.href = 'prefered_choices2.html';  
+    });    
 });
 
 
