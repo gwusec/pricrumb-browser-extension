@@ -31,7 +31,18 @@ A website can make requests to the browser extension, such as requesting the for
 ### Types Of Requests:
 
 * fetchAllCookies: Request the formatted cookie list from your browser
-* injectPreferredChoicesHTML: Embed [prefered_choices1.html](extensions/desktop/chrome/prefered_choices1.html) into the active tab webpage
+* injectHTML: Embed an html page into the active tab webpage
+    * In the payload, must include an ```html``` attribute with the html page to embed. Possible options include:
+        * popup.html
+        * pricrumbs_preferred_cookie_choices_functional.html
+        * pricrumbs_preferred_cookie_choices_performance.html
+        * pricrumbs_preferred_cookie_choices_advertising.html
+        * pricrumbs_consent_history_top_websites.html
+        * pricrumbs_consent_history_bottom_websites.html
+        * pricrumbs_website_all_cookies_accepted.html
+        * pricrumbs_website_all_cookies_rejected.html
+        * pricrumbs_website_advertising_cookies_rejected.html
+    * Example call: ```window.postMessage({ type: "FROM_SURVEY", tabId: chrome.runtime.id, payload: { action: "injectHTML", html: "popup.html" } }, "*");```
 
 ### How To Make A Request:
 
