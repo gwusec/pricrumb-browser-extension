@@ -31,6 +31,7 @@ A website can make requests to the browser extension, such as requesting the for
 ### Types Of Requests:
 
 * fetchAllCookies: Request the formatted cookie list from your browser
+* injectPreferredChoicesHTML: Embed [prefered_choices1.html](extensions/desktop/chrome/prefered_choices1.html) into the active tab webpage
 
 ### How To Make A Request:
 
@@ -81,6 +82,34 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 ```
 
 In this if statement, you can replace DATA with whatever you would like to send to the website. Be sure to replace YOUR_REQUEST_TYPE with a descriptive name for your request.
+
+### How To Inject Extension Page Onto The Survey
+
+If you want to embed a page from the extension (e.g. popup.html) while allowing it to retain all functionality from the extension, you can inject an iframe using the injectHTML function.
+
+1. First, update [manifest.json](extensions/desktop/chrome/manifest.json) to include the html file under "web_accessible_resources" that you would like to embed:
+```
+  "web_accessible_resources": [
+    {
+      "matches": ["http://localhost:5173/*"],
+      "resources": ["prefered_choices.html"]
+    }
+  ],
+```
+2. Next, in [background.js](extensions/desktop/chrome/background.js), get the tabId of the tab with the webapge that you would like to embed into. This can be done through several means (e.g. have the webpage send a request).
+3. Now, execute the injectHTML script in the browser:
+```
+chrome.scripting.executeScript({
+      target: { tabId: tabId },
+      function: injectHTML,
+      args: ["elementId", "htmlFile"]
+    }).then(() => {
+        sendResponse({ success: true });
+    }).catch(error => {
+        sendResponse({ success: false, error });
+    });
+```
+Note that tabId is the ID of the tab containing the target webpage, elementId should be the id of an element on the target page that you would like to append the iframe to, and htmlFile should be the name of the .html file that you would like to embed.
 
 ## Additional
 
