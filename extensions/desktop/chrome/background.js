@@ -373,9 +373,10 @@ function checkForSurveyElement() {
   const elementID = "extensionPageID";
 
   const observer = new MutationObserver((mutations, observer) => {
-      if (document.getElementById(elementID)) {
+      const targetElement = document.getElementById(elementID);
+      if (targetElement && !targetElement.querySelector("iframe")) {
           observer.disconnect(); // Stop observing once found
-          
+
           // Sends message to content script from webpage to embed iframe
           window.postMessage({ type: "FROM_SURVEY", tabId: chrome.runtime.id, payload: { action: "injectPreferredChoicesHTML" } }, "*");
       }
@@ -384,7 +385,8 @@ function checkForSurveyElement() {
   observer.observe(document.body, { childList: true, subtree: true });
 
   // Check immediately in case the element is already present
-  if (document.getElementById(elementID)) {
+  const existingElement = document.getElementById(elementID);
+  if (existingElement && !existingElement.querySelector("iframe")) {
       observer.disconnect();
 
       // Sends message to content script from webpage to embed iframe
