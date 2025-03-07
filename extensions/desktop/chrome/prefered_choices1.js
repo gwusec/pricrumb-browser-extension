@@ -8,10 +8,6 @@ let domainSelections = {}; // Track current session selections that haven't been
 
 // DOM content loaded event listener
 document.addEventListener('DOMContentLoaded', () => {
-    //check which page we are on (functional, performance, advertising):
-    if (window.currentPage){
-        currentPage = window.currentPage;
-    }
     loadCookies();
     loadSavedPreferences();
     

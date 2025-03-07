@@ -5,7 +5,7 @@
 let userPreferences = new Map();
 let allDomains = [];
 let currentDomainIndex = 0;
-let currentCookieCategory = 'functional'; // Will be overridden by the page type
+let currentCookieCategory = 'functional'; //Will be overridden by the page type
 let domainSelections = {}; // Track current session selections that haven't been saved yet
 
 // DOM content loaded event listener
@@ -194,9 +194,17 @@ function getRecentActionDomains(cookies) {
 
 // Save preference for a domain and category
 function savePreference(domain, category, value) {
-    // Track the selection in our temporary store
+    console.log(`Saving preference for domain ${domain}, category ${category}: ${value ? "Accept" : "Reject"}`);
+    
+    // Make sure the domain exists in our tracking object
+    if (!domainSelections[domain]) {
+        domainSelections[domain] = {};
+    }
+    
+    // Save the selection for this specific domain and category only
     domainSelections[domain][category] = value;
     
+    // Find the original domain format if needed
     const domainObject = allDomains.find(d => d.domain === domain);
     let originalDomain = domain;
     
@@ -218,8 +226,9 @@ function savePreference(domain, category, value) {
         }
     }
     
-    console.log(`Saving preference for ${domain} using key ${originalDomain}, category ${category}, value ${value}`);
+    console.log(`Using storage key ${originalDomain} for domain ${domain}`);
     
+    // Create or update the preference object for this domain
     if (!userPreferences.has(originalDomain)) {
         userPreferences.set(originalDomain, {
             functional: null,
@@ -227,11 +236,16 @@ function savePreference(domain, category, value) {
             advertising: null
         });
     }
+    
+    // Get the current preferences and update only the specified category
     const prefs = userPreferences.get(originalDomain);
     prefs[category] = value;
+    
+    // Immediately save to storage to persist the change
+    saveAllPreferences();
 }
 
-// Update the domain question display
+// Update the domain question display - Fixed to prevent selection inheritance
 function updateDomainDisplay() {
     if (allDomains.length === 0) {
         alert("No domains found. Please try again later.");
@@ -239,6 +253,7 @@ function updateDomainDisplay() {
     }
     
     const currentDomain = allDomains[currentDomainIndex];
+    console.log("Displaying domain:", currentDomain.domain, "at index", currentDomainIndex);
     
     // Create favicon element
     const faviconContainer = document.createElement('div');
@@ -248,7 +263,7 @@ function updateDomainDisplay() {
     
     // Favicon image
     const favicon = document.createElement('img');
-    favicon.src = currentDomain.favicon || `https://www.google.com/s2/favicons?domain=${currentDomain.domain}&sz=32`;
+    favicon.src = currentDomain.favicon || `https://www.google.com/s2/favicons?domain=${formatDomainForDisplay(currentDomain.domain)}&sz=32`;
     favicon.alt = '';
     
     // Handle favicon loading errors
@@ -308,62 +323,72 @@ function updateDomainDisplay() {
     rejectBtn.className = 'toggle-btn reject';
     acceptBtn.className = 'toggle-btn accept';
     
-    // Check if there's a selection for this domain/category already made in the current session
-    // or in saved preferences
+    // Check ONLY for this specific domain's selection - do not inherit from previous
     let currentSelection = null;
     
-    // First check in current session
+    // First check if this specific domain has a selection in current session
     if (domainSelections[currentDomain.domain] && 
         domainSelections[currentDomain.domain][currentCookieCategory] !== null) {
         currentSelection = domainSelections[currentDomain.domain][currentCookieCategory];
+        console.log(`Domain ${currentDomain.domain} has selection in current session:`, 
+                  currentSelection ? "Accept" : "Reject");
     } 
-    // Then check in saved preferences
+    // Then check if this specific domain has a saved preference
     else {
-        const domainObject = allDomains.find(d => d.domain === currentDomain.domain);
-        let originalDomain = currentDomain.domain;
+        // Get the original domain format if available
+        let originalDomain = currentDomain.originalDomain || currentDomain.domain;
         
-        if (domainObject && domainObject.originalDomain) {
-            originalDomain = domainObject.originalDomain;
-        }
-        
+        // Check for saved preferences for this specific domain only
         if (userPreferences.has(originalDomain)) {
             const prefs = userPreferences.get(originalDomain);
-            if (prefs[currentCookieCategory] !== null) {
+            if (prefs && prefs[currentCookieCategory] !== null) {
                 currentSelection = prefs[currentCookieCategory];
+                console.log(`Domain ${currentDomain.domain} has saved preference:`, 
+                          currentSelection ? "Accept" : "Reject");
             }
         }
     }
     
-    // Add selected class based on the selection
+    // Add selected class based ONLY on this domain's specific selection
     if (currentSelection === true) {
+        console.log(`Setting Accept button as selected for ${currentDomain.domain}`);
         acceptBtn.classList.add('selected');
     } else if (currentSelection === false) {
+        console.log(`Setting Reject button as selected for ${currentDomain.domain}`);
         rejectBtn.classList.add('selected');
+    } else {
+        console.log(`No selection for ${currentDomain.domain}, buttons start unselected`);
     }
     
     // Function to handle domain selection
     const handleSelection = (value) => {
-        // Disable buttons to prevent multiple clicks
-        acceptBtn.disabled = true;
-        rejectBtn.disabled = true;
+        console.log(`User selected ${value ? "Accept" : "Reject"} for ${currentDomain.domain}`);
         
-        // Save the preference
+        // Save the preference for THIS SPECIFIC DOMAIN ONLY
         savePreference(currentDomain.domain, currentCookieCategory, value);
         
         // Highlight the selected button
         if (value === true) {
-            acceptBtn.style.backgroundColor = '#4c7aaf';  // for consistency, all blue
+            acceptBtn.style.backgroundColor = '#4c7aaf';
             acceptBtn.style.color = 'white';
+            rejectBtn.style.backgroundColor = '#f0f0f0';
+            rejectBtn.style.color = '#333';
         } else {
-            rejectBtn.style.backgroundColor = '#4c7aaf';  // for consistency, all blue
+            rejectBtn.style.backgroundColor = '#4c7aaf';
             rejectBtn.style.color = 'white';
+            acceptBtn.style.backgroundColor = '#f0f0f0';
+            acceptBtn.style.color = '#333';
         }
+        
+        // Disable buttons briefly to prevent double-clicks
+        acceptBtn.disabled = true;
+        rejectBtn.disabled = true;
         
         // Delayed move to next domain
         setTimeout(() => {
             if (currentDomainIndex < allDomains.length - 1) {
                 currentDomainIndex++;
-                updateDomainDisplay();
+                updateDomainDisplay(); // This will refresh with no selection for the new domain
             } else {
                 // We've reached the end of domains for this category
                 completeCategory();
@@ -382,7 +407,6 @@ function updateDomainDisplay() {
     toggleContainer.appendChild(rejectBtn);
     toggleContainer.appendChild(acceptBtn);
 }
-
 // Show the previous domain
 function showPreviousDomain() {
     if (currentDomainIndex > 0) {
