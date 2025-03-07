@@ -1359,6 +1359,11 @@ document.getElementById('pricrumbs_preferred_cookie_choices_functional')?.addEve
 document.getElementById('pricrumbs_preferred_cookie_choices_performance')?.addEventListener('click', () => {
   window.location.href ='pricrumbs_preferred_cookie_choices_performance.html';
   });
+document.getElementById('pricrumbs_preferred_cookie_choices_advertising')?.addEventListener('click', () => {
+  window.location.href ='pricrumbs_preferred_cookie_choices_advertising.html';
+  });
+
+  
 document.getElementById('openConsentPage2')?.addEventListener('click', () => {
   window.location.href ='prefered_choices2.html';
   })
