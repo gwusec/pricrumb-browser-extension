@@ -159,7 +159,7 @@
         <div id="loading">Loading your cookie history...</div>
         
         <!-- Introduction view -->
-        <div id="introView" style="display: none;">
+        <!-- <div id="introView" style="display: none;">
             <p class="intro-text">
                 In the following section you will be presented with a list of websites based on your browsing history, 
                 and you will be asked to choose your preferred consent choices. Please take your time to choose the consent 
@@ -175,7 +175,7 @@
             <div style="text-align: center; margin-top: 30px;">
                 <p id="categoryDescription">Start by selecting Functional cookies preferences.</p>
             </div>
-        </div>
+        </div> -->
         
         <!-- Question view for each domain -->
         <div id="questionView" class="question-section">
@@ -190,7 +190,7 @@
                     a questionnaire</li>
             </div>
             
-            <div class="cookie-info" id="performanceInfo" style="display: none;">
+            <!-- <div class="cookie-info" id="performanceInfo" style="display: none;">
                 <h3>About Performance Cookies:</h3>
                 <p>Performance cookies collect information about a website's use without identifying users; they are only used in aggregate form to improve the website.</p>
                 <p>Example:</p>
@@ -198,15 +198,15 @@
                         website, typically this will be to support service improvement
                         or complaint management and will generally be closely
                         linked with web analytics.</li>
-            </div>
+            </div> -->
             
-            <div class="cookie-info" id="advertisingInfo" style="display: none;">
+            <!-- <div class="cookie-info" id="advertisingInfo" style="display: none;">
                 <h3>About Advertising Cookies:</h3>
                 <p>Advertising Cookies help serve users personalized ads, prevent repetitive advertisements, and record advertisement-related metrics; these cookies share data with advertising networks and advertisers.</p>
                 <p>Example:</p>
                     <li>Cookies placed by advertising networks to collect browsing
                         habits in order to target relevant adverts to the user.</li>
-            </div>
+            </div> -->
             
             <!-- Progress indicator - Updated to show "website X/10" format -->
             <div class="progress-container">
@@ -242,17 +242,32 @@
         <div id="categoryCompleteView" style="display: none; text-align: center;">
             <h2>You've completed your <span id="completedCategory">functional</span> cookie preferences!</h2>
             <p>Your choices have been saved.</p>
-            <button id="nextCategoryButton" class="nav-btn save-btn">Continue to next category</button>
+            <!-- <button id="nextCategoryButton" class="nav-btn save-btn">Continue to next category</button> -->
         </div>
         
-        <!-- Final completion view -->
+        <!-- Final completion view
         <div id="allCompleteView" style="display: none; text-align: center;">
             <h2>All cookie preferences completed!</h2>
             <p>Thank you for setting your cookie preferences. Your choices have been saved.</p>
             <button id="finishButton" class="nav-btn save-btn">Next</button>
-        </div>
+        </div> -->
     </div>
     
     <script src="prefered_choices1.js"></script>
+    <script>
+        // Tell the JS file we're on the functional cookies page
+        document.addEventListener('DOMContentLoaded', () => {
+            window.currentPage = 'functional';
+            
+            // Auto-start the functional category after a short delay to allow data loading
+            setTimeout(() => {
+                if (typeof startCategory === 'function') {
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('questionView').style.display = 'block';
+                    startCategory('functional');
+                }
+            }, 1500);
+        });
+    </script>
 </body>
 </html>

@@ -8,10 +8,14 @@ let domainSelections = {}; // Track current session selections that haven't been
 
 // DOM content loaded event listener
 document.addEventListener('DOMContentLoaded', () => {
+    //check which page we are on (functional, performance, advertising):
+    if (window.currentPage){
+        currentPage = window.currentPage;
+    }
     loadCookies();
     loadSavedPreferences();
     
-    // Set up event listeners for category selection
+    // Set up event listeners for based on
     document.getElementById('startFunctional').addEventListener('click', () => startCategory('functional'));
     document.getElementById('startPerformance').addEventListener('click', () => startCategory('performance'));
     document.getElementById('startAdvertising').addEventListener('click', () => startCategory('advertising'));

@@ -1351,7 +1351,7 @@ document.addEventListener('DOMContentLoaded', () => {
 //       url: chrome.runtime.getURL('prefered_choices1.html')
 //To open it on the same window
 document.getElementById('openConsentPage1')?.addEventListener('click', () => {
-  window.location.href ='pricrumbs_preferred_cookie_choices_functional.html';
+  window.location.href ='prefered_choices1.html';
   });
 
 document.getElementById('openConsentPage2')?.addEventListener('click', () => {
