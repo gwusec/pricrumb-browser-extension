@@ -1353,9 +1353,12 @@ document.addEventListener('DOMContentLoaded', () => {
 document.getElementById('openConsentPage1')?.addEventListener('click', () => {
   window.location.href ='prefered_choices1.html';
   });
-  document.getElementById('pricrumbs_preferred_cookie_choices_functional')?.addEventListener('click', () => {
-    window.location.href ='pricrumbs_preferred_cookie_choices_functional.html';
-    });
+document.getElementById('pricrumbs_preferred_cookie_choices_functional')?.addEventListener('click', () => {
+  window.location.href ='pricrumbs_preferred_cookie_choices_functional.html';
+  });
+document.getElementById('pricrumbs_preferred_cookie_choices_performance')?.addEventListener('click', () => {
+  window.location.href ='pricrumbs_preferred_cookie_choices_performance.html';
+  });
 document.getElementById('openConsentPage2')?.addEventListener('click', () => {
   window.location.href ='prefered_choices2.html';
   })
