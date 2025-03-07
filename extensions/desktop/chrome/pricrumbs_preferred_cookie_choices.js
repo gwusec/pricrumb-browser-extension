@@ -39,6 +39,14 @@ async function loadSavedPreferences() {
     }
 }
 
+//fuction to randomize the order of domains
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]]; // Swap elements
+    }
+    return array;
+}
 // Load cookie data
 async function loadCookies() {
     try {
@@ -65,8 +73,36 @@ async function loadCookies() {
                 domain.favicon = `https://www.google.com/s2/favicons?domain=${formatDomainForDisplay(domain.domain)}&sz=32`;
             });
             
-            // Combine all domains
-            allDomains = [...mostRecentDomains, ...leastRecentDomains];
+             // Combine all domains
+             let combinedDomains = [...mostRecentDomains, ...leastRecentDomains];
+            
+             // Create a unique seed for randomization based on the category
+             // This ensures different categories will have different orders
+             const categorySeed = currentCookieCategory.charCodeAt(0) + 
+                                 currentCookieCategory.charCodeAt(currentCookieCategory.length - 1);
+             
+             // Use the seed to generate a random starting point
+             const randomSeed = Date.now() + categorySeed;
+             Math.seedrandom = (seed) => {
+                 return () => {
+                     seed = (seed * 9301 + 49297) % 233280;
+                     return seed / 233280;
+                 };
+             };
+             
+             // Set a pseudo-random seed
+             const random = Math.seedrandom(randomSeed);
+             
+             // Shuffle the domains in a deterministic way based on the category
+             for (let i = combinedDomains.length - 1; i > 0; i--) {
+                 const j = Math.floor(random() * (i + 1));
+                 [combinedDomains[i], combinedDomains[j]] = [combinedDomains[j], combinedDomains[i]];
+             }
+             
+             console.log(`Randomized domains for category '${currentCookieCategory}'`);
+             
+             // Set the randomized domains
+             allDomains = combinedDomains;
             
             // Hide loading and show question view directly
             const loadingEl = document.getElementById('loading');
