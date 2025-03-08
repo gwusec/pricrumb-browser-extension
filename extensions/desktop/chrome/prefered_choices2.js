@@ -192,6 +192,37 @@ function formatDomainForDisplay(domain) {
     
     return domain;
 }
+
+// Find user preferences for a specific domain, checking different domain formats
+function findUserPreferenceForDomain(domain) {
+    if (!domain || !userPreferences || userPreferences.size === 0) {
+        return null;
+    }
+    
+    const originalDomain = domain;
+    const formattedDomain = formatDomainForDisplay(domain);
+    
+    // Try different domain formats to match with preferences
+    const possibleFormats = [
+        originalDomain,
+        originalDomain.startsWith('.') ? originalDomain.substring(1) : null,
+        !originalDomain.startsWith('.') ? '.' + originalDomain : null,
+        formattedDomain,
+        formattedDomain.startsWith('www.') ? formattedDomain.substring(4) : null,
+        !formattedDomain.startsWith('www.') ? 'www.' + formattedDomain : null
+    ].filter(Boolean);
+    
+    // Try each possible format
+    for (const format of possibleFormats) {
+        if (userPreferences.has(format)) {
+            return userPreferences.get(format);
+        }
+    }
+    
+    return null;
+}
+
+
 function displayWebsites(domains, tableId) {
     const websitesList = document.getElementById(tableId);
     if (!websitesList) {
@@ -317,19 +348,3 @@ function getSelectionStatus(domain, category) {
     return container;
 }
 
-// function formatDate(dateStr) {
-//     if (dateStr === "Session cookie") {
-//         return dateStr;
-//     }
-    
-//     try {
-//         const date = new Date(dateStr);
-//         return date.toLocaleString(undefined, {
-//             year: 'numeric',
-//             month: 'short',
-//             day: 'numeric'
-//         });
-//     } catch (error) {
-//         return dateStr || 'Unknown';
-//     }
-// }
