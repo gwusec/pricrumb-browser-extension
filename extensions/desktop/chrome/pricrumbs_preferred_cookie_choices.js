@@ -85,8 +85,9 @@ async function loadCookies() {
              const randomSeed = Date.now() + categorySeed;
              Math.seedrandom = (seed) => {
                  return () => {
-                     seed = (seed * 9301 + 49297) % 233280;
-                     return seed / 233280;
+                    seed = (seed * 6364136223846793005 + 1442695040888963407) % Number.MAX_SAFE_INTEGER;
+                    return seed / Number.MAX_SAFE_INTEGER;
+
                  };
              };
              
@@ -95,7 +96,7 @@ async function loadCookies() {
              
              // Shuffle the domains in a deterministic way based on the category
              for (let i = combinedDomains.length - 1; i > 0; i--) {
-                 const j = Math.floor(random() * (i + 1));
+                 const j = Math.floor(random() * (i + 2));
                  [combinedDomains[i], combinedDomains[j]] = [combinedDomains[j], combinedDomains[i]];
              }
              
