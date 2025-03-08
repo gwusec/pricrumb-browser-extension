@@ -282,6 +282,7 @@ function savePreference(domain, category, value) {
 }
 
 // Update the domain question display - Fixed to prevent selection inheritance
+// Update the domain question display - Fixed to prevent selection inheritance and ensure buttons are visible
 function updateDomainDisplay() {
     if (allDomains.length === 0) {
         alert("No domains found. Please try again later.");
@@ -320,6 +321,14 @@ function updateDomainDisplay() {
     if (currentDomainElement) {
         currentDomainElement.innerHTML = ''; // Clear existing content
         currentDomainElement.appendChild(faviconContainer);
+    } else {
+        console.error("Element with ID 'currentDomainName' not found");
+    }
+    
+    // Update cookie type text if element exists
+    const currentCookieTypeElement = document.getElementById('currentCookieType');
+    if (currentCookieTypeElement) {
+        currentCookieTypeElement.textContent = currentCookieCategory;
     }
     
     // Update progress indicator
@@ -356,51 +365,55 @@ function updateDomainDisplay() {
     rejectBtn.textContent = 'Reject';
     acceptBtn.textContent = 'Accept';
     
+    // Set classes and initial styles for buttons
     rejectBtn.className = 'toggle-btn reject';
     acceptBtn.className = 'toggle-btn accept';
     
-    // Check ONLY for this specific domain's selection - do not inherit from previous
+    // Initial button styles to ensure they are visible (overriding any conflicting CSS)
+    const defaultButtonStyle = {
+        padding: '10px 30px',
+        margin: '0 5px',
+        fontSize: '16px',
+        fontWeight: 'bold',
+        border: 'none',
+        borderRadius: '4px',
+        cursor: 'pointer',
+        backgroundColor: '#f0f0f0',
+        color: '#333'
+    };
+    
+    // Apply default styles
+    Object.assign(rejectBtn.style, defaultButtonStyle);
+    Object.assign(acceptBtn.style, defaultButtonStyle);
+    
+    // Check if there's a selection for this domain/category already made in the current session
     let currentSelection = null;
     
-    // First check if this specific domain has a selection in current session
+    // First check if domainSelections has been initialized for this domain
     if (domainSelections[currentDomain.domain] && 
-        domainSelections[currentDomain.domain][currentCookieCategory] !== null) {
+        typeof domainSelections[currentDomain.domain][currentCookieCategory] !== 'undefined') {
         currentSelection = domainSelections[currentDomain.domain][currentCookieCategory];
-        console.log(`Domain ${currentDomain.domain} has selection in current session:`, 
-                  currentSelection ? "Accept" : "Reject");
-    } 
-    // Then check if this specific domain has a saved preference
-    else {
-        // Get the original domain format if available
-        let originalDomain = currentDomain.originalDomain || currentDomain.domain;
-        
-        // Check for saved preferences for this specific domain only
-        if (userPreferences.has(originalDomain)) {
-            const prefs = userPreferences.get(originalDomain);
-            if (prefs && prefs[currentCookieCategory] !== null) {
-                currentSelection = prefs[currentCookieCategory];
-                console.log(`Domain ${currentDomain.domain} has saved preference:`, 
-                          currentSelection ? "Accept" : "Reject");
-            }
-        }
+        console.log(`Found selection for ${currentDomain.domain}/${currentCookieCategory}:`, currentSelection);
     }
     
-    // Add selected class based ONLY on this domain's specific selection
+    // Apply selection styling if a choice was previously made
     if (currentSelection === true) {
-        console.log(`Setting Accept button as selected for ${currentDomain.domain}`);
-        acceptBtn.classList.add('selected');
+        acceptBtn.style.backgroundColor = '#4c7aaf';
+        acceptBtn.style.color = 'white';
     } else if (currentSelection === false) {
-        console.log(`Setting Reject button as selected for ${currentDomain.domain}`);
-        rejectBtn.classList.add('selected');
-    } else {
-        console.log(`No selection for ${currentDomain.domain}, buttons start unselected`);
+        rejectBtn.style.backgroundColor = '#4c7aaf';
+        rejectBtn.style.color = 'white';
     }
     
     // Function to handle domain selection
     const handleSelection = (value) => {
         console.log(`User selected ${value ? "Accept" : "Reject"} for ${currentDomain.domain}`);
         
-        // Save the preference for THIS SPECIFIC DOMAIN ONLY
+        // Disable buttons to prevent multiple clicks
+        acceptBtn.disabled = true;
+        rejectBtn.disabled = true;
+        
+        // Save the preference
         savePreference(currentDomain.domain, currentCookieCategory, value);
         
         // Highlight the selected button
@@ -416,15 +429,11 @@ function updateDomainDisplay() {
             acceptBtn.style.color = '#333';
         }
         
-        // Disable buttons briefly to prevent double-clicks
-        acceptBtn.disabled = true;
-        rejectBtn.disabled = true;
-        
         // Delayed move to next domain
         setTimeout(() => {
             if (currentDomainIndex < allDomains.length - 1) {
                 currentDomainIndex++;
-                updateDomainDisplay(); // This will refresh with no selection for the new domain
+                updateDomainDisplay();
             } else {
                 // We've reached the end of domains for this category
                 completeCategory();
@@ -432,6 +441,7 @@ function updateDomainDisplay() {
         }, 500);  // 500ms delay to show the selection
     };
     
+    // Add click event listeners
     acceptBtn.addEventListener('click', () => {
         handleSelection(true);
     });
@@ -440,9 +450,13 @@ function updateDomainDisplay() {
         handleSelection(false);
     });
     
+    // Add buttons to container
     toggleContainer.appendChild(rejectBtn);
     toggleContainer.appendChild(acceptBtn);
+    
+    console.log("Buttons added to container:", toggleContainer);
 }
+
 // Show the previous domain
 function showPreviousDomain() {
     if (currentDomainIndex > 0) {
