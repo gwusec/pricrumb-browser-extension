@@ -1363,6 +1363,9 @@ document.getElementById('pricrumbs_preferred_cookie_choices_advertising')?.addEv
   window.location.href ='pricrumbs_preferred_cookie_choices_advertising.html';
   });
 
+document.getElementById('pricrumbs_consent_history_top_websites')?.addEventListener('click', () => {
+  window.location.href ='pricrumbs_consent_history_top_websites.html';
+  });
   
 document.getElementById('openConsentPage2')?.addEventListener('click', () => {
   window.location.href ='prefered_choices2.html';

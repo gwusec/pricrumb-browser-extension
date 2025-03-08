@@ -2,6 +2,7 @@
 let userPreferences = new Map();
 
 document.addEventListener('DOMContentLoaded', () => {
+    
     loadCookies();
     loadSavedPreferences();
 
