@@ -440,18 +440,20 @@ function getSelectionStatus(domain, category, userPref, hasDiscrepancy) {
         const discrepancyMarker = document.createElement('span');
         discrepancyMarker.textContent = '!';
         discrepancyMarker.style.position = 'absolute';
-        discrepancyMarker.style.top = '-5px';
-        discrepancyMarker.style.right = '-5px';
-        discrepancyMarker.style.backgroundColor = '#ff9800';
-        discrepancyMarker.style.color = 'white';
-        discrepancyMarker.style.borderRadius = '50%';
-        discrepancyMarker.style.width = '20px';
-        discrepancyMarker.style.height = '20px';
-        discrepancyMarker.style.display = 'flex';
-        discrepancyMarker.style.justifyContent = 'center';
-        discrepancyMarker.style.alignItems = 'center';
+        discrepancyMarker.style.top = '10px';
+        discrepancyMarker.style.right = '20px';
+        // discrepancyMarker.style.backgroundColor = '#ff9800';
+        // discrepancyMarker.style.color = 'white';
+        discrepancyMarker.style.color = '#ff9800';
+        // discrepancyMarker.style.borderRadius = '50%';
+        // discrepancyMarker.style.width = '20px';
+        // discrepancyMarker.style.height = '20px';
+        // discrepancyMarker.style.display = 'flex';
+        // discrepancyMarker.style.justifyContent = 'center';
+        // discrepancyMarker.style.alignItems = 'center';
         discrepancyMarker.style.fontWeight = 'bold';
-        discrepancyMarker.style.fontSize = '14px';
+        discrepancyMarker.style.fontSize = '25px';
+        discrepancyMarker.style.cursor = 'pointer';
         
         // Add tooltip showing what the user preference was
         if (userPref && userPref[category] !== null) {
@@ -459,7 +461,8 @@ function getSelectionStatus(domain, category, userPref, hasDiscrepancy) {
                 ? userPref[category] === "Yes" || userPref[category] === "Accepted" || userPref[category] === "Accept"
                 : userPref[category];
                 
-            discrepancyMarker.title = `Your preference was: ${userAccepted ? 'Accept' : 'Reject'}`;
+            // discrepancyMarker.title = `Your preference was: ${userAccepted ? 'Accept' : 'Reject'}`;
+            discrepancyMarker.title = `Your previous choice was: ${userAccepted ? 'Accept' : 'Reject'}, but actual setting is: ${isAccepted ? 'Accept' : 'Reject'}`;
         }
         
         container.appendChild(discrepancyMarker);
