@@ -1370,6 +1370,10 @@ document.getElementById('pricrumbs_consent_history_top_websites')?.addEventListe
 document.getElementById('pricrumbs_consent_history_bottom_websites')?.addEventListener('click', () => {
   window.location.href ='pricrumbs_consent_history_bottom_websites.html';
   });
+
+document.getElementById('pricrumbs_website_all_cookies_accepted')?.addEventListener('click', () => {
+  window.location.href ='pricrumbs_website_all_cookies_accepted.html';
+  });
   
 document.getElementById('openConsentPage2')?.addEventListener('click', () => {
   window.location.href ='prefered_choices2.html';
