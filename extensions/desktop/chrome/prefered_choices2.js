@@ -7,16 +7,16 @@ document.addEventListener('DOMContentLoaded', () => {
     loadSavedPreferences();
 
     // Add event listener for the "Next" button on page 1
-    document.getElementById('nextBtn1').addEventListener('click', () => {
-        document.getElementById('page1').style.display = 'none';
-        document.getElementById('page2').style.display = 'block';
-    });
+    // document.getElementById('nextBtn1').addEventListener('click', () => {
+    //     document.getElementById('page1').style.display = 'none';
+    //     document.getElementById('page2').style.display = 'block';
+    // });
     // Add event listener for the "Next" button on page 2, to take us to option3
 
-    document.getElementById('nextBtn2').addEventListener('click', () => {
-        // Redirect to next option
-        window.location.href = 'measure_factors.html';  
-    });    
+    // document.getElementById('nextBtn2').addEventListener('click', () => {
+    //     // Redirect to next option
+    //     window.location.href = 'measure_factors.html';  
+    // });    
 });
 
 
