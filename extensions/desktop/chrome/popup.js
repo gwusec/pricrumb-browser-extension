@@ -1374,7 +1374,16 @@ document.getElementById('pricrumbs_consent_history_bottom_websites')?.addEventLi
 document.getElementById('pricrumbs_website_all_cookies_accepted')?.addEventListener('click', () => {
   window.location.href ='pricrumbs_website_all_cookies_accepted.html';
   });
-  
+
+document.getElementById('pricrumbs_website_all_cookies_rejected')?.addEventListener('click', () => {
+  window.location.href ='pricrumbs_website_all_cookies_rejected.html';
+  });
+
+document.getElementById('pricrumbs_website_advertising_cookies_rejected')?.addEventListener('click', () => {
+  window.location.href ='pricrumbs_website_advertising_cookies_rejected.html';
+  });
+
+
 document.getElementById('openConsentPage2')?.addEventListener('click', () => {
   window.location.href ='prefered_choices2.html';
   })
