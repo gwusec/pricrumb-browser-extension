@@ -1,45 +1,63 @@
-// updating the previous js script , to display each one type of website on it's own page, based on window.categoryType
+// Script for displaying websites based on cookie preferences (single category per page)
 
 document.addEventListener('DOMContentLoaded', () => {
     // Initialize view
     document.getElementById('loadingView').style.display = 'block';
     document.getElementById('websitesView').style.display = 'none';
     
-    // Load data and display selected websites
-    loadUserDataAndSelectWebsites();
+    // Check which category container exists in the HTML to determine the category
+    let categoryType = 'unknown';
+    if (document.getElementById('category1')) {
+        categoryType = 'accept-all';
+    } else if (document.getElementById('category2')) {
+        categoryType = 'reject-all';
+    } else if (document.getElementById('category3')) {
+        categoryType = 'mixed';
+    }
     
-    // Set up event listener for back button
-    document.getElementById('backButton').addEventListener('click', () => {
-        window.location.href = 'popup.html';
-    });
+    console.log('Detected category type based on HTML container:', categoryType);
+    
+    // Override with window.categoryType if it exists
+    if (window.categoryType) {
+        console.log('Found window.categoryType:', window.categoryType);
+        categoryType = window.categoryType;
+    }
+    
+    console.log('Using category type:', categoryType);
+    
+    // Store the final category type for later use
+    window.finalCategoryType = categoryType;
+    
+    // Load data and display selected websites
+    loadCookieDataAndSelectWebsites();
 });
 
-// Main function to load user data and select websites
-async function loadUserDataAndSelectWebsites() {
+// Main function to load cookie data and select websites
+async function loadCookieDataAndSelectWebsites() {
     try {
-        // Load both cookie data and user preferences
-        const [cookieData, userPreferences] = await Promise.all([
-            getCookieData(),
-            getUserPreferences()
-        ]);
+        // Load only cookie data
+        const cookieData = await getCookieData();
         
         console.log('Loaded cookie data:', cookieData?.length || 0);
-        console.log('Loaded user preferences:', userPreferences?.size || 0);
         
-        // Check if we have both data sources
-        if (!cookieData || !userPreferences || userPreferences.size === 0) {
-            showError('Missing data. Please visit the Cookie Checker and set your preferences first.');
+        // Check if we have data
+        if (!cookieData || cookieData.length === 0) {
+            showError('Missing cookie data. Please visit the Cookie Checker first.');
             return;
         }
         
-        // Find websites matching our criteria
-        const matchingWebsites = findMatchingWebsites(cookieData, userPreferences);
+        // Find websites matching our criteria using only cookie data
+        const matchingWebsites = findMatchingWebsites(cookieData);
         
-        // Display only the relevant category based on the page type
-        displayWebsite(matchingWebsites, window.categoryType || 'accept-all');
+        // Use the category type determined at page load
+        const categoryType = window.finalCategoryType || 'accept-all';
+        console.log('Displaying category (final):', categoryType);
+        
+        // Display the selected website based on the category type
+        displayWebsite(matchingWebsites, categoryType);
         
     } catch (error) {
-        console.error('Error in loadUserDataAndSelectWebsites:', error);
+        console.error('Error in loadCookieDataAndSelectWebsites:', error);
         showError('An error occurred while loading data: ' + error.message);
     }
 }
@@ -53,25 +71,6 @@ async function getCookieData() {
                 resolve(null);
             } else {
                 resolve(result.cookieData || []);
-            }
-        });
-    });
-}
-
-// Get user preferences from storage
-async function getUserPreferences() {
-    return new Promise((resolve) => {
-        chrome.storage.local.get('userCookiePreferences', (result) => {
-            if (chrome.runtime.lastError) {
-                console.error('Error retrieving user preferences:', chrome.runtime.lastError);
-                resolve(null);
-            } else {
-                // Convert array back to Map if it exists
-                if (result.userCookiePreferences) {
-                    resolve(new Map(result.userCookiePreferences));
-                } else {
-                    resolve(new Map());
-                }
             }
         });
     });
@@ -106,8 +105,8 @@ function formatDomainForDisplay(domain) {
     return domain;
 }
 
-// Find websites matching each criteria
-function findMatchingWebsites(cookieData, userPreferences) {
+// Find websites matching each criteria based only on cookie data
+function findMatchingWebsites(cookieData) {
     console.log('All cookies count:', cookieData.length);
     
     // STEP 1: Filter for cookies where actionTaken = "Yes"
@@ -232,10 +231,33 @@ function displayWebsite(websites, categoryType) {
             return;
     }
     
+    console.log('Looking for container:', containerId);
+    console.log('Website for this category:', website ? website.domain : 'None found');
+    
     // Get the container for the category
     const container = document.getElementById(containerId);
     if (!container) {
         console.error(`Container with ID ${containerId} not found`);
+        
+        // Fallback: Try to find any section container
+        const fallbackContainer = document.querySelector('#websitesView .section');
+        if (fallbackContainer) {
+            console.log('Using fallback container instead');
+            
+            // Clear previous content
+            fallbackContainer.innerHTML = '';
+            
+            // Show error message in the fallback container
+            if (website) {
+                fallbackContainer.innerHTML = `
+                    <div class="error">Container mismatch: Looking for #${containerId} but not found. 
+                    Website for ${categoryType} is ${website.domain}</div>
+                `;
+                renderWebsite(website, fallbackContainer, categoryType);
+            } else {
+                fallbackContainer.innerHTML = '<p class="no-data">No website found for this category and container not found.</p>';
+            }
+        }
         return;
     }
     
