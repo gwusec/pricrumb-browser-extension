@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Your Cookie Preferences</title>
+    <!-- <link rel="stylesheet" href="button-toggle.css"> -->
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            /* margin: 20px 0; */
+        }
+        th, td {
+            padding: 12px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        button:not(.toggle-btn) {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            margin: 0 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .save-btn {
+            background-color: #4CAF50;
+            color: white;
+            font-size: 16px;
+            padding: 12px 24px;
+        }
+        .actions {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .description {
+            text-align: center;
+            background-color: #d9ebf0;
+            font-size: 16px;
+            color: #080707;
+            line-height: 1.8;
+            font-weight: bold;
+            letter-spacing: 1px;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        
+        /* Center content in table cells */
+        td {
+            text-align: center;
+            vertical-align: middle;
+        }
+        
+        /* Website cell styling with favicon */
+        .website-cell {
+            text-align: left;
+            font-weight: bold;
+        }
+        
+        .website-cell img {
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        
+        /* Error handling for favicon */
+        img.favicon-error {
+            display: none;
+        }
+        
+        /* Toggle container and selection container */
+        .toggle-container, .selection-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0 auto;
+            gap: 10px;
+        }
+        
+        /* Read-only toggle buttons */
+        .toggle-btn {
+            width: 63px;
+            height: 40px;
+            border-radius: 10%;
+            border: 2px solid #919291;
+            background-color: transparent;
+            color: #666966;
+            margin: 5px;
+            outline: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            cursor: default;
+            pointer-events: none; /* Makes buttons non-clickable */
+        }
+        
+        /* Different styles for accept and reject buttons */
+        .toggle-btn.accept.selected {
+            background-color: #4c7aaf !important;
+            color: white !important;
+            border-color: #4c7aaf !important;
+        }
+        
+        .toggle-btn.reject.selected {
+            background-color: #919291 !important;
+            color: white !important;
+            border-color: #919291 !important;
+        }
+        
+        /* Table section headers */
+        .table-header {
+            background-color: #e8f4f8;
+            padding: 7px;
+            margin-top: 10px;
+            text-align: center;
+            border-radius: 5px;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        /* .NextTable {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            margin: 0 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-align: center;
+            margin-top: 20px;
+        } */
+        /* Add this to your CSS */
+.selection-container {
+    position: relative;
+}
+        
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- <h1>Your Cookie Preferences</h1> -->
+        <!-- <p class="description">
+            Below are the cookie preferences that have been saved in your browser. These settings show whether you've 
+            accepted or rejected cookies for different websites you've visited and the cookie's expiration date.
+        </p> -->
+
+        <div id="loading">Loading your cookie preference data...</div>
+
+        <!-- Page 1: Most Recently Visited Websites Table -->
+        <div id="page1">
+            <div class="table-header">Most Frequent Visited Websites (Your Cookie Preferences
+                )</div>
+                <div style="padding: 10px; margin-bottom: 15px; text-align: center;">
+                    <span style="font-size: 16px;">The </span>
+                    <span style="color: #ff9800; font-weight: bold; font-size: 25px;">!</span>
+                    <span style="font-size: 16px;"> next to a choice indicates there was a difference between the choice you made earlier and the actual consent preference in your history.</span>
+                </div>
+            <table id="mostRecentTable" style="display: none;">
+            <thead>
+                <tr>
+                    <th class="website-cell">Website</th>
+                    <th>Functional Cookies</th>
+                    <th>Performance Cookies</th>
+                    <th>Advertising Cookies</th>
+                    <th>Cookie Expiration Date</th>
+                    <th>Freq Visit (Total)</th>
+                </tr>
+            </thead>
+            <tbody id="mostRecentWebsitesList">
+            </tbody>
+        </table>
+        <!-- <div class="actions">
+            <button id="nextBtn1">Next</button>
+        </div> -->
+    </div>
+        
+        <!-- Least Frequently Visited Websites Table -->
+        <!-- <div id="page2" style="display: none;">
+            <div class="table-header">Least Frequent Visited Websites</div>
+            <table id="leastRecentTable" style="display: none;">
+            <thead>
+                <tr>
+                    <th class="website-cell">Website</th>
+                    <th>Functional Cookies</th>
+                    <th>Performance Cookies</th>
+                    <th>Advertising Cookies</th>
+                    <th>Cookie Expiration Date</th>
+                    <th>Freq Visit (Total)</th>
+                </tr>
+            </thead>
+            <tbody id="leastRecentWebsitesList">
+            </tbody>
+             <div class="actions"> -->
+            <!-- <button id="nextBtn2">Next</button> -->
+        <!-- </div>
+        </table> -->
+       
+    </div>
+<!-- 
+    <script>
+        // Add a page identifier for the JavaScript to know which page is being viewed
+        window.currentPage = 'most-visited';
+    </script> -->
+    <script src="consent_history_and_discrepancies.js"></script>
+</body>
+</html>

@@ -17,8 +17,8 @@ window.addEventListener("message", (event) => {
 });
 
 // Listen for messages from the background script
-chrome.runtime.onMessage.addListener((message) => {
-  if (message.type === "FROM_EXTENSION") {
-      window.postMessage(message, "*");
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.type === "FROM_EXTENSION") {
+      window.postMessage(request, "*");
   }
 });

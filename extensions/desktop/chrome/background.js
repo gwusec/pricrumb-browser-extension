@@ -178,7 +178,7 @@ function injectHTML(elementId, htmlFile) {
 
         targetElement.appendChild(iframe);
       } else {
-        console.error("Error injecting iframe");
+        console.error("Error injecting iframe - Element not found:", elementId);
       }
 }
 
