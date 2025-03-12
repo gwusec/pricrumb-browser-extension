@@ -292,17 +292,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     elementId = request.payload.html.slice(0, -5);
     
     // Call the inject function
-    browser.scripting.executeScript({
-      target: { tabId: tabId },
-      function: injectHTML,
-      args: [elementId, request.payload.html] // Function parameters: elementId, htmlFile
-    }).then(() => {
-        // Send success message back to content script
-        sendResponse({ success: true });
+    browser.tabs.sendMessage(tabId, {
+      type: "FROM_SURVEY",
+      action: "injectHTML",
+      elementId: elementId,
+      htmlFile: request.payload.html
     }).catch(error => {
-        // Send failure message back to content script
-        console.error("Error injecting script:", error);
-        sendResponse({ success: false, error });
+      console.warn("Error sending message to content script", error);
     });
     
     return true; // Keep the message channel open

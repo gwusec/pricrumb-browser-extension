@@ -27,9 +27,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 // Listen for messages from the background script
 browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if(request.type !== "FROM_SURVEY") return;
-  
+
   if (request.action === "checkForSurveyElement") {
-      checkForSurveyElement();
+    checkForSurveyElement();
+  }
+
+  if (request.action === "injectHTML") {
+    injectHTML(request.elementId, request.htmlFile);
   }
 });
 
