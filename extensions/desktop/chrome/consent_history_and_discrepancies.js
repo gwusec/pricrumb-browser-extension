@@ -368,14 +368,14 @@ function displayWebsites(domains, tableId) {
         row.appendChild(expirationCell);
         
         // Freq Visit (Total) cell
-        const visitCountCell = document.createElement('td');
-        // Convert to number and display
-        const count = parseInt(domain.totalVisitCount) || 0;
-        visitCountCell.textContent = count;
-        visitCountCell.style.fontWeight = 'bold';
-        visitCountCell.style.color = '#4c7aaf';
-        visitCountCell.style.textAlign = 'center';
-        row.appendChild(visitCountCell);
+        // const visitCountCell = document.createElement('td');
+        // // Convert to number and display
+        // const count = parseInt(domain.totalVisitCount) || 0;
+        // visitCountCell.textContent = count;
+        // visitCountCell.style.fontWeight = 'bold';
+        // visitCountCell.style.color = '#4c7aaf';
+        // visitCountCell.style.textAlign = 'center';
+        // row.appendChild(visitCountCell);
 
         websitesList.appendChild(row);
     });
