@@ -1,5 +1,4 @@
-// pricrumbs_preferred_cookie_choices.js
-// Handles cookie preferences across three separate standalone HTML pages
+// Add this to the beginning of your pricrumbs_preferred_cookie_choices.js file
 
 // Store user preferences and domain data
 let userPreferences = new Map();
@@ -39,14 +38,6 @@ async function loadSavedPreferences() {
     }
 }
 
-//fuction to randomize the order of domains
-function shuffleArray(array) {
-    for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]]; // Swap elements
-    }
-    return array;
-}
 // Load cookie data
 async function loadCookies() {
     try {
@@ -73,37 +64,8 @@ async function loadCookies() {
                 domain.favicon = `https://www.google.com/s2/favicons?domain=${formatDomainForDisplay(domain.domain)}&sz=32`;
             });
             
-             // Combine all domains
-             let combinedDomains = [...mostRecentDomains, ...leastRecentDomains];
-            
-             // Create a unique seed for randomization based on the category
-             // This ensures different categories will have different orders
-             const categorySeed = currentCookieCategory.charCodeAt(0) + 
-                                 currentCookieCategory.charCodeAt(currentCookieCategory.length - 1);
-             
-             // Use the seed to generate a random starting point
-             const randomSeed = Date.now() + categorySeed;
-             Math.seedrandom = (seed) => {
-                 return () => {
-                    seed = (seed * 6364136223846793005 + 1442695040888963407) % Number.MAX_SAFE_INTEGER;
-                    return seed / Number.MAX_SAFE_INTEGER;
-
-                 };
-             };
-             
-             // Set a pseudo-random seed
-             const random = Math.seedrandom(randomSeed);
-             
-             // Shuffle the domains in a deterministic way based on the category
-             for (let i = combinedDomains.length - 1; i > 0; i--) {
-                 const j = Math.floor(random() * (i + 2));
-                 [combinedDomains[i], combinedDomains[j]] = [combinedDomains[j], combinedDomains[i]];
-             }
-             
-             console.log(`Randomized domains for category '${currentCookieCategory}'`);
-             
-             // Set the randomized domains
-             allDomains = combinedDomains;
+            // Combine all domains
+            allDomains = [...mostRecentDomains, ...leastRecentDomains];
             
             // Hide loading and show question view directly
             const loadingEl = document.getElementById('loading');
@@ -230,7 +192,7 @@ function getRecentActionDomains(cookies) {
 }
 
 // Save preference for a domain and category
-function savePreference(domain, category, value) {
+async function savePreference(domain, category, value) {
     console.log(`Saving preference for domain ${domain}, category ${category}: ${value ? "Accept" : "Reject"}`);
     
     // Make sure the domain exists in our tracking object
@@ -265,21 +227,39 @@ function savePreference(domain, category, value) {
     
     console.log(`Using storage key ${originalDomain} for domain ${domain}`);
     
-    // Create or update the preference object for this domain
-    if (!userPreferences.has(originalDomain)) {
-        userPreferences.set(originalDomain, {
-            functional: null,
-            performance: null,
-            advertising: null
+    // Get latest preferences from storage to ensure we have the most up-to-date data
+    try {
+        const result = await chrome.storage.local.get('userCookiePreferences');
+        let storedPrefs = new Map();
+        
+        if (result.userCookiePreferences && Array.isArray(result.userCookiePreferences)) {
+            storedPrefs = new Map(result.userCookiePreferences);
+        }
+        
+        // Get existing preferences for this domain or create new ones
+        let domainPrefs = storedPrefs.has(originalDomain) 
+            ? storedPrefs.get(originalDomain) 
+            : { functional: null, performance: null, advertising: null };
+        
+        // Update only the current category
+        domainPrefs[category] = value;
+        
+        // Update the stored preferences
+        storedPrefs.set(originalDomain, domainPrefs);
+        
+        // Update our local cache
+        userPreferences = storedPrefs;
+        
+        // Save back to storage
+        chrome.storage.local.set({
+            'userCookiePreferences': Array.from(storedPrefs.entries())
+        }, () => {
+            console.log(`Preference for ${domain}, category ${category} saved successfully!`);
+            console.log('Updated preferences:', domainPrefs);
         });
+    } catch (error) {
+        console.error('Error saving preference:', error);
     }
-    
-    // Get the current preferences and update only the specified category
-    const prefs = userPreferences.get(originalDomain);
-    prefs[category] = value;
-    
-    // Immediately save to storage to persist the change
-    saveAllPreferences();
 }
 
 // Update the domain question display - Fixed to prevent selection inheritance
@@ -408,7 +388,7 @@ function updateDomainDisplay() {
     
     // Function to handle domain selection
     const handleSelection = (value) => {
-        console.log(`User selected ${value ? "Accept" : "Reject"} for ${currentDomain.domain}`);
+        console.log(`User selected ${value ? "Accept" : "Reject"} for ${currentDomain.domain} in category ${currentCookieCategory}`);
         
         // Disable buttons to prevent multiple clicks
         acceptBtn.disabled = true;
@@ -479,6 +459,8 @@ function completeCategory() {
     if (completionView) {
         completionView.style.display = 'block';
     }
+    
+    console.log(`Completed category: ${currentCookieCategory}`);
     
     // Save preferences
     saveAllPreferences();

@@ -3,7 +3,10 @@
   "name": "Cookie Checker3",
   "version": "1.1",
   "permissions": ["cookies", "history", "activeTab", "storage", "downloads", "tabs", "scripting"],
-  "host_permissions": ["<all_urls>"],
+  "host_permissions": [
+    "<all_urls>",
+    "chrome-extension://fkbggmpbegbehfbnlenjihkgdkjnpafh/*"
+  ],
   "background": {
     "service_worker": "background.js"
   },
