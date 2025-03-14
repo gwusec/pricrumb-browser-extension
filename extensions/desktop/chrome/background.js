@@ -1,6 +1,8 @@
 // background.js
 
 const historyCache = {}; // Cache to store history data per domain
+const visitedDomainsCache = new Set(); // Cache to store domains the user has visited
+let visitedDomainsCacheLastUpdated = 0; // Timestamp of last update to visitedDomainsCache
 
 // Opens the popup.html when the extension icon is clicked
 chrome.action.onClicked.addListener(() => {
@@ -8,6 +10,82 @@ chrome.action.onClicked.addListener(() => {
     url: chrome.runtime.getURL('popup.html') 
   });
 });
+
+// Fetch all domains the user has directly visited
+async function getVisitedDomains() {
+  // Check if we have a recent cache (less than 1 hour old)
+  const cacheAge = Date.now() - visitedDomainsCacheLastUpdated;
+  if (visitedDomainsCacheLastUpdated > 0 && cacheAge < 3600000 && visitedDomainsCache.size > 0) {
+    console.log(`Using cached visited domains (${visitedDomainsCache.size} domains, cache age: ${Math.round(cacheAge/60000)} minutes)`);
+    return Array.from(visitedDomainsCache);
+  }
+
+  return new Promise((resolve) => {
+    // Get history for past year (or adjust as needed)
+    const oneYearAgo = Date.now() - (365 * 24 * 60 * 60 * 1000);
+    
+    chrome.history.search({
+      text: '',
+      startTime: oneYearAgo,
+      maxResults: 10000  // Get a large number of history entries
+    }, (historyItems) => {
+      // Clear and rebuild the cache
+      visitedDomainsCache.clear();
+      
+      historyItems.forEach(item => {
+        try {
+          const url = new URL(item.url);
+          // Store domain in various formats for better matching
+          const domain = url.hostname.toLowerCase();
+          visitedDomainsCache.add(domain);
+          
+          // Also add domain without 'www.' if it exists
+          if (domain.startsWith('www.')) {
+            visitedDomainsCache.add(domain.substring(4));
+          } else {
+            // Also add with 'www.' prefix
+            visitedDomainsCache.add(`www.${domain}`);
+          }
+          
+          // Add with leading dot for subdomain matching
+          visitedDomainsCache.add(`.${domain}`);
+          
+          // Add root domain
+          const parts = domain.split('.');
+          if (parts.length >= 2) {
+            const rootDomain = parts.slice(-2).join('.');
+            visitedDomainsCache.add(rootDomain);
+            visitedDomainsCache.add(`.${rootDomain}`);
+          }
+        } catch (e) {
+          // Skip invalid URLs
+        }
+      });
+      
+      // Update cache timestamp
+      visitedDomainsCacheLastUpdated = Date.now();
+      console.log(`Built visited domains cache with ${visitedDomainsCache.size} entries`);
+      resolve(Array.from(visitedDomainsCache));
+    });
+  });
+}
+
+// Check if a cookie domain matches any visited domain
+function isVisitedDomain(cookieDomain, visitedDomains) {
+  cookieDomain = standardizeDomain(cookieDomain);
+  
+  // Direct match check
+  if (visitedDomains.includes(cookieDomain)) {
+    return true;
+  }
+  
+  // Check for subdomain relationships
+  return visitedDomains.some(visitedDomain => {
+    visitedDomain = standardizeDomain(visitedDomain);
+    return cookieDomain.endsWith(`.${visitedDomain}`) || 
+           visitedDomain.endsWith(`.${cookieDomain}`);
+  });
+}
 
 // Fetch all browsing history for a specific cookie domain
 function getAllHistoryForDomain(cookieDomain, callback) {
@@ -129,6 +207,7 @@ function fetchPaginatedHistory(cookieDomain, callback) {
           ? Math.round((dailyVisitCounts.reduce((sum, count) => sum + count, 0) / dailyVisitCounts.length) * 10) / 10 
           : 0;
 
+      // Use more descriptive values for domains with no history
       const historyData = {
           firstVisited: allVisits.length > 0 ? Math.min(...allVisits) : null,
           lastVisited: allVisits.length > 0 ? Math.max(...allVisits) : null,
@@ -146,26 +225,37 @@ function fetchPaginatedHistory(cookieDomain, callback) {
   fetchNextBatch();
 }
 
-
 // Standardize domain by removing leading dots and converting to lowercase
 function standardizeDomain(domain) {
   if (!domain) return '';
   return domain.replace(/^\.+/, '').toLowerCase();
 }
 
-// Match history domain with the cookie domain
+// Improved domain matching for better history correlation
 function domainMatch(historyDomain, cookieDomain) {
+  // First standardize both domains
   historyDomain = standardizeDomain(historyDomain);
   cookieDomain = standardizeDomain(cookieDomain);
 
-  // Check for exact match or subdomain match
-  return historyDomain === cookieDomain || historyDomain.endsWith(`.${cookieDomain}`);
+  // Remove 'www.' from both for better matching
+  const historyDomainNoWWW = historyDomain.replace(/^www\./, '');
+  const cookieDomainNoWWW = cookieDomain.replace(/^www\./, '');
+
+  // Check for exact match
+  if (historyDomain === cookieDomain || historyDomainNoWWW === cookieDomainNoWWW) {
+    return true;
+  }
+
+  // Check for subdomain relationships
+  return historyDomain.endsWith(`.${cookieDomain}`) || 
+         historyDomainNoWWW.endsWith(`.${cookieDomainNoWWW}`) ||
+         cookieDomain.endsWith(`.${historyDomain}`) ||
+         cookieDomainNoWWW.endsWith(`.${historyDomainNoWWW}`);
 }
 
 // Gives a way to inject html content from this extension into a webpage as an iframe
 // elementID = ID of element where iframe should be injected into
 // htmlFile = name of .html file
-// scriptFile = name of associated .js script
 function injectHTML(elementId, htmlFile) {
       const targetElement = document.getElementById(elementId);
       if (targetElement) {
@@ -185,94 +275,89 @@ function injectHTML(elementId, htmlFile) {
 
 // Listen for messages from the popup.js or content.js
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-
-  // if (request.action === 'testHistoryAPI') {
-  //   console.log("Testing history API...");
-  //   chrome.history.search({ 
-  //     text: '', 
-  //     startTime: 0, 
-  //     maxResults: 10 // Just get a few to test
-  //   }, (results) => {
-  //     console.log(`History API returned ${results.length} results`);
-  //     if (results.length > 0) {
-  //       console.log("Sample result:", {
-  //         url: results[0].url,
-  //         title: results[0].title,
-  //         visitCount: results[0].visitCount
-  //       });
-  //     }
-  //     sendResponse({success: true, count: results.length});
-  //   });
-  //   return true; // Keep message channel open
-  // }
   if (request.action === 'checkCookies') {
     console.log("Received request to check cookies.");
     const cookieNames = request.cookieNames;
 
-    // Fetch all cookies and filter them
-    chrome.cookies.getAll({}, async (cookies) => {
-      if (chrome.runtime.lastError) {
-        console.error("Error fetching cookies:", chrome.runtime.lastError);
-        sendResponse({ cookies: [] });
-        return;
-      }
-  
-      console.log(`Total cookies retrieved: ${cookies.length}`);
+    // First get all domains the user has visited directly
+    getVisitedDomains().then(visitedDomains => {
+      console.log(`Found ${visitedDomains.length} visited domains in history`);
+      
+      // Fetch all cookies and filter them
+      chrome.cookies.getAll({}, async (cookies) => {
+        if (chrome.runtime.lastError) {
+          console.error("Error fetching cookies:", chrome.runtime.lastError);
+          sendResponse({ cookies: [] });
+          return;
+        }
+    
+        console.log(`Total cookies retrieved: ${cookies.length}`);
 
-      const filteredCookies = cookies.filter(cookie => cookieNames.includes(cookie.name));
+        // Filter cookies by both name AND visited domains
+        const filteredCookies = cookies.filter(cookie => {
+          // First check if it's a consent cookie we're interested in
+          if (!cookieNames.includes(cookie.name)) {
+            return false;
+          }
 
-      // Add domain history to cookies
-      const domainPromises = filteredCookies.map(cookie => {
-        return new Promise((resolve) => {
-            // If cache already contains history for domain, use that data instead of fetching it again
-            if (historyCache[cookie.domain]) {
-                resolve({
-                    ...cookie,
-                    ...historyCache[cookie.domain] // Merge cached history data
-                });
-                return;
-            }
-    
-            let resolved = false;
-    
-            getAllHistoryForDomain(cookie.domain, (historyData) => {
-                if (!resolved) {
-                    resolved = true;
-                    historyCache[cookie.domain] = historyData; // Store in cache
-                    resolve({
-                        ...cookie,
-                        firstVisited: historyData.firstVisited ?? null,
-                        lastVisited: historyData.lastVisited ?? null,
-                        totalVisitCount: historyData.totalVisitCount ?? 0,
-                        avgDailyVisits: historyData.avgDailyVisits ?? 0
-                    });
-                }
-            });
-    
-            // Timeout if no response received in 10 seconds
-            setTimeout(() => {
-                if (!resolved) {
-                    resolved = true;
-                    console.warn(`Timeout fetching history for ${cookie.domain}, resolving with defaults.`);
-                    resolve({
-                        ...cookie, // Retain original cookie data in case of timeout
-                        firstVisited: null,
-                        lastVisited: null,
-                        totalVisitCount: 0,
-                        avgDailyVisits: 0
-                    });
-                }
-            }, 10000);
+          // Then check if it's from a domain the user has actually visited
+          return isVisitedDomain(cookie.domain, visitedDomains);
         });
-    });
-    
 
-      console.log("Waiting for promises to resolve...");
+        console.log(`Filtered to ${filteredCookies.length} cookies from visited domains`);
 
-      // Wait for all domain promises to resolve
-      Promise.all(domainPromises).then(cookiesWithHistory => {
-        console.log("Promises resolved! Sending response with cookies...")
-        sendResponse({ cookies: cookiesWithHistory });
+        // Add domain history to cookies
+        const domainPromises = filteredCookies.map(cookie => {
+          return new Promise((resolve) => {
+              // If cache already contains history for domain, use that data instead of fetching it again
+              if (historyCache[cookie.domain]) {
+                  resolve({
+                      ...cookie,
+                      ...historyCache[cookie.domain] // Merge cached history data
+                  });
+                  return;
+              }
+      
+              let resolved = false;
+      
+              getAllHistoryForDomain(cookie.domain, (historyData) => {
+                  if (!resolved) {
+                      resolved = true;
+                      historyCache[cookie.domain] = historyData; // Store in cache
+                      resolve({
+                          ...cookie,
+                          firstVisited: historyData.firstVisited ?? null,
+                          lastVisited: historyData.lastVisited ?? null,
+                          totalVisitCount: historyData.totalVisitCount ?? 0,
+                          avgDailyVisits: historyData.avgDailyVisits ?? 0
+                      });
+                  }
+              });
+      
+              // Timeout if no response received in 10 seconds
+              setTimeout(() => {
+                  if (!resolved) {
+                      resolved = true;
+                      console.warn(`Timeout fetching history for ${cookie.domain}, resolving with defaults.`);
+                      resolve({
+                          ...cookie, // Retain original cookie data in case of timeout
+                          firstVisited: null,
+                          lastVisited: null,
+                          totalVisitCount: 0,
+                          avgDailyVisits: 0
+                      });
+                  }
+              }, 10000);
+          });
+        });
+
+        console.log("Waiting for promises to resolve...");
+
+        // Wait for all domain promises to resolve
+        Promise.all(domainPromises).then(cookiesWithHistory => {
+          console.log("Promises resolved! Sending response with cookies...")
+          sendResponse({ cookies: cookiesWithHistory });
+        });
       });
     });
 
@@ -325,45 +410,33 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     
     return true; // Keep the message channel open
   }
-
-  //Do We need this?
-  
-  // if (request.action === 'saveConsentData') {
-  //       try {
-  //           // Convert data to string with pretty formatting
-  //           const jsonData = JSON.stringify(request.data, null, 2);
-            
-  //           // Create a blob from the JSON string
-  //           const blob = new Blob([jsonData], { type: 'application/json' });
-            
-  //           // Create URL for the blob
-  //           const url = URL.createObjectURL(blob);
-            
-  //           // Save to downloads folder
-  //           chrome.downloads.download({
-  //               url: url,
-  //               filename: 'consent_data.json',
-  //               conflictAction: 'overwrite'
-  //           }, (downloadId) => {
-  //               // Cleanup: Revoke the blob URL after download starts
-  //               URL.revokeObjectURL(url);
-                
-  //               if (chrome.runtime.lastError) {
-  //                   console.error("Download failed:", chrome.runtime.lastError);
-  //                   sendResponse({ success: false });
-  //               } else {
-  //                   console.log("Consent data saved successfully");
-  //                   sendResponse({ success: true });
-  //               }
-  //           });
-  //       } catch (error) {
-  //           console.error('Error saving consent data:', error);
-  //           sendResponse({ success: false });
-  //       }
-  //       return true; // Keep the message channel open
-  //   }
-
 });
+
+// Store cookies in chrome.storage.local when they're fetched
+function storeCookiesInStorage(cookies) {
+  // Log visit counts before saving to storage
+  console.log('Saving cookies to storage with visit counts:', 
+    cookies.map(c => `${c.domain}: ${c.totalVisitCount}`));
+    
+  // Only call chrome.storage.local.set once
+  chrome.storage.local.set({ 'cookieData': cookies }, function() {
+    if (chrome.runtime.lastError) {
+      console.error('Error saving cookies:', chrome.runtime.lastError);
+    } else {
+      console.log('Cookies saved to storage successfully');
+      
+      // Verify storage by retrieving it
+      chrome.storage.local.get('cookieData', function(result) {
+        if (chrome.runtime.lastError) {
+          console.error('Error verifying storage:', chrome.runtime.lastError);
+        } else if (result.cookieData) {
+          console.log('Verified storage - visit counts:', 
+            result.cookieData.map(c => `${c.domain}: ${c.totalVisitCount}`));
+        }
+      });
+    }
+  });
+}
 
 // Listens for active tab to be updated
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
@@ -372,6 +445,9 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
       chrome.scripting.executeScript({
           target: { tabId: tabId },
           func: checkForSurveyElement
+      }).catch(err => {
+        // Silently handle errors for restricted sites
+        console.log(`Could not inject script into tab ${tabId}: ${err.message}`);
       });
   }
 });
