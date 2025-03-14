@@ -162,28 +162,28 @@
                 <li>Cookies placed by advertising networks to collect browsing
                     habits in order to target relevant adverts to the user.</li>
             </div> -->
-            
-            <!-- Progress indicator -->
-            <div class="progress-container">
-                <p class="instructions">Once you choose an option, you'll automatically be directed to the next website, and you can use the previous button to change your choice</p>
-                <div>Website <span id="currentDomain">1</span>/<span id="totalDomains">10</span></div>
-                <div class="progress-bar">
-                    <div class="progress-fill" style="width: 10%;"></div>
-                </div>
-            </div>
-            
+                       
             <!-- Domain question -->
             <div class="domain-card">
+                <div class="domain-name" id="currentDomainName"></div>
+
                 <div class="question">
-                    Imagine this website is asking you for your consent to collect advertising cookies. What would your choice be?
+                    This website may retain data about your interests across websites to display relevant and engaging ads that are more valuable for publishers and third-party advertisers.<br/><br/>Sharing this information with the website is optional and does not affect the website's main functionalities.<br/><br/>
+                    Do you accept or reject the website retaining this data about your interactions?
                 </div>
                 
-                <div class="domain-name" id="currentDomainName">www.example.com</div>
                 <div class="toggle-container">
                     <!-- Toggle buttons will be inserted by JavaScript -->
                 </div>
             </div>
-            
+            <!-- Progress indicator -->
+            <div class="progress-container">
+                <!-- <p class="instructions">Once you choose an option, you'll automatically be directed to the next website, and you can use the previous button to change your choice</p> -->
+                <div class="progress-bar" style="margin: 10px">
+                    <div class="progress-fill" style="width: 10%;"></div>
+                </div>
+                <div style="text-align: center;">Website <span id="currentDomain">1</span>/<span id="totalDomains">10</span></div>
+            </div>
             <!-- Navigation buttons -->
             <div class="button-container">
                 <button id="previousButton" class="nav-btn" disabled>Previous</button>
