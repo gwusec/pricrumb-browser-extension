@@ -35,6 +35,19 @@ async function loadSavedPreferences() {
     }
 }
 
+function shuffleArray(array) {
+    // Create a copy of the array to avoid modifying the original
+    const shuffled = [...array];
+    
+    // Fisher-Yates shuffle algorithm
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]; // Swap elements
+    }
+    
+    return shuffled;
+}
+
 // Load cookie data
 async function loadCookies() {
     try {
@@ -60,9 +73,17 @@ async function loadCookies() {
             leastRecentDomains.forEach(domain => {
                 domain.favicon = `https://www.google.com/s2/favicons?domain=${formatDomainForDisplay(domain.domain)}&sz=32`;
             });
+
+
             
             // Combine all domains
-            allDomains = [...mostRecentDomains, ...leastRecentDomains];
+            let allDomainsCombined = [...mostRecentDomains, ...leastRecentDomains];
+
+            //randomize the order:
+            allDomains = shuffleArray(allDomainsCombined);
+
+            // test randomization
+            console.log('Domains after randomization:', allDomains.map(d => d.domain));
             
             // Hide loading and show question view directly
             const loadingEl = document.getElementById('loading');
