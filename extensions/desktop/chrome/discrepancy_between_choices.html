@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diffreinces between Users Preference </title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            padding: 20px;
+            margin: 0;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+
+        h1, h2 {
+            color: #444;
+            text-align: center;
+            margin-top: 0;
+        }
+
+        h2 {
+            font-size: 1.2rem;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        /* .discrepancy-card {
+            background-color: white;
+            border-radius: 6px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid #FF9800;
+        } */
+
+        .website-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .favicon {
+/*             width: 24px;
+            height: 24px; */
+            margin-right: 10px;
+        }
+
+        h3 {
+            margin: 0;
+            font-size: 1.4rem;
+            color: #333;
+        }
+
+        .website-details {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .website-details p {
+            margin: 5px 0;
+        }
+
+        .discrepancy-explanation {
+            /* background-color: #fff9e6; */
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        .comparison-table th, .comparison-table td {
+            padding: 10px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+
+        .comparison-table th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+
+        /* .comparison-table tr.different { 
+            background-color: #fff2e6;
+         } */
+
+        .accepted {
+            color: #4c7aaf;
+            font-weight: bold;
+        }
+
+        .rejected {
+            color: #919291;
+            font-weight: bold;
+        }
+
+        .button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            display: block;
+            margin: 20px auto 0;
+            transition: background-color 0.2s;
+        }
+
+        .button:hover {
+            background-color: #0056b3;
+        }
+
+        #loadingView {
+            text-align: center;
+            padding: 50px 0;
+        }
+
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top: 4px solid #007bff;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            color: #f44336;
+            font-weight: bold;
+        }
+
+        .no-discrepancy {
+            text-align: center;
+            padding: 30px;
+            background-color: #e8f5e9;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .introduction {
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Website with choices discrepancy</h1>        
+        <!-- Loading View -->
+        <div id="loadingView">
+            <div class="spinner"></div>
+            <p>Analyzing your preferences and browsing history...</p>
+        </div>
+        
+        <!-- Website View -->
+        <div id="websiteView" style="display: none;">
+            <p class="introduction">
+                For this website, your choice earlier in the survey does not match what is in your browser histoty,  can you explain why do you think there is a discrepancy?
+            </p>
+            
+            <div id="discrepancyContainer"></div>
+            
+            <button id="backButton" class="button">Next</button>
+        </div>
+    </div>
+    
+    <script src="discrepancy_between_choices.js"></script>
+</body>
+</html>

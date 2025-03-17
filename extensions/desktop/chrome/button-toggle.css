@@ -1,0 +1,39 @@
+.toggle-btn {
+    width: 53px;
+    height: 35px;
+    border-radius: 10%; /* Makes the button circular */
+    border: 2px solid #cccccc; /* Default border color */
+    background-color: transparent; /* Transparent background by default */
+    cursor: pointer;
+    margin: 5px;
+    outline: none;
+    transition: all 0.3s ease;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+}
+
+.toggle-btn:hover {
+    opacity: 0.8;
+}
+
+.toggle-btn.accept {
+    border-color: #919291;
+    color: #666966;
+}
+
+.toggle-btn.accept.selected {
+    background-color: #4c7aaf;
+    color: white;
+}
+
+.toggle-btn.reject {
+    border-color: #919291;
+    color: #666966;
+}
+
+.toggle-btn.reject.selected {
+    background-color: #4c7aaf;
+    color: white;
+}
