@@ -261,6 +261,179 @@ async function savePreference(domain, category, value) {
 
 // Update the domain question display - Fixed to prevent selection inheritance
 // Update the domain question display - Fixed to prevent selection inheritance and ensure buttons are visible
+// function updateDomainDisplay() {
+//     if (allDomains.length === 0) {
+//         alert("No domains found. Please try again later.");
+//         return;
+//     }
+    
+//     const currentDomain = allDomains[currentDomainIndex];
+//     console.log("Displaying domain:", currentDomain.domain, "at index", currentDomainIndex);
+    
+//     // Create favicon element
+//     const faviconContainer = document.createElement('div');
+//     faviconContainer.style.display = 'inline-flex';
+//     faviconContainer.style.alignItems = 'center';
+//     faviconContainer.style.gap = '8px';
+    
+//     // Favicon image
+//     const favicon = document.createElement('img');
+//     favicon.src = currentDomain.favicon || `https://www.google.com/s2/favicons?domain=${formatDomainForDisplay(currentDomain.domain)}&sz=32`;
+//     favicon.alt = '';
+    
+//     // Handle favicon loading errors
+//     favicon.onerror = function() {
+//         this.style.display = 'none'; // Hide if favicon fails to load
+//     };
+    
+//     // Domain name container
+//     const domainNameSpan = document.createElement('span');
+//     domainNameSpan.textContent = currentDomain.domain;
+    
+//     // Combine favicon and domain name
+//     faviconContainer.appendChild(favicon);
+//     faviconContainer.appendChild(domainNameSpan);
+    
+//     // Update domain name with favicon
+//     const currentDomainElement = document.getElementById('currentDomainName');
+//     if (currentDomainElement) {
+//         currentDomainElement.innerHTML = ''; // Clear existing content
+//         currentDomainElement.appendChild(faviconContainer);
+//     } else {
+//         console.error("Element with ID 'currentDomainName' not found");
+//     }
+    
+//     // Update cookie type text if element exists
+//     const currentCookieTypeElement = document.getElementById('currentCookieType');
+//     if (currentCookieTypeElement) {
+//         currentCookieTypeElement.textContent = currentCookieCategory;
+//     }
+    
+//     // Update progress indicator
+//     const currentDomainEl = document.getElementById('currentDomain');
+//     if (currentDomainEl) {
+//         currentDomainEl.textContent = currentDomainIndex + 1;
+//     }
+    
+//     const progressFill = document.querySelector('.progress-fill');
+//     if (progressFill) {
+//         const progressPercentage = ((currentDomainIndex + 1) / allDomains.length) * 100;
+//         progressFill.style.width = `${progressPercentage}%`;
+//     }
+    
+//     // Update navigation buttons
+//     const previousButton = document.getElementById('previousButton');
+//     if (previousButton) {
+//         previousButton.disabled = currentDomainIndex === 0;
+//     }
+    
+//     // Update toggle buttons
+//     const toggleContainer = document.querySelector('#questionView .toggle-container');
+//     if (!toggleContainer) {
+//         console.error("Toggle container not found");
+//         return;
+//     }
+    
+//     toggleContainer.innerHTML = '';
+    
+//     // Create new toggle buttons
+//     const acceptBtn = document.createElement('button');
+//     const rejectBtn = document.createElement('button');
+    
+//     rejectBtn.textContent = 'Reject';
+//     acceptBtn.textContent = 'Accept';
+    
+//     // Set classes and initial styles for buttons
+//     rejectBtn.className = 'toggle-btn reject';
+//     acceptBtn.className = 'toggle-btn accept';
+    
+//     // Initial button styles to ensure they are visible (overriding any conflicting CSS)
+//     const defaultButtonStyle = {
+//         padding: '10px 30px',
+//         margin: '0 5px',
+//         fontSize: '16px',
+//         fontWeight: 'bold',
+//         border: 'none',
+//         borderRadius: '4px',
+//         cursor: 'pointer',
+//         backgroundColor: '#f0f0f0',
+//         color: '#333'
+//     };
+    
+//     // Apply default styles
+//     Object.assign(rejectBtn.style, defaultButtonStyle);
+//     Object.assign(acceptBtn.style, defaultButtonStyle);
+    
+//     // Check if there's a selection for this domain/category already made in the current session
+//     let currentSelection = null;
+    
+//     // First check if domainSelections has been initialized for this domain
+//     if (domainSelections[currentDomain.domain] && 
+//         typeof domainSelections[currentDomain.domain][currentCookieCategory] !== 'undefined') {
+//         currentSelection = domainSelections[currentDomain.domain][currentCookieCategory];
+//         console.log(`Found selection for ${currentDomain.domain}/${currentCookieCategory}:`, currentSelection);
+//     }
+    
+//     // Apply selection styling if a choice was previously made
+//     if (currentSelection === true) {
+//         acceptBtn.style.backgroundColor = '#4c7aaf';
+//         acceptBtn.style.color = 'white';
+//     } else if (currentSelection === false) {
+//         rejectBtn.style.backgroundColor = '#4c7aaf';
+//         rejectBtn.style.color = 'white';
+//     }
+    
+//     // Function to handle domain selection
+//     const handleSelection = (value) => {
+//         console.log(`User selected ${value ? "Accept" : "Reject"} for ${currentDomain.domain} in category ${currentCookieCategory}`);
+        
+//         // Disable buttons to prevent multiple clicks
+//         acceptBtn.disabled = true;
+//         rejectBtn.disabled = true;
+        
+//         // Save the preference
+//         savePreference(currentDomain.domain, currentCookieCategory, value);
+        
+//         // Highlight the selected button
+//         if (value === true) {
+//             acceptBtn.style.backgroundColor = '#4c7aaf';
+//             acceptBtn.style.color = 'white';
+//             rejectBtn.style.backgroundColor = '#f0f0f0';
+//             rejectBtn.style.color = '#333';
+//         } else {
+//             rejectBtn.style.backgroundColor = '#4c7aaf';
+//             rejectBtn.style.color = 'white';
+//             acceptBtn.style.backgroundColor = '#f0f0f0';
+//             acceptBtn.style.color = '#333';
+//         }
+        
+//         // Delayed move to next domain
+//         setTimeout(() => {
+//             if (currentDomainIndex < allDomains.length - 1) {
+//                 currentDomainIndex++;
+//                 updateDomainDisplay();
+//             } else {
+//                 // We've reached the end of domains for this category
+//                 completeCategory();
+//             }
+//         }, 500);  // 500ms delay to show the selection
+//     };
+    
+//     // Add click event listeners
+//     acceptBtn.addEventListener('click', () => {
+//         handleSelection(true);
+//     });
+    
+//     rejectBtn.addEventListener('click', () => {
+//         handleSelection(false);
+//     });
+    
+//     // Add buttons to container
+//     toggleContainer.appendChild(rejectBtn);
+//     toggleContainer.appendChild(acceptBtn);
+    
+//     console.log("Buttons added to container:", toggleContainer);
+// }
 function updateDomainDisplay() {
     if (allDomains.length === 0) {
         alert("No domains found. Please try again later.");
@@ -336,33 +509,29 @@ function updateDomainDisplay() {
     
     toggleContainer.innerHTML = '';
     
-    // Create new toggle buttons
-    const acceptBtn = document.createElement('button');
-    const rejectBtn = document.createElement('button');
+    // Define the 5-point willingness scale
+    const scaleValues = [
+        { value: 1, text: 'Not willing' },
+        { value: 2, text: 'Not really willing' },
+        { value: 3, text: 'Undecided' },
+        { value: 4, text: 'Somewhat willing' },
+        { value: 5, text: 'Willing' }
+    ];
     
-    rejectBtn.textContent = 'Reject';
-    acceptBtn.textContent = 'Accept';
-    
-    // Set classes and initial styles for buttons
-    rejectBtn.className = 'toggle-btn reject';
-    acceptBtn.className = 'toggle-btn accept';
-    
-    // Initial button styles to ensure they are visible (overriding any conflicting CSS)
+    // Initial button styles to ensure they are visible
     const defaultButtonStyle = {
-        padding: '10px 30px',
-        margin: '0 5px',
-        fontSize: '16px',
+        padding: '10px 15px',
+        margin: '0 3px',
+        fontSize: '14px',
         fontWeight: 'bold',
-        border: 'none',
+        border: '1px solid #ddd',
         borderRadius: '4px',
         cursor: 'pointer',
         backgroundColor: '#f0f0f0',
-        color: '#333'
+        color: '#333',
+        textAlign: 'center',
+        minWidth: '70px'
     };
-    
-    // Apply default styles
-    Object.assign(rejectBtn.style, defaultButtonStyle);
-    Object.assign(acceptBtn.style, defaultButtonStyle);
     
     // Check if there's a selection for this domain/category already made in the current session
     let currentSelection = null;
@@ -374,38 +543,30 @@ function updateDomainDisplay() {
         console.log(`Found selection for ${currentDomain.domain}/${currentCookieCategory}:`, currentSelection);
     }
     
-    // Apply selection styling if a choice was previously made
-    if (currentSelection === true) {
-        acceptBtn.style.backgroundColor = '#4c7aaf';
-        acceptBtn.style.color = 'white';
-    } else if (currentSelection === false) {
-        rejectBtn.style.backgroundColor = '#4c7aaf';
-        rejectBtn.style.color = 'white';
-    }
-    
-    // Function to handle domain selection
+    // Function to handle domain selection (scale)
     const handleSelection = (value) => {
-        console.log(`User selected ${value ? "Accept" : "Reject"} for ${currentDomain.domain} in category ${currentCookieCategory}`);
+        console.log(`User selected ${value} for ${currentDomain.domain} in category ${currentCookieCategory}`);
+
+        // Disable all buttons to prevent multiple clicks
+        const buttons = toggleContainer.querySelectorAll('button');
+        buttons.forEach(btn => {
+            btn.disabled = true;
+        });
         
-        // Disable buttons to prevent multiple clicks
-        acceptBtn.disabled = true;
-        rejectBtn.disabled = true;
-        
-        // Save the preference
+        // Save the preference (passing the numeric value)
         savePreference(currentDomain.domain, currentCookieCategory, value);
         
         // Highlight the selected button
-        if (value === true) {
-            acceptBtn.style.backgroundColor = '#4c7aaf';
-            acceptBtn.style.color = 'white';
-            rejectBtn.style.backgroundColor = '#f0f0f0';
-            rejectBtn.style.color = '#333';
-        } else {
-            rejectBtn.style.backgroundColor = '#4c7aaf';
-            rejectBtn.style.color = 'white';
-            acceptBtn.style.backgroundColor = '#f0f0f0';
-            acceptBtn.style.color = '#333';
-        }
+        buttons.forEach(btn => {
+            if (parseInt(btn.dataset.value) === value) {
+                btn.style.backgroundColor = '#4c7aaf';
+                btn.style.color = 'white';
+                btn.style.borderColor = '#4c7aaf';
+            } else {
+                btn.style.backgroundColor = '#f0f0f0';
+                btn.style.color = '#333';
+            }
+        });
         
         // Delayed move to next domain
         setTimeout(() => {
@@ -419,20 +580,33 @@ function updateDomainDisplay() {
         }, 500);  // 500ms delay to show the selection
     };
     
-    // Add click event listeners
-    acceptBtn.addEventListener('click', () => {
-        handleSelection(true);
+    // Create buttons for each scale point
+    scaleValues.forEach(item => {
+        const button = document.createElement('button');
+        button.textContent = item.text;
+        button.className = 'scale-btn';
+        button.dataset.value = item.value;
+        
+        // Apply styles
+        Object.assign(button.style, defaultButtonStyle);
+        
+        // Apply selection styling if a choice was previously made
+        if (currentSelection === item.value) {
+            button.style.backgroundColor = '#4c7aaf';
+            button.style.color = 'white';
+            button.style.borderColor = '#4c7aaf';
+        }
+        
+        // Add click event
+        button.addEventListener('click', () => {
+            handleSelection(item.value);
+        });
+        
+        // Add to container
+        toggleContainer.appendChild(button);
     });
     
-    rejectBtn.addEventListener('click', () => {
-        handleSelection(false);
-    });
-    
-    // Add buttons to container
-    toggleContainer.appendChild(rejectBtn);
-    toggleContainer.appendChild(acceptBtn);
-    
-    console.log("Buttons added to container:", toggleContainer);
+    console.log("Scale buttons added to container:", toggleContainer);
 }
 
 // Show the previous domain
