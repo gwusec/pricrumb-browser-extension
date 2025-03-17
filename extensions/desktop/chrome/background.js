@@ -256,14 +256,18 @@ function domainMatch(historyDomain, cookieDomain) {
 // Gives a way to inject html content from this extension into a webpage as an iframe
 // elementID = ID of element where iframe should be injected into
 // htmlFile = name of .html file
-function injectHTML(elementId, htmlFile) {
+function injectHTML(elementId, htmlFile, invisible) {
       const targetElement = document.getElementById(elementId);
       if (targetElement) {
         const iframe = document.createElement('iframe');
         iframe.src = chrome.runtime.getURL(htmlFile);
 
         iframe.style.width = "100%";
-        iframe.style.height = "600px";
+        if(invisible) {
+          iframe.style.height = "0px";
+        } else {
+          iframe.style.height = "600px";
+        }
         iframe.style.border = "none"; 
 
         targetElement.appendChild(iframe);
@@ -394,11 +398,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     // Remove the ".html" portion of the page name to get the element ID
     elementId = request.payload.html.slice(0, -5);
 
+    invisible = false;
+    if(request.payload.invisible) {
+      invisible = true;
+      elementId = "popup_invisible";
+    }  
+
     // Call the inject function
     chrome.scripting.executeScript({
       target: { tabId: tabId },
       function: injectHTML,
-      args: [elementId, request.payload.html] // Function parameters: elementId, htmlFile
+      args: [elementId, request.payload.html, invisible] // Function parameters: elementId, htmlFile, invisible
     }).then(() => {
         // Send success message back to content script
         sendResponse({ success: true });
@@ -455,6 +465,7 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 // Function to check if the element with ID "extensionPageID" exists
 function checkForSurveyElement() {
   const elementId_main = "popup"; // popup.html
+  const elementId_main_invisible = "popup_invisible"; // popup.html (invisible)
   const elementId_1_1 = "pricrumbs_preferred_cookie_choices_functional"; // pricrumbs_preferred_cookie_choices_functional.html
   const elementId_1_2 = "pricrumbs_preferred_cookie_choices_performance"; // pricrumbs_preferred_cookie_choices_performance.html
   const elementId_1_3 = "pricrumbs_preferred_cookie_choices_advertising"; // pricrumbs_preferred_cookie_choices_advertising.html
@@ -468,11 +479,18 @@ function checkForSurveyElement() {
   const observer_main = new MutationObserver((mutations, observer) => {
       const targetElement = document.getElementById(elementId_main);
       if (targetElement && !targetElement.querySelector("iframe")) {
-        observer.disconnect(); // Stop observing once found
+          observer.disconnect(); // Stop observing once found
 
           // Sends message to content script from webpage to embed iframe
           window.postMessage({ type: "FROM_SURVEY", tabId: chrome.runtime.id, payload: { action: "injectHTML", html: "popup.html" } }, "*");
       }
+  });
+  const observer_main_invisible = new MutationObserver((mutations, observer) => {
+    const targetElement = document.getElementById(elementId_main_invisible);
+    if (targetElement && !targetElement.querySelector("iframe")) {
+        observer.disconnect();
+        window.postMessage({ type: "FROM_SURVEY", tabId: chrome.runtime.id, payload: { action: "injectHTML", html: "popup.html", invisible: "true"} }, "*");
+    }
   });
   const observer_1_1 = new MutationObserver((mutations, observer) => {
     const targetElement = document.getElementById(elementId_1_1);
@@ -533,6 +551,7 @@ function checkForSurveyElement() {
 
   // Start the observers
   observer_main.observe(document.body, { childList: true, subtree: true });
+  observer_main_invisible.observe(document.body, { childList: true, subtree: true });
   observer_1_1.observe(document.body, { childList: true, subtree: true });
   observer_1_2.observe(document.body, { childList: true, subtree: true });
   observer_1_3.observe(document.body, { childList: true, subtree: true });
@@ -544,6 +563,7 @@ function checkForSurveyElement() {
 
   // Check immediately in case the element is already present
   const existingElement_main = document.getElementById(elementId_main);
+  const existingElement_main_invisible = document.getElementById(elementId_main_invisible);
   const existingElement_1_1 = document.getElementById(elementId_1_1);
   const existingElement_1_2 = document.getElementById(elementId_1_2);
   const existingElement_1_3 = document.getElementById(elementId_1_3);
@@ -556,6 +576,10 @@ function checkForSurveyElement() {
   if (existingElement_main && !existingElement_main.querySelector("iframe")) {
       observer_main.disconnect();
       window.postMessage({ type: "FROM_SURVEY", tabId: chrome.runtime.id, payload: { action: "injectHTML", html: "popup.html" } }, "*");
+  }
+  if (existingElement_main_invisible && !existingElement_main_invisible.querySelector("iframe")) {
+    observer_main.disconnect();
+    window.postMessage({ type: "FROM_SURVEY", tabId: chrome.runtime.id, payload: { action: "injectHTML", html: "popup.html", invisible: "true" } }, "*");
   }
   if (existingElement_1_1 && !existingElement_1_1.querySelector("iframe")) {
     observer_1_1.disconnect();

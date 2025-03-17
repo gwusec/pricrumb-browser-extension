@@ -290,13 +290,20 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     // Remove the ".html" portion of the page name to get the element ID
     elementId = request.payload.html.slice(0, -5);
+
+    invisible = false;
+    if(request.payload.invisible && request.payload.invisible === true) {
+      invisible = true;
+      elementId = "popup_invisible";
+    }
     
     // Call the inject function
     browser.tabs.sendMessage(tabId, {
       type: "FROM_SURVEY",
       action: "injectHTML",
       elementId: elementId,
-      htmlFile: request.payload.html
+      htmlFile: request.payload.html,
+      invisible: invisible
     }).catch(error => {
       console.warn("Error sending message to content script", error);
     });
