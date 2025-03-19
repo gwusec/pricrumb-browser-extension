@@ -396,6 +396,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     height = request.payload.height ? request.payload.height : "600px";
 
+    // Small exception if popup_invisible is used
+    if(height === "0px") {
+      elementId = "popup_invisible";
+    }
+     
+
     // Call the inject function
     chrome.scripting.executeScript({
       target: { tabId: tabId },
