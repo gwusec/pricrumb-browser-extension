@@ -42,19 +42,14 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 // elementID = ID of element where iframe should be injected into
 // htmlFile = name of .html file
 // scriptFile = name of associated .js script
-function injectHTML(elementId, htmlFile, invisible) {
-  console.log("injectHTML - initiated with parameters:", elementId, htmlFile); // DEBUG
+function injectHTML(elementId, htmlFile, height = "600px") {
   const targetElement = document.getElementById(elementId);
   if (targetElement) {
     const iframe = document.createElement('iframe');
     iframe.src = chrome.runtime.getURL(htmlFile);
 
     iframe.style.width = "100%";
-    if(invisible) {
-      iframe.style.height = "0px";
-    } else {
-      iframe.style.height = "600px";
-    }
+    iframe.style.height = height;
     iframe.style.border = "none"; 
 
     targetElement.appendChild(iframe);
@@ -88,7 +83,7 @@ function checkForSurveyElement() {
     const targetElement = document.getElementById(elementId_main_invisible);
     if (targetElement && !targetElement.querySelector("iframe")) {
         observer.disconnect();
-        injectHTML("popup_invisible", "popup.html", true);
+        injectHTML("popup_invisible", "popup.html", "0px");
     }
   });
   const observer_1_1 = new MutationObserver((mutations, observer) => {
@@ -130,21 +125,21 @@ function checkForSurveyElement() {
     const targetElement = document.getElementById(elementId_3_1);
     if (targetElement && !targetElement.querySelector("iframe")) {
         observer.disconnect();
-        injectHTML("pricrumbs_website_all_cookies_accepted", "pricrumbs_website_all_cookies_accepted.html");
+        injectHTML("pricrumbs_website_all_cookies_accepted", "pricrumbs_website_all_cookies_accepted.html", "265px");
     }
   });
   const observer_3_2 = new MutationObserver((mutations, observer) => {
     const targetElement = document.getElementById(elementId_3_2);
     if (targetElement && !targetElement.querySelector("iframe")) {
         observer.disconnect();
-        injectHTML("pricrumbs_website_all_cookies_rejected", "pricrumbs_website_all_cookies_rejected.html");
+        injectHTML("pricrumbs_website_all_cookies_rejected", "pricrumbs_website_all_cookies_rejected.html", "265px");
     }
   });
   const observer_3_3 = new MutationObserver((mutations, observer) => {
     const targetElement = document.getElementById(elementId_3_3);
     if (targetElement && !targetElement.querySelector("iframe")) {
         observer.disconnect();
-        injectHTML("pricrumbs_website_advertising_cookies_rejected", "pricrumbs_website_advertising_cookies_rejected.html");
+        injectHTML("pricrumbs_website_advertising_cookies_rejected", "pricrumbs_website_advertising_cookies_rejected.html", "265px");
     }
   });
 
@@ -178,7 +173,7 @@ function checkForSurveyElement() {
   }
   if (existingElement_main_invisible && !existingElement_main_invisible.querySelector("iframe")) {
     observer_main.disconnect();
-    injectHTML("popup_invisible", "popup.html", true);
+    injectHTML("popup_invisible", "popup.html", "0px");
   }
   if (existingElement_1_1 && !existingElement_1_1.querySelector("iframe")) {
     observer_1_1.disconnect();
@@ -202,14 +197,14 @@ function checkForSurveyElement() {
   }
   if (existingElement_3_1 && !existingElement_3_1.querySelector("iframe")) {
     observer_3_1.disconnect();
-    injectHTML("pricrumbs_website_all_cookies_accepted", "pricrumbs_website_all_cookies_accepted.html");
+    injectHTML("pricrumbs_website_all_cookies_accepted", "pricrumbs_website_all_cookies_accepted.html", "265px");
   }
   if (existingElement_3_2 && !existingElement_3_2.querySelector("iframe")) {
     observer_3_2.disconnect();
-    injectHTML("pricrumbs_website_all_cookies_rejected", "pricrumbs_website_all_cookies_rejected.html");
+    injectHTML("pricrumbs_website_all_cookies_rejected", "pricrumbs_website_all_cookies_rejected.html", "265px");
   }
   if (existingElement_3_3 && !existingElement_3_3.querySelector("iframe")) {
     observer_3_3.disconnect();
-    injectHTML("pricrumbs_website_advertising_cookies_rejected", "pricrumbs_website_advertising_cookies_rejected.html");
+    injectHTML("pricrumbs_website_advertising_cookies_rejected", "pricrumbs_website_advertising_cookies_rejected.html", "265px");
   }
 }

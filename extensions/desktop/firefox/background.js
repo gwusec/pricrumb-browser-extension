@@ -291,9 +291,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     // Remove the ".html" portion of the page name to get the element ID
     elementId = request.payload.html.slice(0, -5);
 
-    invisible = false;
-    if(request.payload.invisible && request.payload.invisible === true) {
-      invisible = true;
+    height = request.payload.height ? request.payload.height : "600px";
+
+    // Small exception if popup_invisible is used
+    if(height === "0px") {
       elementId = "popup_invisible";
     }
     
@@ -303,7 +304,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       action: "injectHTML",
       elementId: elementId,
       htmlFile: request.payload.html,
-      invisible: invisible
+      height: height
     }).catch(error => {
       console.warn("Error sending message to content script", error);
     });
