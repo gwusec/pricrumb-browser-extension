@@ -256,18 +256,14 @@ function domainMatch(historyDomain, cookieDomain) {
 // Gives a way to inject html content from this extension into a webpage as an iframe
 // elementID = ID of element where iframe should be injected into
 // htmlFile = name of .html file
-function injectHTML(elementId, htmlFile, invisible) {
+function injectHTML(elementId, htmlFile, height = "600px") {
       const targetElement = document.getElementById(elementId);
       if (targetElement) {
         const iframe = document.createElement('iframe');
         iframe.src = chrome.runtime.getURL(htmlFile);
 
         iframe.style.width = "100%";
-        if(invisible) {
-          iframe.style.height = "0px";
-        } else {
-          iframe.style.height = "600px";
-        }
+        iframe.style.height = height;
         iframe.style.border = "none"; 
 
         targetElement.appendChild(iframe);
@@ -398,17 +394,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     // Remove the ".html" portion of the page name to get the element ID
     elementId = request.payload.html.slice(0, -5);
 
-    invisible = false;
-    if(request.payload.invisible) {
-      invisible = true;
-      elementId = "popup_invisible";
-    }  
+    height = request.payload.height ? request.payload.height : "600px";
 
     // Call the inject function
     chrome.scripting.executeScript({
       target: { tabId: tabId },
       function: injectHTML,
-      args: [elementId, request.payload.html, invisible] // Function parameters: elementId, htmlFile, invisible
+      args: [elementId, request.payload.html, height] // Function parameters: elementId, htmlFile, height
     }).then(() => {
         // Send success message back to content script
         sendResponse({ success: true });
@@ -489,7 +481,7 @@ function checkForSurveyElement() {
     const targetElement = document.getElementById(elementId_main_invisible);
     if (targetElement && !targetElement.querySelector("iframe")) {
         observer.disconnect();
-        window.postMessage({ type: "FROM_SURVEY", tabId: chrome.runtime.id, payload: { action: "injectHTML", html: "popup.html", invisible: "true"} }, "*");
+        window.postMessage({ type: "FROM_SURVEY", tabId: chrome.runtime.id, payload: { action: "injectHTML", html: "popup.html", height: "0px"} }, "*");
     }
   });
   const observer_1_1 = new MutationObserver((mutations, observer) => {
@@ -531,21 +523,21 @@ function checkForSurveyElement() {
     const targetElement = document.getElementById(elementId_3_1);
     if (targetElement && !targetElement.querySelector("iframe")) {
         observer.disconnect();
-        window.postMessage({ type: "FROM_SURVEY", tabId: chrome.runtime.id, payload: { action: "injectHTML", html: "pricrumbs_website_all_cookies_accepted.html" } }, "*");
+        window.postMessage({ type: "FROM_SURVEY", tabId: chrome.runtime.id, payload: { action: "injectHTML", html: "pricrumbs_website_all_cookies_accepted.html", height: "245px" } }, "*");
     }
   });
   const observer_3_2 = new MutationObserver((mutations, observer) => {
     const targetElement = document.getElementById(elementId_3_2);
     if (targetElement && !targetElement.querySelector("iframe")) {
         observer.disconnect();
-        window.postMessage({ type: "FROM_SURVEY", tabId: chrome.runtime.id, payload: { action: "injectHTML", html: "pricrumbs_website_all_cookies_rejected.html" } }, "*");
+        window.postMessage({ type: "FROM_SURVEY", tabId: chrome.runtime.id, payload: { action: "injectHTML", html: "pricrumbs_website_all_cookies_rejected.html", height: "245px" } }, "*");
     }
   });
   const observer_3_3 = new MutationObserver((mutations, observer) => {
     const targetElement = document.getElementById(elementId_3_3);
     if (targetElement && !targetElement.querySelector("iframe")) {
         observer.disconnect();
-        window.postMessage({ type: "FROM_SURVEY", tabId: chrome.runtime.id, payload: { action: "injectHTML", html: "pricrumbs_website_advertising_cookies_rejected.html" } }, "*");
+        window.postMessage({ type: "FROM_SURVEY", tabId: chrome.runtime.id, payload: { action: "injectHTML", html: "pricrumbs_website_advertising_cookies_rejected.html", height: "245px" } }, "*");
     }
   });
 
@@ -579,7 +571,7 @@ function checkForSurveyElement() {
   }
   if (existingElement_main_invisible && !existingElement_main_invisible.querySelector("iframe")) {
     observer_main.disconnect();
-    window.postMessage({ type: "FROM_SURVEY", tabId: chrome.runtime.id, payload: { action: "injectHTML", html: "popup.html", invisible: "true" } }, "*");
+    window.postMessage({ type: "FROM_SURVEY", tabId: chrome.runtime.id, payload: { action: "injectHTML", html: "popup.html", height: "0px" } }, "*");
   }
   if (existingElement_1_1 && !existingElement_1_1.querySelector("iframe")) {
     observer_1_1.disconnect();
@@ -603,14 +595,14 @@ function checkForSurveyElement() {
   }
   if (existingElement_3_1 && !existingElement_3_1.querySelector("iframe")) {
     observer_3_1.disconnect();
-    window.postMessage({ type: "FROM_SURVEY", tabId: chrome.runtime.id, payload: { action: "injectHTML", html: "pricrumbs_website_all_cookies_accepted.html" } }, "*");
+    window.postMessage({ type: "FROM_SURVEY", tabId: chrome.runtime.id, payload: { action: "injectHTML", html: "pricrumbs_website_all_cookies_accepted.html", height: "245px" } }, "*");
   }
   if (existingElement_3_2 && !existingElement_3_2.querySelector("iframe")) {
     observer_3_2.disconnect();
-    window.postMessage({ type: "FROM_SURVEY", tabId: chrome.runtime.id, payload: { action: "injectHTML", html: "pricrumbs_website_all_cookies_rejected.html" } }, "*");
+    window.postMessage({ type: "FROM_SURVEY", tabId: chrome.runtime.id, payload: { action: "injectHTML", html: "pricrumbs_website_all_cookies_rejected.html", height: "245px" } }, "*");
   }
   if (existingElement_3_3 && !existingElement_3_3.querySelector("iframe")) {
     observer_3_3.disconnect();
-    window.postMessage({ type: "FROM_SURVEY", tabId: chrome.runtime.id, payload: { action: "injectHTML", html: "pricrumbs_website_advertising_cookies_rejected.html" } }, "*");
+    window.postMessage({ type: "FROM_SURVEY", tabId: chrome.runtime.id, payload: { action: "injectHTML", html: "pricrumbs_website_advertising_cookies_rejected.html", height: "245px" } }, "*");
   }
 }
