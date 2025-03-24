@@ -93,7 +93,6 @@ function getAllHistoryForDomain(cookieDomain, callback) {
 }
 
 // Recursive function to fetch paginated history for a domain
-// Recursive function to fetch paginated history for a domain
 function fetchPaginatedHistory(cookieDomain, callback) {
   // Check if we already have cached data
   if (historyCache[cookieDomain]) {
