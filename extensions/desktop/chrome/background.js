@@ -93,6 +93,7 @@ function getAllHistoryForDomain(cookieDomain, callback) {
 }
 
 // Recursive function to fetch paginated history for a domain
+// Recursive function to fetch paginated history for a domain
 function fetchPaginatedHistory(cookieDomain, callback) {
   // Check if we already have cached data
   if (historyCache[cookieDomain]) {
@@ -108,6 +109,9 @@ function fetchPaginatedHistory(cookieDomain, callback) {
   let previousEndTime = null;
   let fetchAttempts = 0; // Track the number of fetch attempts
   const MAX_FETCH_ATTEMPTS = 5; // Limit fetch attempts prevent infinite loops
+  
+  // Add a Set to track unique visit IDs to prevent duplicate counting
+  const processedVisitIds = new Set();
 
   // Fetch history data in batches until all history is found, max attempts reached,
   // or no new data is found (to avoid infinite loops)
@@ -144,16 +148,20 @@ function fetchPaginatedHistory(cookieDomain, callback) {
                   try {
                       const url = new URL(item.url);
                       if (domainMatch(url.hostname, cookieDomain)) {
+                          // Debug log to see which URLs are being counted
+                          console.log(`Found matching URL for ${cookieDomain}: ${item.url}`);
                           meaningfulVisits.push({ url: item.url, lastVisitTime: item.lastVisitTime });
                       }
-                  } catch { }
+                  } catch (error) {
+                      console.error(`Error processing URL: ${error.message}`);
+                  }
               });
 
               // If no meaningful visits were found, stop early
               if (meaningfulVisits.length === 0) {
                 finalizeHistory();
                 return;
-            }
+              }
 
               // Process each meaningful visit
               Promise.all(
@@ -172,12 +180,22 @@ function fetchPaginatedHistory(cookieDomain, callback) {
                               );
 
                               validVisits.forEach(visit => {
-                                  allVisits.push(visit.visitTime);
-                                  totalVisitCount++;
-                                  
-                                  const visitDate = new Date(visit.visitTime);
-                                  const dateKey = `${visitDate.getFullYear()}-${visitDate.getMonth() + 1}-${visitDate.getDate()}`;
-                                  dailyVisitMap.set(dateKey, (dailyVisitMap.get(dateKey) || 0) + 1);
+                                  // Only process each visit once using the visit ID
+                                  if (!processedVisitIds.has(visit.visitId)) {
+                                      processedVisitIds.add(visit.visitId);
+                                      
+                                      allVisits.push(visit.visitTime);
+                                      totalVisitCount++;
+                                      
+                                      const visitDate = new Date(visit.visitTime);
+                                      const dateKey = `${visitDate.getFullYear()}-${visitDate.getMonth() + 1}-${visitDate.getDate()}`;
+                                      dailyVisitMap.set(dateKey, (dailyVisitMap.get(dateKey) || 0) + 1);
+                                      
+                                      // Debug logging
+                                      console.log(`Counting visit ID ${visit.visitId} for ${item.url} (total: ${totalVisitCount})`);
+                                  } else {
+                                      console.log(`Skipping already counted visit ID ${visit.visitId} for ${item.url}`);
+                                  }
                               });
 
                               resolve();
@@ -206,6 +224,9 @@ function fetchPaginatedHistory(cookieDomain, callback) {
       let avgDailyVisits = dailyVisitCounts.length > 0 
           ? Math.round((dailyVisitCounts.reduce((sum, count) => sum + count, 0) / dailyVisitCounts.length) * 10) / 10 
           : 0;
+
+      console.log(`Domain ${cookieDomain} final counts: ${totalVisitCount} visits across ${dailyVisitMap.size} days`);
+      console.log(`Processed ${processedVisitIds.size} unique visit IDs`);
 
       // Use more descriptive values for domains with no history
       const historyData = {
