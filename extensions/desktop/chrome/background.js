@@ -292,7 +292,6 @@ function injectHTML(elementId, htmlFile, height = "600px") {
       }
 }
 
-
 // Listen for messages from the popup.js or content.js
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'checkCookies') {

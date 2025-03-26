@@ -1282,5 +1282,9 @@ document.getElementById('openConsentPage4')?.addEventListener('click', () => {
   // setupDownloadCookiesListener();
   // setupDownloadTableListener();
 
+/*if (window.self !== window.top) {
+  console.log("Message from iframe sent");  
+  window.parent.postMessage({ type: "FROM_SURVEY", payload: { action: "confirmExtension" } }, "*");
+}*/
 
 
