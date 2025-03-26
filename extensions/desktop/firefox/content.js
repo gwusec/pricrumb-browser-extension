@@ -6,6 +6,15 @@ console.log("Content script is running!");
 window.addEventListener("message", (event) => {
   if (event.source !== window || !event.data || event.data.type !== "FROM_SURVEY") return;
 
+  // This is a check called by the survey to ask if the extension is installed
+  if(event.data.payload?.action === "checkExtension") {
+    window.postMessage(
+      { type: "FROM_EXTENSION_CONFIRMATION", payload: { extensionInstalled: true } },
+      "*"
+    );
+    return;
+  }
+
   // Forward message to the background script
   chrome.runtime.sendMessage(event.data, (response) => {
     if (response) { // Ensure response exists before sending it back
