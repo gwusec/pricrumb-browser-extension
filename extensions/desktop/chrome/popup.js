@@ -1026,8 +1026,8 @@ document.addEventListener('DOMContentLoaded', () => {
    * @param {Object} currentCookie - The current consent cookie being processed.
    * @returns {Object|null} - Decoded consent information or null if not applicable.
    */
-  const seenGoogleDomains = new Set(); // Necessary since Google uses generic cookie names
   function decodeCMPValue(cookies, currentCookie) {
+    const seenGoogleDomains = new Set(); // Necessary since Google uses generic cookie names
     switch (currentCookie.name) {
       case "OptanonConsent":
         // Find the corresponding OptanonAlertBoxClosed cookie for the same domain
