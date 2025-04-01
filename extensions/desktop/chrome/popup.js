@@ -18,7 +18,12 @@ document.addEventListener('DOMContentLoaded', () => {
     "osano_consent",           // Osano
     "cookie_notice",           // Cookie Notice
     "cookie_law_info",         // Cookie Law Info
-    "TrustArcConsent"          // TrustArc
+    "TrustArcConsent",         // TrustArc
+    "CONSENT",                 // Google Consent
+    "NID",                     // Google Ads
+    "1P_JAR",                  // Google Ads Personalization
+    "AEC",                     // Google Session integrity
+    "SOCS",                    // Google Consent metadata
   ];
 
   let fetchedCookies = [];
@@ -609,6 +614,52 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function decodeGoogleUnified(cookies, domain) {
+    // Unifies the 3 relevant cookies from Google
+    const cookieMap = {};
+    cookies.forEach(c => {
+      cookieMap[c.name] = c;
+    });
+  
+    const consent = cookieMap["CONSENT"];
+    const nid = cookieMap["NID"];
+    const jar = cookieMap["1P_JAR"];
+  
+    const base = consent || nid || jar;
+  
+    const addFields = base ? addDateFields(base) : {
+      timestamp: "Unknown",
+      expiration: "Unknown",
+      firstVisited: "Unknown",
+      lastVisited: "Unknown"
+    };
+    
+    // Consent cookie format: PENDING+<region.lang>+<version>+<flags>
+    const status = consent?.value?.split('+')[0] || "Unknown";
+    const flags = consent?.value?.split('+').slice(3).join(', ') || "None";
+  
+    return {
+      cmpName: "Google",
+      domain,
+      ...addFields,
+      necessary: true,
+      functional: false,
+      performance: false,
+      advertising: flags.includes("BX") || (!!nid && nid.value.length > 0) || (!!jar && jar.value.length > 0),
+      consent: status,
+      actionTaken: status === "YES" ? "Yes" : "No",
+      rawCookie: consent?.value || nid?.value || jar?.value || "Unavailable",
+      misc: {
+        hasCONSENT: !!consent,
+        hasNID: !!nid,
+        has1P_JAR: !!jar,
+        flags
+      }
+    };
+  }
+  
+  
+
   /**
    * Converts a non-JSON string to a valid JSON string.
    * Specifically tailored for Cookiebot's CookieConsent format.
@@ -626,58 +677,6 @@ document.addEventListener('DOMContentLoaded', () => {
     decodedStr = decodedStr.replace(/(\w+):/g, '"$1":');
 
     return decodedStr;
-  }
-
-  /**
-   * Decodes CMP-specific consent cookies.
-   * @param {Array} cookies - Array of all relevant cookies.
-   * @param {Object} currentCookie - The current consent cookie being processed.
-   * @returns {Object|null} - Decoded consent information or null if not applicable.
-   */
-  function decodeCMPValue(cookies, currentCookie) {
-    switch (currentCookie.name) {
-      case "OptanonConsent":
-        // Find the corresponding OptanonAlertBoxClosed cookie for the same domain
-        const alertBoxClosedCookie = cookies.find(cookie => 
-          cookie.name === "OptanonAlertBoxClosed" && cookie.domain === currentCookie.domain
-        );
-        return decodeOneTrust(currentCookie.value, alertBoxClosedCookie, currentCookie);
-      case "cookieyes-consent":
-        return decodeCookieYes(currentCookie.value, currentCookie);
-      case "wscrCookieConsent":
-        return decodeWSCR(currentCookie.value, currentCookie);
-      case "cmplz_rt_functional":
-      case "cmplz_rt_marketing":
-      case "cmplz_rt_preferences":
-      case "cmplz_rt_statistics":
-      case "cmplz_rt_banner-status":
-        // Only decode Complianz once per domain by processing the banner-status cookie
-        if (currentCookie.name === "cmplz_rt_banner-status") {
-          return decodeComplianz(cookies, currentCookie);
-        }
-        return null; // Skip other Complianz cookies to prevent duplicates
-      case "uc_userconsent":
-        return decodeUsercentrics(currentCookie.value, currentCookie);
-      case "quantcast_consent":
-        return decodeQuantcast(currentCookie.value, currentCookie);
-      case "CookieConsent":
-        return decodeCookiebot(currentCookie.value, currentCookie);
-      case "osano_consent":
-        return decodeOsano(currentCookie.value, currentCookie);
-      case "cookie_notice":
-        return decodeCookieNotice(currentCookie.value, currentCookie);
-      case "cookie_law_info":
-        return decodeCookieLawInfo(currentCookie.value, currentCookie);
-      case "TrustArcConsent":
-        return decodeTrustArc(currentCookie.value, currentCookie);
-      default:
-        return {
-          cmpName: "Unknown",
-          rawCookie: currentCookie.value,
-          ...addDateFields(currentCookie),
-          actionTaken: "No interaction recorded", // Default value for unknown CMPs
-        };
-    }
   }
 
   /**
@@ -711,7 +710,7 @@ document.addEventListener('DOMContentLoaded', () => {
       actionTaken: decoded.actionTaken, // Add actionTaken to the object
       misc: decoded.misc || {},
     };
-  }
+  } 
 
   /**
    * Displays the fetched cookies in the popup table.
@@ -767,8 +766,16 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log("Fetched Cookies:", allFetchedCookies);
         // Filter consent cookies (excluding OptanonAlertBoxClosed and Complianz ancillary cookies)
         const consentCookies = allFetchedCookies.filter(cookie => 
-          ["OptanonConsent", "cookieyes-consent", "wscrCookieConsent", "cmplz_rt_functional", "cmplz_rt_marketing", "cmplz_rt_preferences", "cmplz_rt_statistics", "cmplz_rt_banner-status", "uc_userconsent", "quantcast_consent", "CookieConsent", "osano_consent", "cookie_notice", "cookie_law_info", "TrustArcConsent"].includes(cookie.name)
+          [
+            "OptanonConsent", "cookieyes-consent", "wscrCookieConsent",
+            "cmplz_rt_functional", "cmplz_rt_marketing", "cmplz_rt_preferences",
+            "cmplz_rt_statistics", "cmplz_rt_banner-status", "uc_userconsent",
+            "quantcast_consent", "CookieConsent", "osano_consent", "cookie_notice",
+            "cookie_law_info", "TrustArcConsent",
+            "CONSENT", "NID", "1P_JAR"
+          ].includes(cookie.name)
         );
+        
 
         console.log("Consent Cookies to Process:", consentCookies);
 
@@ -1014,30 +1021,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /**
-   * Converts a non-JSON string to a valid JSON string.
-   * Specifically tailored for Cookiebot's CookieConsent format.
-   * @param {string} str - The original cookie string.
-   * @returns {string} - The JSON-compliant string.
-   */
-  function convertToJSON(str) {
-    // Step 1: Decode URL encoding
-    let decodedStr = decodeURIComponent(str);
-
-    // Step 2: Replace single quotes with double quotes
-    decodedStr = decodedStr.replace(/'/g, '"');
-
-    // Step 3: Add double quotes around property names
-    decodedStr = decodedStr.replace(/(\w+):/g, '"$1":');
-
-    return decodedStr;
-  }
-
-  /**
    * Decodes CMP-specific consent cookies.
    * @param {Array} cookies - Array of all relevant cookies.
    * @param {Object} currentCookie - The current consent cookie being processed.
    * @returns {Object|null} - Decoded consent information or null if not applicable.
    */
+  const seenGoogleDomains = new Set(); // Necessary since Google uses generic cookie names
   function decodeCMPValue(cookies, currentCookie) {
     switch (currentCookie.name) {
       case "OptanonConsent":
@@ -1074,6 +1063,29 @@ document.addEventListener('DOMContentLoaded', () => {
         return decodeCookieLawInfo(currentCookie.value, currentCookie);
       case "TrustArcConsent":
         return decodeTrustArc(currentCookie.value, currentCookie);
+      case "CONSENT":
+      case "NID":
+      case "1P_JAR":
+        const googleDomainPattern = /\.google\.com$|\.youtube\.com$|\.google\./;
+
+        // Only decode one time for all of the google cookies
+        if (
+          ["CONSENT", "NID"].includes(currentCookie.name) &&
+          googleDomainPattern.test(currentCookie.domain) &&
+          !seenGoogleDomains.has(currentCookie.domain)
+        ) {
+          seenGoogleDomains.add(currentCookie.domain);
+        
+          const googleCookies = cookies.filter(c =>
+            ["CONSENT", "NID", "1P_JAR"].includes(c.name) &&
+            googleDomainPattern.test(c.domain) && // Verify each cookie's domain
+            c.domain === currentCookie.domain
+          );
+        
+          return decodeGoogleUnified(googleCookies, currentCookie.domain);
+        }
+
+        return null; // Skip non-Google domains with these cookie names   
       default:
         return {
           cmpName: "Unknown",
@@ -1173,6 +1185,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+  
     //***************  Change ended for Option 1:
 
 
