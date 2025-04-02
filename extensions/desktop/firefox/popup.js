@@ -637,15 +637,17 @@ document.addEventListener('DOMContentLoaded', () => {
     // Consent cookie format: PENDING+<region.lang>+<version>+<flags>
     const status = consent?.value?.split('+')[0] || "Unknown";
     const flags = consent?.value?.split('+').slice(3).join(', ') || "None";
+
+    const cookiesEnabled = (!!nid && nid.value.length > 0) || (!!jar && jar.value.length > 0);
   
     return {
       cmpName: "Google",
       domain,
       ...addFields,
       necessary: true,
-      functional: false,
-      performance: false,
-      advertising: flags.includes("BX") || (!!nid && nid.value.length > 0) || (!!jar && jar.value.length > 0),
+      functional: cookiesEnabled,
+      performance: cookiesEnabled,
+      advertising: cookiesEnabled,
       consent: status,
       actionTaken: status === "YES" ? "Yes" : "No",
       rawCookie: consent?.value || nid?.value || jar?.value || "Unavailable",
