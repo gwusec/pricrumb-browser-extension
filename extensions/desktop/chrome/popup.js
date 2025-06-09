@@ -674,6 +674,233 @@ document.addEventListener('DOMContentLoaded', () => {
   
 
   /**
+ Enhanced TCF v2.0 decoder based on the TCF v2 documintation: https://github.com/InteractiveAdvertisingBureau/GDPR-Transparency-and-Consent-Framework/blob/master/TCFv2/IAB%20Tech%20Lab%20-%20CMP%20API%20v2.md
+ */
+
+ /**
+ * Decodes a TCF v2.0 consent string to extract all relevant information
+ * @param {string} tcString - The base64url encoded TCF string
+ * @returns {Object} - Complete decoded TCF data
+ */
+function decodeTCFString(tcString) {
+  try {
+    console.log('Decoding TCF string:', tcString.substring(0, 50) + '...');
+    
+    // Split by '.' and decode only the core segment
+    // TCF strings contain multiple segments separated by dots
+    const coreSegment = tcString.split('.')[0];
+    
+    // Clean and prepare the string
+    const cleanTCString = coreSegment.trim().replace(/\s/g, '');
+    
+    // Convert base64url to base64
+    let base64String = cleanTCString.replace(/-/g, '+').replace(/_/g, '/');
+    
+    // Add padding if needed
+    while (base64String.length % 4) {
+      base64String += '=';
+    }
+    
+    // Decode base64 to binary
+    const binaryString = atob(base64String);
+    
+    // Convert to bit string
+    let bitString = '';
+    for (let i = 0; i < binaryString.length; i++) {
+      bitString += binaryString.charCodeAt(i).toString(2).padStart(8, '0');
+    }
+    
+    console.log('Bit string length:', bitString.length);
+    
+    // Parse the TCF structure according to IAB spec
+    const result = parseCoreSegmentIAB(bitString);
+    
+    if (!result) {
+      throw new Error('Failed to parse core segment per IAB specification');
+    }
+    
+    return result;
+    
+  } catch (error) {
+    console.error('Error decoding TCF string:', error);
+    return null;
+  }
+}
+
+/**
+ * Parses core segment following official IAB TCF v2.2 specification
+ * @param {string} bitString - Binary representation of the TCF string
+ * @returns {Object} - Parsed core segment data per IAB spec
+ */
+function parseCoreSegmentIAB(bitString) {
+  let offset = 0;
+  
+  // Helper function to read bits and advance offset
+  const readBits = (length) => {
+    if (offset + length > bitString.length) {
+      throw new Error(`Not enough bits: need ${length}, have ${bitString.length - offset}`);
+    }
+    const bits = bitString.substr(offset, length);
+    offset += length;
+    return bits;
+  };
+  
+  // Helper function to convert bits to integer
+  const bitsToInt = (bits) => parseInt(bits, 2);
+  
+  // Helper function to convert bits to boolean
+  const bitsToBool = (bits) => bits === '1';
+  
+  try {
+    // Core segment fields per IAB TCF v2.2 specification
+    
+    // Version (6 bits) - should be 2 for TCF v2.0/v2.2
+    const version = bitsToInt(readBits(6));
+    console.log('TCF Version:', version);
+    
+    if (version !== 2) {
+      console.warn('Warning: TCF version is not 2, found:', version);
+    }
+    
+    // Created timestamp (36 bits) - deciseconds since epoch
+    const created = bitsToInt(readBits(36));
+    const createdDate = new Date(created * 100);
+    
+    // Last updated timestamp (36 bits) - deciseconds since epoch
+    const lastUpdated = bitsToInt(readBits(36));
+    const lastUpdatedDate = new Date(lastUpdated * 100);
+    
+    // CMP ID (12 bits) - IAB assigned CMP ID
+    const cmpId = bitsToInt(readBits(12));
+    
+    // CMP Version (12 bits) - CMP's own version
+    const cmpVersion = bitsToInt(readBits(12));
+    
+    // Consent screen (6 bits) - Which screen was shown
+    const consentScreen = bitsToInt(readBits(6));
+    
+    // Consent language (12 bits - 2 characters per IAB spec)
+    const lang1 = bitsToInt(readBits(6)) + 65;
+    const lang2 = bitsToInt(readBits(6)) + 65;
+    const consentLanguage = String.fromCharCode(lang1, lang2);
+    
+    // Vendor list version (12 bits) - GVL version used
+    const vendorListVersion = bitsToInt(readBits(12));
+    
+    // TCF Policy Version (6 bits) - Should be 4 for v2.2
+    const tcfPolicyVersion = bitsToInt(readBits(6));
+    
+    // IsServiceSpecific (1 bit) - per IAB spec
+    const isServiceSpecific = bitsToBool(readBits(1));
+    
+    // UseNonStandardStacks (1 bit) - per IAB spec
+    const useNonStandardStacks = bitsToBool(readBits(1));
+    
+    // SpecialFeatureOptins (12 bits) - Special features 1-12
+    const specialFeatureOptinsBits = readBits(12);
+    
+    // Purpose consents (24 bits) - Purposes 1-24
+    const purposeConsentsBits = readBits(24);
+    
+    // Purpose legitimate interests (24 bits) - Purposes 1-24
+    const purposeLegitimateInterestsBits = readBits(24);
+    
+    // Purpose one treatment and Publisher CC
+    const purposeOneTreatment = bitsToBool(readBits(1));
+    const publisherCC = String.fromCharCode(
+      bitsToInt(readBits(6)) + 65,
+      bitsToInt(readBits(6)) + 65
+    );
+    
+    // Parse purposes (1-24) per IAB specification
+    const purposes = {};
+    const purposeLegitimateInterests = {};
+    
+    for (let i = 0; i < 24; i++) {
+      const purposeId = i + 1;
+      purposes[purposeId] = purposeConsentsBits[i] === '1';
+      purposeLegitimateInterests[purposeId] = purposeLegitimateInterestsBits[i] === '1';
+    }
+    
+    // Parse special features (1-12) per IAB specification
+    const specialFeatureOptins = {};
+    for (let i = 0; i < 12; i++) {
+      const featureId = i + 1;
+      specialFeatureOptins[featureId] = specialFeatureOptinsBits[i] === '1';
+    }
+    
+    // Vendor consent and legitimate interest sections
+    let vendorConsents = {};
+    let vendorLegitimateInterests = {};
+    
+    try {
+      // Parse vendor consents section
+      const vendorSection = parseVendorSection(bitString, offset);
+      offset = vendorSection.newOffset;
+      vendorConsents = vendorSection.consents;
+      
+      // Parse vendor legitimate interests section
+      const vendorLISection = parseVendorLegitimateInterestsSection(bitString, offset);
+      offset = vendorLISection.newOffset;
+      vendorLegitimateInterests = vendorLISection.legitimateInterests;
+    } catch (error) {
+      console.warn('Error parsing vendor sections:', error);
+      // Continue with empty vendor data per IAB spec graceful handling
+    }
+    
+    // Determine event status based on TCF content analysis
+    const eventStatus = determineEventStatus({
+      created,
+      lastUpdated,
+      purposeConsentsBits,
+      purposeLegitimateInterestsBits,
+      specialFeatureOptinsBits,
+      vendorConsents,
+      vendorLegitimateInterests,
+      consentScreen
+    });
+    
+    const result = {
+      // Core TCF data per IAB specification
+      version,
+      created: createdDate.toISOString(),
+      lastUpdated: lastUpdatedDate.toISOString(),
+      cmpId,
+      cmpVersion,
+      consentScreen,
+      consentLanguage,
+      vendorListVersion,
+      tcfPolicyVersion,
+      isServiceSpecific,
+      useNonStandardStacks,
+      purposeOneTreatment,
+      publisherCC,
+      
+      // Parsed consent data
+      purposes,
+      purposeLegitimateInterests,
+      specialFeatureOptins,
+      vendorConsents,
+      vendorLegitimateInterests,
+      
+      // Event status determination
+      eventStatus,
+      
+      // Raw data for debugging
+      rawPurposeConsents: purposeConsentsBits,
+      rawPurposeLegitimateInterests: purposeLegitimateInterestsBits,
+      rawSpecialFeatures: specialFeatureOptinsBits
+    };
+    
+    console.log('Parsed TCF data per IAB spec:', result);
+    return result;
+    
+  } catch (error) {
+    console.error('Error parsing core segment per IAB spec:', error);
+    return null;
+  }
+}
+  /**
    * Converts a non-JSON string to a valid JSON string.
    * Specifically tailored for Cookiebot's CookieConsent format.
    * @param {string} str - The original cookie string.
