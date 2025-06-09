@@ -1545,7 +1545,16 @@ function enhancedTCFActionDetection(tcfValue, tcfCookie, allCookies) {
             "cmplz_rt_statistics", "cmplz_rt_banner-status", "uc_userconsent",
             "quantcast_consent", "CookieConsent", "osano_consent", "cookie_notice",
             "cookie_law_info", "TrustArcConsent",
-            "CONSENT", "NID", "1P_JAR"
+            "CONSENT", "NID", "1P_JAR",
+            "euconsent-v2", "eupubconsent-v2", 
+            "TVPtcs22",
+            "TcString",
+            "__cmpconsent25759",
+            "cookiebotTcfConsentString",
+            "mychannels-consentData", 
+            "sas_euconsent_v2",
+            //local storage:
+            "VWD6_ENSIGHTEN_PRIVACY_euconsent-v2"
           ].includes(cookie.name)
         );
         
@@ -1836,6 +1845,25 @@ function enhancedTCFActionDetection(tcfValue, tcfCookie, allCookies) {
         return decodeCookieLawInfo(currentCookie.value, currentCookie);
       case "TrustArcConsent":
         return decodeTrustArc(currentCookie.value, currentCookie);
+      // New case for TCF v2.0 consent cookie
+      case "euconsent-v2":
+        return decodeTCF(currentCookie.value, currentCookie, cookies);
+      case "eupubconsent-v2": 
+        return decodeTCF(currentCookie.value, currentCookie, cookies);
+      case "TVPtcs22":
+        return decodeTCF(currentCookie.value, currentCookie, cookies);
+      case "TcString":
+        return decodeTCF(currentCookie.value, currentCookie, cookies);
+      case "__cmpconsent25759":
+        return decodeTCF(currentCookie.value, currentCookie, cookies);
+      case "cookiebotTcfConsentString":
+        return decodeTCF(currentCookie.value, currentCookie, cookies);
+      case "mychannels-consentData":
+        return decodeTCF(currentCookie.value, currentCookie, cookies);
+      case "sas_euconsent_v2":
+        return decodeTCF(currentCookie.value, currentCookie, cookies);
+      case "VWD6_ENSIGHTEN_PRIVACY_euconsent-v2":
+        return decodeTCF(currentCookie.value, currentCookie, cookies);
       case "CONSENT":
       case "NID":
       case "1P_JAR":
