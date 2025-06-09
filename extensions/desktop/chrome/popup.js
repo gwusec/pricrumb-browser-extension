@@ -1114,6 +1114,55 @@ function parseVendorLegitimateInterestsSection(bitString, startOffset) {
     };
   }
 }
+
+/**
+ * Map TCF purposes to standard 4 categories 
+ * Based on official IAB TCF v2.2 purpose definitions & the research team agreement
+ */
+function mapTCFPurposesToCategories(tcfData) {
+  if (!tcfData || !tcfData.purposes) {
+    return {
+      necessary: true,
+      functional: false,
+      performance: false,
+      advertising: false
+    };
+  }
+  
+  const { purposes, purposeLegitimateInterests } = tcfData;
+  
+  // Helper function to check if purpose has consent OR legitimate interest
+  const hasPurpose = (id) => purposes[id] || purposeLegitimateInterests[id];
+  
+  // Official IAB TCF v2.2 purpose mapping:
+  // Purpose 1: Store and/or access information on a device - FUNCTIONAL
+  // Purpose 2: Select basic ads - ADVERTISING  
+  // Purpose 3: Create a personalised ads profile - ADVERTISING
+  // Purpose 4: Select personalised ads - ADVERTISING
+  // Purpose 5: Create a personalised content profile - FUNCTIONAL
+  // Purpose 6: Select personalised content - FUNCTIONAL
+  // Purpose 7: Measure ad performance - ADVERTISING
+  // Purpose 8: Measure content performance - PERFORMANCE
+  // Purpose 9: Apply market research to generate audience insights - ADVERTISING
+  // Purpose 10: Develop and improve products - PERFORMANCE
+  // Purpose 11: Use limited data to select advertising - PERFORMANCE
+  
+  const functional = hasPurpose(1) || hasPurpose(5) || hasPurpose(6);
+  const performance = hasPurpose(8) || hasPurpose(10) || hasPurpose(11);
+  const advertising = hasPurpose(2) || hasPurpose(3) || hasPurpose(4) ||hasPurpose(7) || hasPurpose(9);
+  
+  const necessary = true;
+
+  
+  return {
+    necessary,
+    functional,
+    performance,
+    advertising
+  };
+}
+
+
   /**
    * Converts a non-JSON string to a valid JSON string.
    * Specifically tailored for Cookiebot's CookieConsent format.
