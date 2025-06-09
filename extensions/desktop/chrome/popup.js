@@ -24,6 +24,17 @@ document.addEventListener('DOMContentLoaded', () => {
     "1P_JAR",                  // Google Ads Personalization
     "AEC",                     // Google Session integrity
     "SOCS",                    // Google Consent metadata
+    //adding TCF cookies (strings):
+    "TVPtcs22",
+    "TcString",
+    "__cmpconsent25759",
+    "cookiebotTcfConsentString",
+    "euconsent-v2",
+    "eupubconsent-v2",
+    "mychannels-consentData", 
+    "sas_euconsent_v2",
+    //local storage:
+    "VWD6_ENSIGHTEN_PRIVACY_euconsent-v2"
   ];
 
   let fetchedCookies = [];
