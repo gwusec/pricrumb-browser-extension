@@ -1171,6 +1171,9 @@ function getCMPNameFromId(cmpId) {
     7: "Didomi",
     332: "Complianz",
     300: "Google",
+    10: "InMobi",
+    6: "Sourcepoint",
+    68: "Transfon",
     // Add more from IAB registry
   };
   
