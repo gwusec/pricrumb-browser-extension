@@ -1304,6 +1304,134 @@ function decodeTCF(value, cookie, allCookies) {
     };
   }
 }
+// Analysis functions to get an indicator if user action was taken
+//  Cross-reference with other CMPs on same domain
+function analyzeCMPCrossReference(allCookies, domain) {
+  const evidence = {
+    hasOtherCMP: false,
+    otherCMPAction: "Unknown",
+    otherCMPType: null,
+    confidence: "Low",
+    reasoning: []
+  };
+  
+  const domainCookies = allCookies.filter(c => c.domain === domain);
+  
+  // Check for OneTrust on same domain
+  const oneTrustConsent = domainCookies.find(c => c.name === "OptanonConsent");
+  const oneTrustAlert = domainCookies.find(c => c.name === "OptanonAlertBoxClosed");
+  
+  if (oneTrustConsent && oneTrustAlert) {
+    evidence.hasOtherCMP = true;
+    evidence.otherCMPType = "OneTrust";
+    
+    const oneTrustData = parseCookieString(oneTrustConsent.value);
+    if (oneTrustData.interactionCount && parseInt(oneTrustData.interactionCount) > 0) {
+      evidence.otherCMPAction = "Yes";
+      evidence.confidence = "High";
+      evidence.reasoning.push("OneTrust shows user interaction");
+    }
+  }
+  
+  // Check for Cookiebot on same domain
+  const cookiebotConsent = domainCookies.find(c => c.name === "CookieConsent");
+  if (cookiebotConsent) {
+    evidence.hasOtherCMP = true;
+    evidence.otherCMPType = "Cookiebot";
+    
+    try {
+      const cookiebotData = JSON.parse(convertToJSON(cookiebotConsent.value));
+      if (cookiebotData.method === 'explicit') {
+        evidence.otherCMPAction = "Yes";
+        evidence.confidence = "High";
+        evidence.reasoning.push("Cookiebot shows explicit user action");
+      }
+    } catch (e) {
+      // Continue with other analysis
+    }
+  }
+  
+  // Check for CookieYes on same domain
+  const cookieYesConsent = domainCookies.find(c => c.name === "cookieyes-consent");
+  if (cookieYesConsent) {
+    evidence.hasOtherCMP = true;
+    evidence.otherCMPType = "CookieYes";
+    
+    const cookieYesData = cookieYesConsent.value.split(',').reduce((acc, pair) => {
+      const [key, val] = pair.split(':');
+      acc[key] = val;
+      return acc;
+    }, {});
+    
+    if (cookieYesData.action === 'yes') {
+      evidence.otherCMPAction = "Yes";
+      evidence.confidence = "High";
+      evidence.reasoning.push("CookieYes shows user action taken");
+    }
+  }
+  
+  return evidence;
+}
+
+
+// COMBINE ALL EVIDENCE
+function combineEvidenceSources(evidence) {
+  const { tcfData, cmpCrossReference } = evidence;
+  
+  let actionTaken = "Unknown"; // Default to Unknown
+  let confidence = "Low";
+  let method = "CMP cross-reference only";
+  const reasoning = [];
+  
+  // CONSERVATIVE: Only trust CMP cross-reference evidence
+  if (cmpCrossReference.hasOtherCMP && cmpCrossReference.confidence === "High") {
+    actionTaken = cmpCrossReference.otherCMPAction;
+    confidence = "High";
+    method = `Cross-referenced with ${cmpCrossReference.otherCMPType}`;
+    reasoning.push(`Reliable ${cmpCrossReference.otherCMPType} evidence on same domain`);
+    
+  } else if (cmpCrossReference.hasOtherCMP && cmpCrossReference.confidence === "Medium") {
+    actionTaken = cmpCrossReference.otherCMPAction;
+    confidence = "Medium";
+    method = `Cross-referenced with ${cmpCrossReference.otherCMPType}`;
+    reasoning.push(`Moderate ${cmpCrossReference.otherCMPType} evidence on same domain`);
+    
+  } else {
+    // No reliable CMP evidence - stay conservative
+    actionTaken = "Unknown";
+    confidence = "Low";
+    method = "No reliable CMP cross-reference available";
+    reasoning.push("TCF-only implementation without other CMP indicators");
+  }
+  
+  return {
+    actionTaken,
+    confidence,
+    method,
+    reasoning,
+    evidence: { cmpCrossReference }
+  };
+}
+
+// MAIN ENHANCED TCF ACTION DETECTION FUNCTION
+function enhancedTCFActionDetection(tcfValue, tcfCookie, allCookies) {
+  // First, get the standard TCF analysis
+  const tcfData = decodeTCFString(tcfValue);
+  if (!tcfData) {
+    return { actionTaken: "Unknown", confidence: "Low", method: "TCF parsing failed" };
+  }
+
+  // Cross-reference with other CMPs on same domain
+  const cmpCrossReference = analyzeCMPCrossReference(allCookies, tcfCookie.domain);
+    
+  // Combine evidence
+  const combinedEvidence = combineEvidenceSources({
+    tcfData,
+    cmpCrossReference,
+  });
+  
+  return combinedEvidence;
+}
 
   /**
    * Converts a non-JSON string to a valid JSON string.
