@@ -1869,68 +1869,8 @@ function enhancedTCFActionDetection(tcfValue, tcfCookie, allCookies) {
     }
   }
 
-  /**
-   * Creates a consent object for display purposes.
-   * @param {Array} cookies - Array of all relevant cookies.
-   * @param {Object} currentCookie - The current consent cookie being processed.
-   * @returns {Object|null} - Consent object with necessary fields or null.
-   */
-  // This function is repeated and already in line 689
-  // function createConsentObject(cookies, currentCookie) {
-  //   const decoded = decodeCMPValue(cookies, currentCookie);
-  //   if (!decoded) return null; // Skip if the decoder returns null (handled separately)
-
-  //   console.log("Creating Consent Object:", decoded);
-
-  //   return {
-  //     cmpName: decoded.cmpName,
-  //     domain: currentCookie.domain,
-  //     categories: {
-  //       necessary: decoded.necessary,
-  //       functional: decoded.functional,
-  //       performance: decoded.performance,
-  //       advertising: decoded.advertising,
-  //     },
-  //     timestamp: decoded.timestamp,
-  //     expiration: decoded.expiration,
-  //     firstVisited: decoded.firstVisited,
-  //     lastVisited: decoded.lastVisited,
-  //     rawCookie: decoded.rawCookie || currentCookie.value,
-  //     actionTaken: decoded.actionTaken, // Add actionTaken to the object
-  //     misc: decoded.misc || {},
-  //   };
-  // }
-
-  /**
-   * Displays the fetched cookies in the popup table.
-   * @param {Array} cookies - Array of consent objects.
-   */
-      //-> This function is repeated and already in line 720?
-  // function displayCookies(cookies) {
-  //   const tableBody = document.getElementById("cookieTableBody");
-  //   tableBody.innerHTML = "";
-
-  //   cookies.forEach(cookie => {
-  //     const row = document.createElement("tr");
-  //     row.innerHTML = `
-  //       <td>${cookie.domain || "Unknown"}</td>
-  //       <td>${cookie.cmpName || "Unknown"}</td>
-  //       <td>${cookie.categories.necessary ? "Yes" : "No"}</td>
-  //       <td>${cookie.categories.functional ? "Yes" : "No"}</td>
-  //       <td>${cookie.categories.performance ? "Yes" : "No"}</td>
-  //       <td>${cookie.categories.advertising ? "Yes" : "No"}</td>
-  //       <td>${cookie.timestamp || "Unknown"}</td>
-  //       <td>${cookie.expiration || "Unknown"}</td>
-  //       <td>${cookie.firstVisited || "Unknown"}</td>
-  //       <td>${cookie.lastVisited || "Unknown"}</td>
-  //       <td>${cookie.actionTaken || "No"}</td> <!-- Display Action Taken as "No" by default -->
-  //       <td>${cookie.rawCookie || "Unknown"}</td>
-  //     `;
-  //     tableBody.appendChild(row);
-  //   });
-
-  //   console.log("Cookies Displayed:", cookies);
-  // }
+  
+  
 
   //***************  updates to the code for Option 1:
   // Store cookies in chrome.storage.local when they're fetched
@@ -1963,34 +1903,7 @@ function enhancedTCFActionDetection(tcfValue, tcfCookie, allCookies) {
 
 
 
-  /**
-   * Fetches cookies and displays them in the popup.
-   */
-    // This function is repeated and already in line 751
-  // function fetchAndDisplayCookies() {
-  //   chrome.runtime.sendMessage({ action: "checkCookies", cookieNames }, (response) => {
-  //     if (chrome.runtime.lastError) {
-  //       console.error("Error fetching cookies:", chrome.runtime.lastError);
-  //     } else {
-  //       const allFetchedCookies = response.cookies;
-  //       console.log("Fetched Cookies:", allFetchedCookies);
-  //       // Filter consent cookies (excluding OptanonAlertBoxClosed and Complianz ancillary cookies)
-  //       const consentCookies = allFetchedCookies.filter(cookie => 
-  //         ["OptanonConsent", "cookieyes-consent", "wscrCookieConsent", "cmplz_rt_functional", "cmplz_rt_marketing", "cmplz_rt_preferences", "cmplz_rt_statistics", "cmplz_rt_banner-status", "uc_userconsent", "quantcast_consent", "CookieConsent", "osano_consent", "cookie_notice", "cookie_law_info", "TrustArcConsent"].includes(cookie.name)
-  //       );
-  //       console.log("Consent Cookies to Process:", consentCookies);
-
-  //       // Create consent objects by processing each consent cookie
-  //       fetchedCookies = consentCookies.map(consentCookie => createConsentObject(allFetchedCookies, consentCookie)).filter(Boolean);
-
-  //       //console.log("Fetched Consent Objects:", fetchedCookies);
-
-
-  //       displayCookies(fetchedCookies);
-  //     }
-  //   });
-  // }
-
+  
   /**
    * Sets up event listeners for the popup buttons.
    */
