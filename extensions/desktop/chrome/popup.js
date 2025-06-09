@@ -1176,6 +1176,135 @@ function getCMPNameFromId(cmpId) {
   
   return cmpRegistry[cmpId] || `CMP ID ${cmpId}`;
 }
+
+/**
+ * Complete IAB TCF v2.2 compliant decoder for the extension
+ */
+function decodeTCF(value, cookie, allCookies) { 
+  try {
+    console.log('Enhanced TCF decoding with CMP pattern analysis');
+    
+    const tcfData = decodeTCFString(value);
+    
+    if (!tcfData) {
+      throw new Error('Failed to decode TCF string per IAB specification');
+    }
+    
+    // action detection using CMP patterns
+    const enhancedActionAnalysis = enhancedTCFActionDetection(value, cookie, allCookies);
+    
+    // Use enhanced results 
+    const actionTaken = enhancedActionAnalysis.actionTaken;
+    const confidence = enhancedActionAnalysis.confidence;
+    
+    const categories = mapTCFPurposesToCategories(tcfData);
+    
+    // Determine overall consent status with IAB-compliant logic
+    const totalPurposes = 11; // IAB purposes 1-11 are most relevant
+    const consentedPurposes = Object.keys(tcfData.purposes || {})
+      .filter(id => parseInt(id) <= 11 && tcfData.purposes[id])
+      .length;
+    const legitimateInterestPurposes = Object.keys(tcfData.purposeLegitimateInterests || {})
+      .filter(id => parseInt(id) <= 11 && tcfData.purposeLegitimateInterests[id])
+      .length;
+    
+    const totalConsented = consentedPurposes + legitimateInterestPurposes;
+    
+    let consentStatus = "No";
+    if (totalConsented === 0) {
+      consentStatus = "No";
+    } else if (consentedPurposes >= Math.floor(totalPurposes * 0.8)) { // 80% threshold for "Full"
+      consentStatus = "Full";
+    } else {
+      consentStatus = "Partial";
+    }
+    
+    console.log("Enhanced IAB TCF v2.2 Decoded:", {
+      cmpName: "TCF v2.2",
+      consentStatus,
+      actionTaken,
+      confidence,
+      eventStatus: tcfData.eventStatus,
+      categories
+    });
+    
+    return {
+      cmpName: tcfData.cmpId ? 
+      `${getCMPNameFromId(tcfData.cmpId)} (TCF v2.2)` : 
+      "TCF v2.2",
+      ...addDateFields(cookie),
+      timestamp: tcfData.lastUpdated 
+      ? new Date(tcfData.lastUpdated).toLocaleString() 
+      : "Unknown",
+      necessary: categories.necessary,
+      functional: categories.functional,
+      performance: categories.performance,
+      advertising: categories.advertising,
+      consent: consentStatus,
+      actionTaken: actionTaken, // ENHANCED
+      rawCookie: value,
+      misc: {
+        // IAB specification fields
+        tcfVersion: tcfData.version,
+        tcfPolicyVersion: tcfData.tcfPolicyVersion,
+        cmpId: tcfData.cmpId,
+        cmpVersion: tcfData.cmpVersion,
+        consentLanguage: tcfData.consentLanguage,
+        vendorListVersion: tcfData.vendorListVersion,
+        isServiceSpecific: tcfData.isServiceSpecific,
+        useNonStandardStacks: tcfData.useNonStandardStacks,
+        purposeOneTreatment: tcfData.purposeOneTreatment,
+        publisherCC: tcfData.publisherCC,
+        
+        // Event status per IAB specification
+        eventStatus: tcfData.eventStatus,
+        confidence: confidence,
+        
+        // Purpose analysis per IAB spec
+        purposeConsents: Object.fromEntries(
+          Object.entries(tcfData.purposes || {}).filter(([id]) => parseInt(id) <= 11)
+        ),
+        purposeLegitimateInterests: Object.fromEntries(
+          Object.entries(tcfData.purposeLegitimateInterests || {}).filter(([id]) => parseInt(id) <= 11)
+        ),
+        specialFeatureOptins: tcfData.specialFeatureOptins || {},
+        
+        // Vendor counts per IAB spec
+        vendorConsentCount: Object.keys(tcfData.vendorConsents || {}).length,
+        vendorLICount: Object.keys(tcfData.vendorLegitimateInterests || {}).length,
+        
+        // Consent screen and interaction data
+        consentScreen: tcfData.consentScreen,
+        
+        // Timestamps per IAB spec
+        createdAt: tcfData.created,
+        lastUpdatedAt: tcfData.lastUpdated,
+        
+        // NEW: Enhanced action analysis
+        actionConfidence: confidence,
+        actionMethod: enhancedActionAnalysis.method,
+        actionReasoning: enhancedActionAnalysis.reasoning,
+        enhancedEvidence: enhancedActionAnalysis.evidence
+      }
+    };
+    
+  } catch (error) {
+    console.error("Enhanced TCF parsing error:", error);
+    return {
+      cmpName: "TCF v2.2",
+      ...addDateFields(cookie),
+      necessary: true,
+      functional: "Unknown",
+      performance: "Unknown", 
+      advertising: "Unknown",
+      consent: "Unknown",
+      actionTaken: "Unknown",
+      rawCookie: value,
+      misc: { error: error.message }
+    };
+  }
+}
+
   /**
    * Converts a non-JSON string to a valid JSON string.
    * Specifically tailored for Cookiebot's CookieConsent format.
