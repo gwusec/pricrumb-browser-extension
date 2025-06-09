@@ -1162,7 +1162,20 @@ function mapTCFPurposesToCategories(tcfData) {
   };
 }
 
-
+//Function to get CMP name from ID found in the TCF string (the IDs for CMPs are defined by IAB: http://iabeurope.eu/cmp-list/)  
+function getCMPNameFromId(cmpId) {
+  // IAB CMP ID registry
+  const cmpRegistry = {
+    28: "OneTrust",
+    134: "Cookiebot", 
+    7: "Didomi",
+    332: "Complianz",
+    300: "Google",
+    // Add more from IAB registry
+  };
+  
+  return cmpRegistry[cmpId] || `CMP ID ${cmpId}`;
+}
   /**
    * Converts a non-JSON string to a valid JSON string.
    * Specifically tailored for Cookiebot's CookieConsent format.
