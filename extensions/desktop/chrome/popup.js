@@ -900,6 +900,220 @@ function parseCoreSegmentIAB(bitString) {
     return null;
   }
 }
+
+/**
+ * Determine eventStatus 
+ * Per IAB documintation: 'useractioncomplete' indicates user confirmed choices
+ */
+function determineEventStatus(tcfData) {
+  const {
+    created,
+    lastUpdated,
+    purposeConsentsBits,
+    purposeLegitimateInterestsBits,
+    specialFeatureOptinsBits,
+    vendorConsents,
+    vendorLegitimateInterests,
+    consentScreen
+  } = tcfData;
+  
+  // Per IAB spec analysis for event status determination
+  
+  // Check if user has made specific choices (not all defaults)
+  const hasSpecificPurposeChoices = (() => {
+    const purposes = purposeConsentsBits;
+    if (purposes.length === 0) return false;
+    
+    // Not all true and not all false = selective choices made
+    const allTrue = purposes.split('').every(p => p === '1');
+    const allFalse = purposes.split('').every(p => p === '0');
+    const hasAnyTrue = purposes.includes('1');
+    
+    return !allTrue && !allFalse && hasAnyTrue;
+  })();
+  
+  // Special feature opt-ins indicate explicit user action
+  const hasSpecialFeatureOptins = specialFeatureOptinsBits.includes('1');
+  
+  // Vendor-specific choices indicate user interaction
+  const hasVendorChoices = Object.keys(vendorConsents).length > 0 && 
+                          Object.values(vendorConsents).some(consent => consent === true);
+  
+  // Legitimate interest choices indicate user review
+  const hasLegitimateInterestChoices = purposeLegitimateInterestsBits.includes('1') ||
+                                      Object.values(vendorLegitimateInterests).some(li => li === true);
+  
+  // Timestamp difference indicates user modification
+  const wasModified = created !== lastUpdated;
+  
+  // Consent screen shown indicates UI interaction
+  const uiWasShown = consentScreen > 0;
+  
+  // Per IAB TCF v2.2 specification:
+  // 'useractioncomplete' = user has confirmed or re-confirmed their choices
+  
+  // Strong indicators of user action completion per IAB policy
+  const strongIndicators = [
+    hasSpecialFeatureOptins,      // Explicit special feature choices
+    hasSpecificPurposeChoices,    // Selective purpose decisions
+    hasVendorChoices              // Vendor-specific choices
+  ];
+  
+  // Medium indicators of user interaction
+  const mediumIndicators = [
+    hasLegitimateInterestChoices, // LI basis choices
+    wasModified,                  // Modified after creation
+    uiWasShown                    // UI was presented
+  ];
+  
+  const strongIndicatorCount = strongIndicators.filter(Boolean).length;
+  const mediumIndicatorCount = mediumIndicators.filter(Boolean).length;
+  
+  // Per IAB specification logic:
+  if (strongIndicatorCount >= 2 || (strongIndicatorCount >= 1 && mediumIndicatorCount >= 2)) {
+    return 'useractioncomplete'; // User confirmed choices per IAB spec
+  } else if (strongIndicatorCount >= 1 || mediumIndicatorCount >= 2) {
+    return 'cmpuishown'; // UI was shown but action not fully complete
+  } else {
+    return 'tcloaded'; // TC string loaded but minimal user interaction
+  }
+}
+
+/**
+ * Enhanced vendor section parser following IAB specification
+ */
+function parseVendorSection(bitString, startOffset) {
+  let offset = startOffset;
+  
+  try {
+    // Max vendor ID (16 bits) per IAB spec
+    const maxVendorId = parseInt(bitString.substr(offset, 16), 2);
+    offset += 16;
+    
+    // Encoding type (1 bit) - 0 = BitField, 1 = Range per IAB spec
+    const encodingType = bitString.substr(offset, 1) === '1';
+    offset += 1;
+    
+    const vendorConsents = {};
+    
+    if (!encodingType) {
+      // BitField encoding per IAB specification
+      for (let i = 1; i <= maxVendorId && offset < bitString.length; i++) {
+        vendorConsents[i] = bitString.substr(offset, 1) === '1';
+        offset += 1;
+      }
+    } else {
+      // Range encoding per IAB specification
+      const numEntries = parseInt(bitString.substr(offset, 12), 2);
+      offset += 12;
+      
+      for (let i = 0; i < numEntries && offset < bitString.length - 16; i++) {
+        const isRange = bitString.substr(offset, 1) === '1';
+        offset += 1;
+        
+        const startVendorId = parseInt(bitString.substr(offset, 16), 2);
+        offset += 16;
+        
+        if (isRange && offset < bitString.length - 16) {
+          const endVendorId = parseInt(bitString.substr(offset, 16), 2);
+          offset += 16;
+          
+          // Set consent for range per IAB spec
+          for (let vendorId = startVendorId; vendorId <= endVendorId; vendorId++) {
+            vendorConsents[vendorId] = true;
+          }
+        } else {
+          vendorConsents[startVendorId] = true;
+        }
+      }
+    }
+    
+    return {
+      consents: vendorConsents,
+      newOffset: offset
+    };
+    
+  } catch (error) {
+    console.error('Error parsing vendor section per IAB spec:', error);
+    return {
+      consents: {},
+      newOffset: offset
+    };
+  }
+}
+
+/**
+ * Parse vendor legitimate interests section per IAB specification
+ */
+function parseVendorLegitimateInterestsSection(bitString, startOffset) {
+  let offset = startOffset;
+  
+  try {
+    // Check if we have enough bits for legitimate interests section
+    if (offset >= bitString.length - 17) {
+      return {
+        legitimateInterests: {},
+        newOffset: offset
+      };
+    }
+    
+    // Max vendor ID (16 bits) per IAB spec
+    const maxVendorId = parseInt(bitString.substr(offset, 16), 2);
+    offset += 16;
+    
+    // Encoding type (1 bit) per IAB spec
+    const encodingType = bitString.substr(offset, 1) === '1';
+    offset += 1;
+    
+    const vendorLegitimateInterests = {};
+    
+    if (!encodingType) {
+      // BitField encoding per IAB specification
+      for (let i = 1; i <= maxVendorId && offset < bitString.length; i++) {
+        vendorLegitimateInterests[i] = bitString.substr(offset, 1) === '1';
+        offset += 1;
+      }
+    } else {
+      // Range encoding per IAB specification
+      if (offset < bitString.length - 12) {
+        const numEntries = parseInt(bitString.substr(offset, 12), 2);
+        offset += 12;
+        
+        for (let i = 0; i < numEntries && offset < bitString.length - 16; i++) {
+          const isRange = bitString.substr(offset, 1) === '1';
+          offset += 1;
+          
+          const startVendorId = parseInt(bitString.substr(offset, 16), 2);
+          offset += 16;
+          
+          if (isRange && offset < bitString.length - 16) {
+            const endVendorId = parseInt(bitString.substr(offset, 16), 2);
+            offset += 16;
+            
+            // Set LI for range per IAB spec
+            for (let vendorId = startVendorId; vendorId <= endVendorId; vendorId++) {
+              vendorLegitimateInterests[vendorId] = true;
+            }
+          } else {
+            vendorLegitimateInterests[startVendorId] = true;
+          }
+        }
+      }
+    }
+    
+    return {
+      legitimateInterests: vendorLegitimateInterests,
+      newOffset: offset
+    };
+    
+  } catch (error) {
+    console.error('Error parsing vendor LI section per IAB spec:', error);
+    return {
+      legitimateInterests: {},
+      newOffset: offset
+    };
+  }
+}
   /**
    * Converts a non-JSON string to a valid JSON string.
    * Specifically tailored for Cookiebot's CookieConsent format.
