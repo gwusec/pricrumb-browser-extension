@@ -33,6 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
     "eupubconsent-v2",
     "mychannels-consentData", 
     "sas_euconsent_v2",
+    "EuConsent",
     //local storage:
     "VWD6_ENSIGHTEN_PRIVACY_euconsent-v2"
   ];
@@ -1556,6 +1557,7 @@ function enhancedTCFActionDetection(tcfValue, tcfCookie, allCookies) {
             "cookiebotTcfConsentString",
             "mychannels-consentData", 
             "sas_euconsent_v2",
+            "EuConsent",
             //local storage:
             "VWD6_ENSIGHTEN_PRIVACY_euconsent-v2"
           ].includes(cookie.name)
@@ -1864,6 +1866,8 @@ function enhancedTCFActionDetection(tcfValue, tcfCookie, allCookies) {
       case "mychannels-consentData":
         return decodeTCF(currentCookie.value, currentCookie, cookies);
       case "sas_euconsent_v2":
+        return decodeTCF(currentCookie.value, currentCookie, cookies);
+      case "EuConsent":
         return decodeTCF(currentCookie.value, currentCookie, cookies);
       case "VWD6_ENSIGHTEN_PRIVACY_euconsent-v2":
         return decodeTCF(currentCookie.value, currentCookie, cookies);
