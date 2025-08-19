@@ -1,8 +1,58 @@
 // popup.js
 
-document.addEventListener('DOMContentLoaded', () => {
-  // Define the consent and alert box cookie names to look for
-  const cookieNames = [
+document.addEventListener('DOMContentLoaded', async () => {
+
+  //load TCF cookie names from JSON file
+  let tcfCookieNames = [];
+  let tcfLocalStorageNames = [];
+  
+
+  try {
+    const response = await fetch (chrome.runtime.getURL('tcf_strings.json'));
+    const tcfData = await response.json();
+    tcfCookieNames = tcfData.tcfCookies || [];
+    tcfLocalStorageNames = tcfData.localStorage || [];
+    console.log(`Loaded ${tcfCookieNames.length} TCF cookie names and ${tcfLocalStorageNames.length} localStorage names`);
+  } catch (error) {
+    console.error("Error loading TCF strings:", error);
+    // Fallback to hardcoded list:
+    tcfCookieNames = [
+    "TVPtcs22","TcString","__cmpconsent25759", "cookiebotTcfConsentString","euconsent-v2",
+    "eupubconsent-v2","mychannels-consentData", 
+    "sas_euconsent_v2","EuConsent",
+    //local storage:
+    "VWD6_ENSIGHTEN_PRIVACY_euconsent-v2"
+    ]
+  }
+  // for tcf defaul values, loading the JSON file with default values:
+  let defaultTCFData = [];
+  // for websites without default TCF values, will use it as a refrence where findinging these websites with TCF values mean users made an action (because it is not set by default) 
+  let noStoreBeforeInteractionSites = [];
+
+  try {
+    const defaultResponse = await fetch(chrome.runtime.getURL('tcf_default_decoded_js.json'));
+    defaultTCFData = await defaultResponse.json();
+    console.log(`Loaded ${defaultTCFData.length} default TCF entries for comparison`);
+  } catch (error) {
+    console.error("Error loading default TCF data:", error);
+    // Continue without default comparison if file not found
+  }
+
+  // NEW: Load websites that don't store TCF before user interaction
+try {
+  const noStoreResponse = await fetch(chrome.runtime.getURL('tcf_no_store_before_interaction.json'));
+  const noStoreData = await noStoreResponse.json();
+  noStoreBeforeInteractionSites = noStoreData.websites || [];
+  console.log(`Loaded ${noStoreBeforeInteractionSites.length} no-store-before-interaction websites`);
+} catch (error) {
+  console.error("Error loading no-store-before-interaction data:", error);
+  // Continue without this detection if file not found
+}
+
+
+
+  // Define the (base) consent and alert box cookie names to look for
+  const baseCookieNames = [
     "OptanonConsent",          // OneTrust
     "OptanonAlertBoxClosed",   // OneTrust Alert Box Closed
     "cookieyes-consent",       // CookieYes
@@ -24,22 +74,160 @@ document.addEventListener('DOMContentLoaded', () => {
     "1P_JAR",                  // Google Ads Personalization
     "AEC",                     // Google Session integrity
     "SOCS",                    // Google Consent metadata
-    //adding TCF cookies (strings):
-    "TVPtcs22",
-    "TcString",
-    "__cmpconsent25759",
-    "cookiebotTcfConsentString",
-    "euconsent-v2",
-    "eupubconsent-v2",
-    "mychannels-consentData", 
-    "sas_euconsent_v2",
-    "EuConsent",
-    //local storage:
-    "VWD6_ENSIGHTEN_PRIVACY_euconsent-v2"
+    // //adding TCF cookies (strings):
+    // "TVPtcs22",
+    // "TcString",
+    // "__cmpconsent25759",
+    // "cookiebotTcfConsentString",
+    // "euconsent-v2",
+    // "eupubconsent-v2",
+    // "mychannels-consentData", 
+    // "sas_euconsent_v2",
+    // "EuConsent",
+    // //local storage:
+    // "VWD6_ENSIGHTEN_PRIVACY_euconsent-v2"
   ];
+
+  //combine base cookie names with the loaded TCF cookie names
+  const cookieNames = [...baseCookieNames, ...tcfCookieNames, ...tcfLocalStorageNames];
+  // Create Sets for faster lookup performance (ADD THESE LINES)
+  const cookieNameSet = new Set(cookieNames);
+  const tcfCookieSet = new Set(tcfCookieNames);
+
+  //to chcek all cookienames (tcf & cmp) are loaded!
+  console.log(`Total cookie names to monitor: ${cookieNames.length}`);
 
   let fetchedCookies = [];
 
+  /**
+   * Checks if a cookie name is a TCF cookie
+   * @param {string} cookieName - The name of the cookie to check
+   * @returns {boolean} - True if the cookie is a TCF cookie, false otherwise
+   */
+  function isTCFCookie(cookieName) {
+    return tcfCookieSet.has(cookieName)
+  }
+
+  // Function to find default TCF data for a domain
+function findDefaultTCFData(domain, tcfKeyName) {
+    // Clean domain for comparison
+  const cleanDomain = domain.replace(/^\.+/, '').toLowerCase();
+  
+  return defaultTCFData.find(entry => {
+    const entryDomain = entry.domain.toLowerCase();
+    
+    // Check if domains match (with or without leading dot)
+    if (entryDomain !== cleanDomain) return false;
+    
+    if (tcfKeyName && entry.tcf_string_key_name !== "undefined") {
+      return entry.tcf_string_key_name === tcfKeyName;
+    }
+    
+    if (!tcfKeyName && entry.tcf_string_key_name === "undefined") {
+      return true;
+    }
+    
+    if (tcfKeyName && entry.tcf_string_key_name === "undefined") {
+      return true;
+    }
+    
+    return false;
+  });
+}
+
+// Compare purposes 1-11 only
+function compareTCFPurposes11(userPurposes, defaultPurposes) {
+  if (!userPurposes || !defaultPurposes) return false;
+  
+  for (let i = 1; i <= 11; i++) {
+    const userConsent = userPurposes[i] || false;
+    const defaultConsent = defaultPurposes[i] || false;
+    
+    if (userConsent !== defaultConsent) {
+      return false;
+    }
+  }
+  
+  return true;
+}
+
+// Compare legitimate interests 1-11 only
+function compareTCFLegitimateInterests11(userLI, defaultLI) {
+  if (!userLI || !defaultLI) return false;
+  
+  for (let i = 1; i <= 11; i++) {
+    const userLI_value = userLI[i] || false;
+    const defaultLI_value = defaultLI[i] || false;
+    
+    if (userLI_value !== defaultLI_value) {
+      return false;
+    }
+  }
+  
+  return true;
+}
+
+// Add default comparison to already decoded TCF
+  function addDefaultComparisonToTCF(decodedTCF, domain, cookieName) {
+    const defaultData = findDefaultTCFData(domain, cookieName);
+    
+    if (!defaultData || !defaultData.decoded_default_string || defaultData.decoded_default_string.error) {
+      console.log(`${domain}: No default data found - keeping original actionTaken`);
+      return decodedTCF;
+    }
+    
+    const defaultTCF = defaultData.decoded_default_string;
+    
+    console.log(`Comparing already-decoded TCF for ${domain}:`);
+    
+    const purposesMatch = compareTCFPurposes11(
+      decodedTCF.misc.purposeConsents, 
+      defaultTCF.purposes
+    );
+    
+    const liMatch = compareTCFLegitimateInterests11(
+      decodedTCF.misc.purposeLegitimateInterests, 
+      defaultTCF.purposeLegitimateInterests
+    );
+    
+    const isDefault = purposesMatch && liMatch;
+    
+    let newActionTaken;
+    if (isDefault) {
+      newActionTaken = "Default";
+      console.log(`${domain}: User TCF matches default - Action: Default`);
+    } else {
+      newActionTaken = "Yes";
+      console.log(`${domain}: User TCF differs from default - Action: Yes (Modified)`);
+    }
+    
+    return {
+      ...decodedTCF,
+      actionTaken: newActionTaken,
+      misc: {
+        ...decodedTCF.misc,
+        defaultComparison: {
+          hasDefaultData: true,
+          purposesMatch: purposesMatch,
+          legitimateInterestsMatch: liMatch,
+          isExactDefault: isDefault,
+          defaultKeyName: defaultData.tcf_string_key_name,
+          defaultCMP: defaultTCF.cmpName,
+          originalActionTaken: decodedTCF.actionTaken
+        }
+      }
+    };
+  }
+
+  // NEW: Check if domain is in no-store-before-interaction list
+  function isNoStoreBeforeInteractionSite(domain) {
+    const cleanDomain = domain.replace(/^\.+/, '').toLowerCase();
+    
+    return noStoreBeforeInteractionSites.some(entry => {
+      const entryDomain = entry.domain.toLowerCase();
+      return entryDomain === cleanDomain;
+    });
+  }
   /**
    * Parses a cookie string into an object.
    * @param {string} value - The cookie string.
@@ -1245,7 +1433,8 @@ function decodeTCF(value, cookie, allCookies) {
       performance: categories.performance,
       advertising: categories.advertising,
       consent: consentStatus,
-      actionTaken: actionTaken, // ENHANCED
+      // actionTaken: actionTaken, 
+      actionTaken: isNoStoreBeforeInteractionSite(cookie.domain) ? "Yes" : actionTaken,
       rawCookie: value,
       misc: {
         // IAB specification fields
@@ -1288,7 +1477,9 @@ function decodeTCF(value, cookie, allCookies) {
         actionConfidence: confidence,
         actionMethod: enhancedActionAnalysis.method,
         actionReasoning: enhancedActionAnalysis.reasoning,
-        enhancedEvidence: enhancedActionAnalysis.evidence
+        enhancedEvidence: enhancedActionAnalysis.evidence,
+        noStoreBeforeInteraction: isNoStoreBeforeInteractionSite(cookie.domain),
+
       }
     };
     
@@ -1463,31 +1654,50 @@ function enhancedTCFActionDetection(tcfValue, tcfCookie, allCookies) {
    * @returns {Object|null} - Consent object with necessary fields or null.
    */
   function createConsentObject(cookies, currentCookie) {
-    const decoded = decodeCMPValue(cookies, currentCookie);
-    if (!decoded) return null; // Skip if the decoder returns null (handled separately)
+      // ADD DEBUG FOR STACKOVERFLOW SPECIFICALLY
+  if (currentCookie.domain && currentCookie.domain.includes('stackoverflow')) {
+    console.log("🎯 STACKOVERFLOW PROCESSING STARTED:");
+    console.log("Cookie name:", currentCookie.name);
+    console.log("Cookie domain:", currentCookie.domain);
+    console.log("Cookie value preview:", currentCookie.value.substring(0, 100));
+  }
 
-    console.log("Creating Consent Object:", decoded);
+  const decoded = decodeCMPValue(cookies, currentCookie);
+  
+  if (currentCookie.domain && currentCookie.domain.includes('stackoverflow')) {
+    console.log("🎯 STACKOVERFLOW DECODE RESULT:");
+    console.log("Decoded object:", decoded);
+    
+    if (!decoded) {
+      console.log("❌ STACKOVERFLOW DECODE FAILED - returned null!");
+      return null;
+    }
+  }
 
-    return {
-      cmpName: decoded.cmpName,
-      domain: currentCookie.domain,
-      categories: {
-        necessary: decoded.necessary,
-        functional: decoded.functional,
-        performance: decoded.performance,
-        advertising: decoded.advertising,
-      },
-      timestamp: decoded.timestamp,
-      expiration: decoded.expiration,
-      firstVisited: decoded.firstVisited,
-      lastVisited: decoded.lastVisited,
-      totalVisitCount: currentCookie.totalVisitCount || 0,
-      avgDailyVisits: currentCookie.avgDailyVisits || 0,
-      rawCookie: decoded.rawCookie || currentCookie.value,
-      actionTaken: decoded.actionTaken, // Add actionTaken to the object
-      misc: decoded.misc || {},
-    };
-  } 
+  if (!decoded) return null; // Skip if the decoder returns null (handled separately)
+
+  console.log("Creating Consent Object:", decoded);
+
+  return {
+    cmpName: decoded.cmpName,
+    domain: currentCookie.domain,
+    categories: {
+      necessary: decoded.necessary,
+      functional: decoded.functional,
+      performance: decoded.performance,
+      advertising: decoded.advertising,
+    },
+    timestamp: decoded.timestamp,
+    expiration: decoded.expiration,
+    firstVisited: decoded.firstVisited,
+    lastVisited: decoded.lastVisited,
+    totalVisitCount: currentCookie.totalVisitCount || 0,
+    avgDailyVisits: currentCookie.avgDailyVisits || 0,
+    rawCookie: decoded.rawCookie || currentCookie.value,
+    actionTaken: decoded.actionTaken,
+    misc: decoded.misc || {},
+  };
+}
 
   /**
    * Displays the fetched cookies in the popup table.
@@ -1527,6 +1737,11 @@ function enhancedTCFActionDetection(tcfValue, tcfCookie, allCookies) {
    * Fetches cookies and displays them in the popup.
    */
   function fetchAndDisplayCookies() {
+  console.log("************IMMEDIATE CHECK***********:");
+  console.log("cookieNames exists?", typeof cookieNames !== 'undefined');
+  console.log("cookieNames length:", cookieNames?.length);
+  console.log("First few items:", cookieNames?.slice(0, 5));
+
     console.log("Sending message to background.js to check cookies...");
 
     chrome.runtime.sendMessage({ action: "checkCookies", cookieNames }, (response) => {
@@ -1543,31 +1758,63 @@ function enhancedTCFActionDetection(tcfValue, tcfCookie, allCookies) {
         console.log("Fetched Cookies:", allFetchedCookies);
         // Filter consent cookies (excluding OptanonAlertBoxClosed and Complianz ancillary cookies)
         const consentCookies = allFetchedCookies.filter(cookie => 
-          [
-            "OptanonConsent", "cookieyes-consent", "wscrCookieConsent",
-            "cmplz_rt_functional", "cmplz_rt_marketing", "cmplz_rt_preferences",
-            "cmplz_rt_statistics", "cmplz_rt_banner-status", "uc_userconsent",
-            "quantcast_consent", "CookieConsent", "osano_consent", "cookie_notice",
-            "cookie_law_info", "TrustArcConsent",
-            "CONSENT", "NID", "1P_JAR",
-            "euconsent-v2", "eupubconsent-v2", 
-            "TVPtcs22",
-            "TcString",
-            "__cmpconsent25759",
-            "cookiebotTcfConsentString",
-            "mychannels-consentData", 
-            "sas_euconsent_v2",
-            "EuConsent",
-            //local storage:
-            "VWD6_ENSIGHTEN_PRIVACY_euconsent-v2"
-          ].includes(cookie.name)
+          cookieNameSet.has(cookie.name)
         );
+
+        //   [
+        //     "OptanonConsent", "cookieyes-consent", "wscrCookieConsent",
+        //     "cmplz_rt_functional", "cmplz_rt_marketing", "cmplz_rt_preferences",
+        //     "cmplz_rt_statistics", "cmplz_rt_banner-status", "uc_userconsent",
+        //     "quantcast_consent", "CookieConsent", "osano_consent", "cookie_notice",
+        //     "cookie_law_info", "TrustArcConsent",
+        //     "CONSENT", "NID", "1P_JAR",
+        //     "euconsent-v2", "eupubconsent-v2", 
+        //     "TVPtcs22",
+        //     "TcString",
+        //     "__cmpconsent25759",
+        //     "cookiebotTcfConsentString",
+        //     "mychannels-consentData", 
+        //     "sas_euconsent_v2",
+        //     "EuConsent",
+        //     //local storage:
+        //     "VWD6_ENSIGHTEN_PRIVACY_euconsent-v2"
+        //   ].includes(cookie.name)
+        // );
         
 
         console.log("Consent Cookies to Process:", consentCookies);
 
         // Create consent objects by processing each consent cookie
-        fetchedCookies = consentCookies.map(consentCookie => createConsentObject(allFetchedCookies, consentCookie)).filter(Boolean);
+        // 
+              // FILTER OUT HELPER/SUPPORTING COOKIES that shouldn't be displayed
+      const displayableCookies = consentCookies.filter(cookie => {
+        // Define helper/supporting cookies that should NOT be displayed as separate entries
+        const helperCookies = [
+          "OptanonAlertBoxClosed",  // Helper for OneTrust - used by OptanonConsent
+          "AEC",                    // Helper for Google - used by CONSENT/NID
+          "SOCS",                   // Helper for Google - used by CONSENT/NID
+          // Add any other helper cookies here
+        ];
+        
+        // Only show cookies that are NOT helper cookies
+        return !helperCookies.includes(cookie.name);
+      });
+
+      console.log("Displayable Cookies to Process:", displayableCookies);
+
+      // Create consent objects by processing each displayable cookie
+      fetchedCookies = displayableCookies.map(consentCookie => {
+        const result = createConsentObject(allFetchedCookies, consentCookie);
+        
+        // FILTER OUT "Unknown" CMPs - only show recognized CMPs
+        if (result && result.cmpName === "Unknown") {
+          console.log(`Filtering out Unknown CMP: ${consentCookie.name} from ${consentCookie.domain}`);
+          return null; // Filter out unknown CMPs
+        }
+        
+        return result;
+      }).filter(Boolean);
+
 
         console.log("Fetched Consent Objects:", fetchedCookies);
          // DEBUG: Log the totalVisitCount values before storing
@@ -1815,7 +2062,13 @@ function enhancedTCFActionDetection(tcfValue, tcfCookie, allCookies) {
    */
   function decodeCMPValue(cookies, currentCookie) {
     const seenGoogleDomains = new Set(); // Necessary since Google uses generic cookie names
-    switch (currentCookie.name) {
+    const cookieName = currentCookie.name;
+
+    console.log(`Processing: ${currentCookie.domain} - ${cookieName}`);
+    console.log(`Cookie value preview: ${currentCookie.value.substring(0, 50)}...`);
+    
+    // Handle specific non-TCF cookies
+    switch (cookieName) {
       case "OptanonConsent":
         // Find the corresponding OptanonAlertBoxClosed cookie for the same domain
         const alertBoxClosedCookie = cookies.find(cookie => 
@@ -1832,7 +2085,7 @@ function enhancedTCFActionDetection(tcfValue, tcfCookie, allCookies) {
       case "cmplz_rt_statistics":
       case "cmplz_rt_banner-status":
         // Only decode Complianz once per domain by processing the banner-status cookie
-        if (currentCookie.name === "cmplz_rt_banner-status") {
+        if (cookieName === "cmplz_rt_banner-status") {
           return decodeComplianz(cookies, currentCookie);
         }
         return null; // Skip other Complianz cookies to prevent duplicates
@@ -1851,26 +2104,26 @@ function enhancedTCFActionDetection(tcfValue, tcfCookie, allCookies) {
       case "TrustArcConsent":
         return decodeTrustArc(currentCookie.value, currentCookie);
       // New case for TCF v2.0 consent cookie
+      // Enhanced TCF v2.0 consent cookies with default comparison
       case "euconsent-v2":
-        return decodeTCF(currentCookie.value, currentCookie, cookies);
       case "eupubconsent-v2": 
-        return decodeTCF(currentCookie.value, currentCookie, cookies);
       case "TVPtcs22":
-        return decodeTCF(currentCookie.value, currentCookie, cookies);
       case "TcString":
-        return decodeTCF(currentCookie.value, currentCookie, cookies);
       case "__cmpconsent25759":
-        return decodeTCF(currentCookie.value, currentCookie, cookies);
       case "cookiebotTcfConsentString":
-        return decodeTCF(currentCookie.value, currentCookie, cookies);
       case "mychannels-consentData":
-        return decodeTCF(currentCookie.value, currentCookie, cookies);
       case "sas_euconsent_v2":
-        return decodeTCF(currentCookie.value, currentCookie, cookies);
       case "EuConsent":
-        return decodeTCF(currentCookie.value, currentCookie, cookies);
       case "VWD6_ENSIGHTEN_PRIVACY_euconsent-v2":
-        return decodeTCF(currentCookie.value, currentCookie, cookies);
+        console.log(`Processing TCF cookie with default comparison: ${cookieName}`);
+        
+        // Decode TCF normally using existing function
+        const decodedTCF = decodeTCF(currentCookie.value, currentCookie, cookies);
+        
+        // Add default comparison to the already-decoded result
+        const enhancedTCF = addDefaultComparisonToTCF(decodedTCF, currentCookie.domain, cookieName);
+        
+        return enhancedTCF;
       case "CONSENT":
       case "NID":
       case "1P_JAR":
@@ -1893,19 +2146,32 @@ function enhancedTCFActionDetection(tcfValue, tcfCookie, allCookies) {
           return decodeGoogleUnified(googleCookies, currentCookie.domain);
         }
 
-        return null; // Skip non-Google domains with these cookie names   
-      default:
-        return {
-          cmpName: "Unknown",
-          rawCookie: currentCookie.value,
-          ...addDateFields(currentCookie),
-          actionTaken: "No interaction recorded", // Default value for unknown CMPs
-        };
-    }
-  }
+      return null;
+    
+    default:
+      // For any additional TCF cookies from JSON that aren't in the switch statement
+      if (isTCFCookie(cookieName)) {
+        console.log(`Identified as additional TCF cookie: ${cookieName}`);
+        // Decode TCF normally using existing function
+      const decodedTCF = decodeTCF(currentCookie.value, currentCookie, cookies);
+      
+      // Add default comparison to the already-decoded result
+      const enhancedTCF = addDefaultComparisonToTCF(decodedTCF, currentCookie.domain, cookieName);
+      
+      return enhancedTCF;
 
-  
-  
+      }
+      
+      console.log(`Unknown cookie type: ${cookieName}`);
+      return {
+        cmpName: "Unknown",
+        rawCookie: currentCookie.value,
+        ...addDateFields(currentCookie),
+        actionTaken: "No interaction recorded",
+      };
+    }
+}
+
 
   //***************  updates to the code for Option 1:
   // Store cookies in chrome.storage.local when they're fetched
@@ -1997,6 +2263,9 @@ document.getElementById('pricrumbs_website_all_cookies_rejected')?.addEventListe
 
 document.getElementById('pricrumbs_website_advertising_cookies_rejected')?.addEventListener('click', () => {
   window.location.href ='pricrumbs_website_advertising_cookies_rejected.html';
+  });
+document.getElementById('pricrumbs_website_all_cookies_default')?.addEventListener('click', () => {
+  window.location.href ='pricrumbs_website_all_cookies_default.html';
   });
 
 
