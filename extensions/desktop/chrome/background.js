@@ -491,6 +491,8 @@ function checkForSurveyElement() {
   const elementId_3_1 = "pricrumbs_website_all_cookies_accepted"; // pricrumbs_website_all_cookies_accepted.html
   const elementId_3_2 = "pricrumbs_website_all_cookies_rejected"; // pricrumbs_website_all_cookies_rejected.html
   const elementId_3_3 = "pricrumbs_website_advertising_cookies_rejected"; // pricrumbs_website_advertising_cookies_rejected.html
+  const elementId_3_4 = "pricrumbs_website_all_cookies_default"; // NEW: pricrumbs_website_all_cookies_default.html
+
 
   // Look for element with target ID on page
   const observer_main = new MutationObserver((mutations, observer) => {
@@ -565,6 +567,14 @@ function checkForSurveyElement() {
         window.postMessage({ type: "FROM_SURVEY", tabId: chrome.runtime.id, payload: { action: "injectHTML", html: "pricrumbs_website_advertising_cookies_rejected.html", height: "245px" } }, "*");
     }
   });
+   // Observer for default cookies
+  const observer_3_4 = new MutationObserver((mutations, observer) => {
+    const targetElement = document.getElementById(elementId_3_4);
+    if (targetElement && !targetElement.querySelector("iframe")) {
+        observer.disconnect();
+        window.postMessage({ type: "FROM_SURVEY", tabId: chrome.runtime.id, payload: { action: "injectHTML", html: "pricrumbs_website_all_cookies_default.html", height: "245px" } }, "*");
+    }
+  });
 
   // Start the observers
   observer_main.observe(document.body, { childList: true, subtree: true });
@@ -577,6 +587,8 @@ function checkForSurveyElement() {
   observer_3_1.observe(document.body, { childList: true, subtree: true });
   observer_3_2.observe(document.body, { childList: true, subtree: true });
   observer_3_3.observe(document.body, { childList: true, subtree: true });
+  observer_3_4.observe(document.body, { childList: true, subtree: true }); //start observer for default
+
 
   // Check immediately in case the element is already present
   const existingElement_main = document.getElementById(elementId_main);
@@ -589,6 +601,8 @@ function checkForSurveyElement() {
   const existingElement_3_1 = document.getElementById(elementId_3_1);
   const existingElement_3_2 = document.getElementById(elementId_3_2);
   const existingElement_3_3 = document.getElementById(elementId_3_3);
+  const existingElement_3_4 = document.getElementById(elementId_3_4); // Check for default element
+
 
   if (existingElement_main && !existingElement_main.querySelector("iframe")) {
       observer_main.disconnect();
@@ -629,5 +643,10 @@ function checkForSurveyElement() {
   if (existingElement_3_3 && !existingElement_3_3.querySelector("iframe")) {
     observer_3_3.disconnect();
     window.postMessage({ type: "FROM_SURVEY", tabId: chrome.runtime.id, payload: { action: "injectHTML", html: "pricrumbs_website_advertising_cookies_rejected.html", height: "245px" } }, "*");
+  }
+    // Check for default element
+  if (existingElement_3_4 && !existingElement_3_4.querySelector("iframe")) {
+    observer_3_4.disconnect();
+    window.postMessage({ type: "FROM_SURVEY", tabId: chrome.runtime.id, payload: { action: "injectHTML", html: "pricrumbs_website_all_cookies_default.html", height: "245px" } }, "*");
   }
 }
