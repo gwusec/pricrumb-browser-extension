@@ -13,6 +13,8 @@ document.addEventListener('DOMContentLoaded', () => {
         categoryType = 'reject-all';
     } else if (document.getElementById('category3')) {
         categoryType = 'mixed';
+    } else if (document.getElementById('category4')) {
+        categoryType = 'default';  // new category for default values
     }
     
     console.log('Detected category type based on HTML container:', categoryType);
@@ -113,11 +115,19 @@ function findMatchingWebsites(cookieData) {
     const actionTakenCookies = cookieData.filter(cookie => 
         cookie.actionTaken && cookie.actionTaken.toLowerCase() === 'yes'
     );
+
+    // Filter for default cookies
+    const defaultActionCookies = cookieData.filter(cookie => 
+        cookie.actionTaken && cookie.actionTaken.toLowerCase() === 'default'
+    );
     
     console.log('Cookies with action taken:', actionTakenCookies.length);
+    console.log('Cookies with default action:', defaultActionCookies.length);
+
     
     // STEP 2: Create an array of all domains with their preferences
     const allDomains = [];
+    const defaultDomains = [];
     
     // For each cookie with actionTaken = "Yes", extract its preferences
     for (const cookie of actionTakenCookies) {
@@ -166,13 +176,33 @@ function findMatchingWebsites(cookieData) {
             console.log(`Skipping ${formattedDomain} - could not determine complete preferences`);
         }
     }
+
+    // Process cookies where actionTaken = "Default"
+    for (const cookie of defaultActionCookies) {
+        if (!cookie.domain) continue;
+        
+        const formattedDomain = formatDomainForDisplay(cookie.domain);
+        
+        defaultDomains.push({
+            domain: formattedDomain,
+            originalDomain: cookie.domain,
+            favicon: `https://www.google.com/s2/favicons?domain=${formattedDomain}&sz=32`,
+            cookie: cookie,
+            actionTaken: 'Default'
+        });
+        
+        console.log(`Added ${formattedDomain} to defaultDomains`);
+    }
     
     console.log('Total domains with preferences:', allDomains.length);
-    
+    console.log('Total domains with default action:', defaultDomains.length);
+        
     // STEP 3: Categorize domains based on preferences (ignoring 'necessary')
     const category1 = []; // Accept, Accept, Accept
     const category2 = []; // Reject, Reject, Reject
     const category3 = []; // Accept, Accept, Reject
+    const category4 = defaultDomains; // Default action taken
+
     
     for (const domain of allDomains) {
         const p = domain.preferences;
@@ -194,12 +224,16 @@ function findMatchingWebsites(cookieData) {
     console.log('Category 1 (Accept all):', category1.map(d => d.domain));
     console.log('Category 2 (Reject all):', category2.map(d => d.domain));
     console.log('Category 3 (Accept, Accept, Reject):', category3.map(d => d.domain));
+    console.log('Category 4 (Default):', category4.map(d => d.domain));
+
     
     // STEP 4: Select one random website from each category
     return {
         category1: category1.length > 0 ? category1[Math.floor(Math.random() * category1.length)] : null,
         category2: category2.length > 0 ? category2[Math.floor(Math.random() * category2.length)] : null,
-        category3: category3.length > 0 ? category3[Math.floor(Math.random() * category3.length)] : null
+        category3: category3.length > 0 ? category3[Math.floor(Math.random() * category3.length)] : null,
+        category4: category4.length > 0 ? category4[Math.floor(Math.random() * category4.length)] : null
+
     };
 }
 
@@ -225,6 +259,10 @@ function displayWebsite(websites, categoryType) {
         case 'mixed':
             website = websites.category3;
             containerId = 'category3';
+            break;
+        case 'default':  // Handle default category
+            website = websites.category4;
+            containerId = 'category4';
             break;
         default:
             console.error('Unknown category type:', categoryType);

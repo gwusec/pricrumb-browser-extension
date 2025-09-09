@@ -1,5 +1,3 @@
-// Add this to the beginning of your pricrumbs_preferred_cookie_choices.js file
-
 // Store user preferences and domain data
 let userPreferences = new Map();
 let allDomains = [];
@@ -28,79 +26,70 @@ document.addEventListener('DOMContentLoaded', () => {
 // Load saved user preferences
 async function loadSavedPreferences() {
     try {
-        const result = await chrome.storage.local.get('userCookiePreferences');
-        if (result.userCookiePreferences) {
+        const result = await browser.storage.local.get("userCookiePreferences");
+        if (result.userCookiePreferences && Array.isArray(result.userCookiePreferences)) {
             userPreferences = new Map(result.userCookiePreferences);
-            console.log('Loaded saved preferences:', userPreferences);
+            console.log("Loaded saved preferences:", userPreferences);
+        } else {
+            console.log("No saved preferences found. Starting fresh.");
         }
     } catch (error) {
-        console.error('Error loading saved preferences:', error);
+        console.error("Error loading saved preferences:", error);
     }
 }
 
 // Load cookie data
 async function loadCookies() {
     try {
-        const result = await chrome.storage.local.get('cookieData');
-        console.log('Retrieved cookie data:', result.cookieData);
+        const result = await browser.storage.local.get("cookieData");
+        const cookies = result.cookieData || [];   // ensure we always get an array
+        console.log("Retrieved cookie data:", cookies);
 
-        if (result.cookieData && Array.isArray(result.cookieData)) {
-            // Log the number of cookies with action taken = yes
-            const actionTakenCount = result.cookieData.filter(cookie => 
-                cookie.actionTaken && cookie.actionTaken.toLowerCase() === 'yes'
+        if (cookies.length > 0) {
+            // Log how many had actionTaken = yes
+            const actionTakenCount = cookies.filter(c =>
+                c.actionTaken && c.actionTaken.toLowerCase() === "yes"
             ).length;
             console.log(`Found ${actionTakenCount} cookies with action taken = yes`);
-            
-            const { mostRecentDomains, leastRecentDomains } = getRecentActionDomains(result.cookieData);
-            console.log('Most recent domains:', mostRecentDomains);
-            console.log('Least recent domains:', leastRecentDomains);
-            
-            // Add favicon URLs to domains
-            mostRecentDomains.forEach(domain => {
-                domain.favicon = `https://www.google.com/s2/favicons?domain=${formatDomainForDisplay(domain.domain)}&sz=32`;
+
+            const { mostRecentDomains, leastRecentDomains } = getRecentActionDomains(cookies);
+            console.log("Most recent domains:", mostRecentDomains);
+            console.log("Least recent domains:", leastRecentDomains);
+
+            // Add favicons
+            mostRecentDomains.forEach(d => {
+                d.favicon = `https://www.google.com/s2/favicons?domain=${formatDomainForDisplay(d.domain)}&sz=32`;
             });
-            
-            leastRecentDomains.forEach(domain => {
-                domain.favicon = `https://www.google.com/s2/favicons?domain=${formatDomainForDisplay(domain.domain)}&sz=32`;
+            leastRecentDomains.forEach(d => {
+                d.favicon = `https://www.google.com/s2/favicons?domain=${formatDomainForDisplay(d.domain)}&sz=32`;
             });
-            
-            // Combine all domains
-            allDomains = [...mostRecentDomains, ...leastRecentDomains];
-            
-            // Hide loading and show question view directly
-            const loadingEl = document.getElementById('loading');
-            if (loadingEl) {
-                loadingEl.style.display = 'none';
-            }
-            
-            const questionView = document.getElementById('questionView');
-            if (questionView) {
-                questionView.style.display = 'block';
-            }
-            
-            // Update total domains counter
-            const totalDomainsEl = document.getElementById('totalDomains');
-            if (totalDomainsEl) {
-                totalDomainsEl.textContent = allDomains.length;
-            }
-            
-            // Initialize domain selections tracking
+
+            // Combine and randomize
+            allDomains = shuffleArray([...mostRecentDomains, ...leastRecentDomains]);
+            console.log("Domains after randomization:", allDomains.map(d => d.domain));
+
+            // Hide loading, show questions
+            const loadingEl = document.getElementById("loading");
+            if (loadingEl) loadingEl.style.display = "none";
+            const questionView = document.getElementById("questionView");
+            if (questionView) questionView.style.display = "block";
+
+            // Update counter
+            const totalDomainsEl = document.getElementById("totalDomains");
+            if (totalDomainsEl) totalDomainsEl.textContent = allDomains.length;
+
             initializeSelectionTracking();
-            
-            // Start showing domains
             updateDomainDisplay();
         } else {
-            const loadingEl = document.getElementById('loading');
+            const loadingEl = document.getElementById("loading");
             if (loadingEl) {
-                loadingEl.textContent = 'No cookie data found. Please visit the Cookie Checker first.';
+                loadingEl.textContent = "No cookie data found. Please visit the Cookie Checker first.";
             }
         }
     } catch (error) {
-        console.error('Error loading cookies:', error);
-        const loadingEl = document.getElementById('loading');
-        if (loadingEl) {
-            loadingEl.textContent = 'Error loading cookie data.';
-        }
+        console.error("Error loading cookies:", error);
+        const loadingEl = document.getElementById("loading");
+        if (loadingEl) loadingEl.textContent = "Error loading cookie data.";
     }
 }
 
@@ -193,72 +182,68 @@ function getRecentActionDomains(cookies) {
 
 // Save preference for a domain and category
 async function savePreference(domain, category, value) {
-    console.log(`Saving preference for domain ${domain}, category ${category}: ${value ? "Accept" : "Reject"}`);
-    
+    console.log(`Saving preference for domain ${domain}, category ${category}: ${value}`);
+
     // Make sure the domain exists in our tracking object
     if (!domainSelections[domain]) {
         domainSelections[domain] = {};
     }
-    
+
     // Save the selection for this specific domain and category only
     domainSelections[domain][category] = value;
-    
+
     // Find the original domain format if needed
     const domainObject = allDomains.find(d => d.domain === domain);
-    let originalDomain = domain;
-    
-    // Use original domain if available
-    if (domainObject && domainObject.originalDomain) {
-        originalDomain = domainObject.originalDomain;
-    }
-    // Otherwise check if we need to transform the domain
-    else if (domain.startsWith('www.')) {
-        // Check if we need to remove www and add a leading dot based on existing preferences
+    let originalDomain = domainObject?.originalDomain || domain;
+
+    // Use original domain if available, otherwise adjust "www." vs leading dot
+    if (!domainObject && domain.startsWith("www.")) {
         const domainWithoutWWW = domain.substring(4);
-        const domainWithDot = '.' + domainWithoutWWW;
-        
-        // If we already have a preference for the domain with dot, use that
+        const domainWithDot = "." + domainWithoutWWW;
+
         if (userPreferences.has(domainWithDot)) {
             originalDomain = domainWithDot;
         } else if (userPreferences.has(domainWithoutWWW)) {
             originalDomain = domainWithoutWWW;
         }
     }
-    
+
     console.log(`Using storage key ${originalDomain} for domain ${domain}`);
-    
+
     // Get latest preferences from storage to ensure we have the most up-to-date data
     try {
-        const result = await chrome.storage.local.get('userCookiePreferences');
-        let storedPrefs = new Map();
-        
-        if (result.userCookiePreferences && Array.isArray(result.userCookiePreferences)) {
-            storedPrefs = new Map(result.userCookiePreferences);
-        }
-        
+        const result = await browser.storage.local.get("userCookiePreferences");
+        let storedPrefs = new Map(
+            result.userCookiePreferences && Array.isArray(result.userCookiePreferences)
+                ? result.userCookiePreferences
+                : []
+        );
+
         // Get existing preferences for this domain or create new ones
-        let domainPrefs = storedPrefs.has(originalDomain) 
-            ? storedPrefs.get(originalDomain) 
-            : { functional: null, performance: null, advertising: null };
-        
+        let domainPrefs = storedPrefs.get(originalDomain) || {
+            functional: null,
+            performance: null,
+            advertising: null
+        };
+
         // Update only the current category
         domainPrefs[category] = value;
-        
+
         // Update the stored preferences
         storedPrefs.set(originalDomain, domainPrefs);
-        
+
         // Update our local cache
         userPreferences = storedPrefs;
-        
+
         // Save back to storage
-        chrome.storage.local.set({
-            'userCookiePreferences': Array.from(storedPrefs.entries())
-        }, () => {
-            console.log(`Preference for ${domain}, category ${category} saved successfully!`);
-            console.log('Updated preferences:', domainPrefs);
+        await browser.storage.local.set({
+            userCookiePreferences: Array.from(storedPrefs.entries())
         });
+
+        console.log(`Preference for ${domain}, category ${category} saved successfully!`);
+        console.log("Updated preferences:", domainPrefs);
     } catch (error) {
-        console.error('Error saving preference:', error);
+        console.error("Error saving preference:", error);
     }
 }
 
@@ -467,15 +452,14 @@ function completeCategory() {
 }
 
 // Save all preferences
-function saveAllPreferences() {
+async function saveAllPreferences() {
     // Ensure we save the latest preferences
-    chrome.storage.local.set({
-        'userCookiePreferences': Array.from(userPreferences.entries())
-    }, () => {
-        if (chrome.runtime.lastError) {
-            console.error('Error saving all preferences:', chrome.runtime.lastError);
-        } else {
-            console.log('All preferences saved successfully');
-        }
-    });
+    try {
+        await browser.storage.local.set({
+            userCookiePreferences: Array.from(userPreferences.entries())
+        });
+        console.log("All preferences saved successfully");
+    } catch (error) {
+        console.error("Error saving all preferences:", error);
+    }
 }

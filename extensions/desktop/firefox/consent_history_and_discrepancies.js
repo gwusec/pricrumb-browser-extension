@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function loadSavedPreferences() {
     try {
-        const result = await chrome.storage.local.get('userCookiePreferences');
+        const result = await browser.storage.local.get('userCookiePreferences');
         if (result.userCookiePreferences) {
             // Try to handle both old and new format of preferences
             if (Array.isArray(result.userCookiePreferences)) {
@@ -20,11 +20,13 @@ async function loadSavedPreferences() {
                 // This might be the old format (array of objects with domain and preferences)
                 // Convert it to the Map format expected by the current code
                 userPreferences = new Map();
-                result.userCookiePreferences.forEach(item => {
-                    if (item.domain && item.preferences) {
-                        userPreferences.set(item.domain, item.preferences);
-                    }
-                });
+                if (Array.isArray(result.userCookiePreferences)) {
+                    result.userCookiePreferences.forEach(item => {
+                        if (item.domain && item.preferences) {
+                            userPreferences.set(item.domain, item.preferences);
+                        }
+                    });
+                }
                 console.log('Loaded saved preferences (old format, converted):', userPreferences);
             }
             
@@ -51,14 +53,15 @@ async function loadSavedPreferences() {
 async function loadCookiesAndFindDiscrepancies() {
     try {
         // Load cookie data
-        const result = await chrome.storage.local.get('cookieData');
-        console.log('Retrieved cookie data:', result.cookieData);
+        const result = await browser.storage.local.get('cookieData');
+        const cookies = result.cookieData || [];  // Always fallback to empty array
+        console.log('Retrieved cookie data:', cookies);
 
-        if (result.cookieData && Array.isArray(result.cookieData)) {
+        if (cookies.length > 0) {
             // Check if we have user preferences to compare against
             if (userPreferences && userPreferences.size > 0) {
                 // Find domains with discrepancies if we have user preferences
-                websitesWithDiscrepancies = findDiscrepancyWebsites(result.cookieData, userPreferences);
+                websitesWithDiscrepancies = findDiscrepancyWebsites(cookies, userPreferences);
                 console.log('Websites with discrepancies found:', websitesWithDiscrepancies.length);
                 console.log('Discrepancy details:', websitesWithDiscrepancies);
             } else {
@@ -68,7 +71,7 @@ async function loadCookiesAndFindDiscrepancies() {
             }
             
             // Then process the cookie data for display
-            const { mostRecentDomains, leastRecentDomains } = processStoredCookieData(result.cookieData);
+            const { mostRecentDomains, leastRecentDomains } = processStoredCookieData(cookies);
             
             // Display domains in their respective tables
             displayWebsites(mostRecentDomains, 'mostRecentWebsitesList');
