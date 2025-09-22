@@ -38,7 +38,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Continue without default comparison if file not found
   }
 
-  // NEW: Load websites that don't store TCF before user interaction
+  // Load websites that don't store TCF before user interaction
 try {
   const noStoreResponse = await fetch(browser.runtime.getURL('tcf_no_store_before_interaction.json'));
   const noStoreData = await noStoreResponse.json();
@@ -219,7 +219,7 @@ function compareTCFLegitimateInterests11(userLI, defaultLI) {
     };
   }
 
-  // NEW: Check if domain is in no-store-before-interaction list
+  // Check if domain is in no-store-before-interaction list
   function isNoStoreBeforeInteractionSite(domain) {
     const cleanDomain = domain.replace(/^\.+/, '').toLowerCase();
     
@@ -1473,7 +1473,7 @@ function decodeTCF(value, cookie, allCookies) {
         createdAt: tcfData.created,
         lastUpdatedAt: tcfData.lastUpdated,
         
-        // NEW: Enhanced action analysis
+        // Action analysis
         actionConfidence: confidence,
         actionMethod: enhancedActionAnalysis.method,
         actionReasoning: enhancedActionAnalysis.reasoning,
@@ -1578,7 +1578,7 @@ function combineEvidenceSources(evidence) {
   let method = "CMP cross-reference only";
   const reasoning = [];
   
-  // CONSERVATIVE: Only trust CMP cross-reference evidence
+  // Only trust CMP cross-reference evidence
   if (cmpCrossReference.hasOtherCMP && cmpCrossReference.confidence === "High") {
     actionTaken = cmpCrossReference.otherCMPAction;
     confidence = "High";

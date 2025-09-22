@@ -488,7 +488,7 @@ function checkForSurveyElement() {
   const elementId_3_1 = "pricrumbs_website_all_cookies_accepted"; // pricrumbs_website_all_cookies_accepted.html
   const elementId_3_2 = "pricrumbs_website_all_cookies_rejected"; // pricrumbs_website_all_cookies_rejected.html
   const elementId_3_3 = "pricrumbs_website_advertising_cookies_rejected"; // pricrumbs_website_advertising_cookies_rejected.html
-  const elementId_3_4 = "pricrumbs_website_all_cookies_default"; // NEW: pricrumbs_website_all_cookies_default.html
+  const elementId_3_4 = "pricrumbs_website_all_cookies_default"; // pricrumbs_website_all_cookies_default.html
 
 
   // Look for element with target ID on page
