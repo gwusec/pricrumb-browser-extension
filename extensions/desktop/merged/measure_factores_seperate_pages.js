@@ -5,27 +5,10 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('loadingView').style.display = 'block';
     document.getElementById('websitesView').style.display = 'none';
     
-    // Check which category container exists in the HTML to determine the category
-    let categoryType = 'unknown';
-    if (document.getElementById('category1')) {
-        categoryType = 'accept-all';
-    } else if (document.getElementById('category2')) {
-        categoryType = 'reject-all';
-    } else if (document.getElementById('category3')) {
-        categoryType = 'mixed';
-    } else if (document.getElementById('category4')) {
-        categoryType = 'default';  // new category for default values
-    }
+    // Detect category from current page filename
+    let categoryType = detectCategoryFromURL();
     
-    console.log('Detected category type based on HTML container:', categoryType);
-    
-    // Override with window.categoryType if it exists
-    if (window.categoryType) {
-        console.log('Found window.categoryType:', window.categoryType);
-        categoryType = window.categoryType;
-    }
-    
-    console.log('Using category type:', categoryType);
+    console.log('Detected category type from URL:', categoryType);
     
     // Store the final category type for later use
     window.finalCategoryType = categoryType;
@@ -33,6 +16,34 @@ document.addEventListener('DOMContentLoaded', () => {
     // Load data and display selected websites
     loadCookieDataAndSelectWebsites();
 });
+
+function detectCategoryFromURL() {
+    const currentURL = window.location.href;
+    const filename = currentURL.split('/').pop().split('.')[0]; // Get filename without extension
+    
+    if (filename.includes('all_cookies_accepted')) {
+        return 'accept-all';
+    } else if (filename.includes('all_cookies_rejected')) {
+        return 'reject-all';
+    } else if (filename.includes('advertising_cookies_rejected')) {
+        return 'mixed';
+    } else if (filename.includes('all_cookies_default')) {
+        return 'default';
+    }
+    
+    // Fallback: check for existing containers
+    if (document.getElementById('category1')) {
+        return 'accept-all';
+    } else if (document.getElementById('category2')) {
+        return 'reject-all';
+    } else if (document.getElementById('category3')) {
+        return 'mixed';
+    } else if (document.getElementById('category4')) {
+        return 'default';
+    }
+    
+    return 'unknown';
+}
 
 // Main function to load cookie data and select websites
 async function loadCookieDataAndSelectWebsites() {
