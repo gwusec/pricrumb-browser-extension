@@ -4,24 +4,43 @@
 sequenceDiagram
     participant crawler as Crawler
     participant cookiedb as Database
-    participant extension as BrowserExtension
-    participant cookiecache as Browser.CookieCache
-    participant localstorage as Browser.LocalStorageCache
+    participant background as BrowserExtension
+    participant browser as Browser.CookieCache
+    participant storage as Browser.LocalStorageCache
     participant display as BrowserDisplay
     participant content as ContentScript
     participant website as SurveyWebsite
 
+    %% Crawler and database population
     crawler->>cookiedb: Store all data on cookies
-    extension->>cookiecache: Access browser cookie cache
-    extension->>localstorage: Access localStorage cache
-    extension->>cookiedb: Check cookie names in cookiedb
-    cookiedb-->>extension: Return cookie names data
-    extension->>display: Display list of cookies
+
+    %% Extension cookie lookup workflow
+    background->>browser: Access browser cookie cache
+    background->>storage: Access localStorage cache
+    background->>cookiedb: Check cookie names in cookiedb
+    cookiedb-->>background: Return cookie names data
+    background->>display: Display list of cookies
+
+    %% Initial extension check in survey
+    website->>content: Post "checkExtension" request
+    content->>website: Post "FROM_EXTENSION_CONFIRMATION"
+
+    %% Injection workflow (surveys/pages with extension elements)
+    background->>display: Detects tab is updated
+    background->>content: Tell content script to find elements
+    content->>website: Search for extension elements on page
+    content->>background: Relay results if element found
+    background->>content: Tell content script to inject iframe
+    content->>website: Insert iframe into target element
+
+    %% Event relay workflow (website <-> extension)
+    %% Currently used for debugging, but is left for future use
     website->>content: Create event with a request
-    content->>extension: Request data based on event
-    extension->>content: Send data as event payload
+    content->>background: Forward request to extension
+    background->>browser: Fetch cookies/history if needed
+    background-->>content: Send data as event payload
     content->>website: Send data retrieved from extension
-     
+
 ```
 
 ## Event API
@@ -147,3 +166,4 @@ Note that tabId is the ID of the tab containing the target webpage, elementId sh
 
 - prefered_choices.html:
   contain the layout of the cookietable, where we present users with a list of websites where they interacted with/made action with the websites' cokkie consent
+
