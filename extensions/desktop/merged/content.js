@@ -32,11 +32,6 @@ window.addEventListener("message", (event) => {
 
 // Listen for messages from the background script
 ext.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  // Relay extension-origin messages to the page (preserves original behavior)
-  if (request.type === "FROM_EXTENSION") {
-    window.postMessage(request, "*");
-  }
-
   // Handle direct injection commands (background -> content -> DOM)
   if (request.action === "injectHTML") {
     // Request should include elementId, htmlFile, height
