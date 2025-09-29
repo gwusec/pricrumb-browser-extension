@@ -20,20 +20,13 @@ let visitedDomainsCacheLastUpdated = 0; // Timestamp of last update to visitedDo
 });
 
 // Cross-browser executeScript wrapper for MV3
+// DEPRECATED - ONLY FOR USE IN DEBUGGING
 async function executeScriptWrapper(tabId, details) {
   if (chrome.scripting && chrome.scripting.executeScript) {
-    // Chrome MV3
     return chrome.scripting.executeScript({
       target: { tabId },
-      // Always pass a function wrapper around the code string
-      func: (injectedCode) => {
-        try {
-          eval(injectedCode);
-        } catch (e) {
-          console.error("Injected code error:", e);
-        }
-      },
-      args: [details.code] // code string is passed in as an argument
+      // Expects details.code as a string
+      func: new Function(details.code)  // wrap string into a function
     });
   } else if (ext.tabs && ext.tabs.executeScript) {
     // Firefox
@@ -42,6 +35,7 @@ async function executeScriptWrapper(tabId, details) {
     console.error("No compatible executeScript API available");
   }
 }
+
 
 // Fetch all domains the user has directly visited
 async function getVisitedDomains() {
@@ -322,30 +316,6 @@ function domainMatch(historyDomain, cookieDomain) {
       }
 }*/
 
-// Returns a code string that injects an iframe into a target element
-// elementID = ID of element where iframe should be injected into
-// htmlFile = name of .html file
-function injectHTMLCode(elementId, htmlFile, height = "600px") {
-  const fileUrl = ext.runtime.getURL(htmlFile);
-
-  return `
-    (function() {
-      const targetElement = document.getElementById(${JSON.stringify(elementId)});
-      if (targetElement && !targetElement.querySelector("iframe")) {
-        const iframe = document.createElement('iframe');
-        iframe.src = ${JSON.stringify(fileUrl)};
-        iframe.style.width = "100%";
-        iframe.style.height = ${JSON.stringify(height)};
-        iframe.style.border = "none";
-        targetElement.appendChild(iframe);
-      } else if (!targetElement) {
-        console.error("Error injecting iframe - Element not found:", ${JSON.stringify(elementId)});
-      }
-    })();
-  `;
-}
-
-
 // Listen for messages from the popup.js or content.js
 ext.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'checkCookies') {
@@ -455,11 +425,13 @@ ext.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     if (!request.payload.html) {
       console.error("No html file provided");
-      return;
+      sendResponse({ success: false, error: "No html file provided" });
+      return true;
     }
     if (!tabId) {
       console.error("Invalid tabID");
-      return;
+      sendResponse({ success: false, error: "Invalid tabID" });
+      return true;
     }
 
     // Remove ".html" to get elementId
@@ -470,17 +442,25 @@ ext.runtime.onMessage.addListener((request, sender, sendResponse) => {
       elementId = "popup_invisible";
     }
 
-    executeScriptWrapper(tabId, {
-      code: injectHTMLCode(elementId, request.payload.html, height)
+    // Send message to content script to inject the iframe
+    ext.tabs.sendMessage(tabId, {
+      action: "injectHTML",
+      elementId,
+      htmlFile: request.payload.html,
+      height
     })
-      .then(() => sendResponse({ success: true }))
+      .then(() => {
+        console.log(`Sent injectHTML command for ${request.payload.html} to tab ${tabId}`);
+        sendResponse({ success: true });
+      })
       .catch(error => {
-        console.error("Error injecting script:", error);
+        console.error("Error sending injectHTML to content script:", error);
         sendResponse({ success: false, error });
       });
 
-    return true; // Keep channel open
+    return true; // Keep channel open for async response
   }
+
 });
 
 // Store cookies in ext.storage.local when they're fetched
@@ -509,225 +489,13 @@ function storeCookiesInStorage(cookies) {
   });
 }
 
-// Listens for active tab to be updated and injects on update
+
+// Send message to content script to run the DOM-checker when a tab finishes loading.
 ext.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.status === "complete" && tab.url) {
-    executeScriptWrapper(tabId, { code: checkForSurveyElementCode() })
+    ext.tabs.sendMessage(tabId, { action: "runSurveyElementCheck" })
       .catch(err => {
-        // Silently handle errors for restricted sites
-        console.log(`Could not inject script into tab ${tabId}: ${err.message}`);
+        console.log(`Could not message content script on tab ${tabId}: ${err && err.message ? err.message : err}`);
       });
   }
 });
-
-// Returns a self-contained function to check if the element with ID "extensionPageID" exists
-function checkForSurveyElementCode() {
-  return `
-    (function() {
-      const elementMap = {
-        "popup": { html: "popup.html", height: "600px" },
-        "popup_invisible": { html: "popup.html", height: "0px" },
-        "pricrumbs_preferred_cookie_choices_functional": { html: "pricrumbs_preferred_cookie_choices_functional.html", height: "600px" },
-        "pricrumbs_preferred_cookie_choices_performance": { html: "pricrumbs_preferred_cookie_choices_performance.html", height: "600px" },
-        "pricrumbs_preferred_cookie_choices_advertising": { html: "pricrumbs_preferred_cookie_choices_advertising.html", height: "600px" },
-        "pricrumbs_consent_history_top_websites": { html: "pricrumbs_consent_history_top_websites.html", height: "600px" },
-        "pricrumbs_consent_history_bottom_websites": { html: "pricrumbs_consent_history_bottom_websites.html", height: "600px" },
-        "pricrumbs_website_all_cookies_accepted": { html: "pricrumbs_website_all_cookies_accepted.html", height: "245px" },
-        "pricrumbs_website_all_cookies_rejected": { html: "pricrumbs_website_all_cookies_rejected.html", height: "245px" },
-        "pricrumbs_website_advertising_cookies_rejected": { html: "pricrumbs_website_advertising_cookies_rejected.html", height: "245px" },
-        "pricrumbs_website_all_cookies_default": { html: "pricrumbs_website_all_cookies_default.html", height: "245px" }
-      };
-
-      function injectIfFound(id, opts) {
-        const target = document.getElementById(id);
-        if (target && !target.querySelector("iframe")) {
-          window.postMessage({ type: "FROM_SURVEY", payload: { action: "injectHTML", ...opts } }, "*");
-          return true;
-        }
-        return false;
-      }
-
-      // Initial check
-      Object.entries(elementMap).forEach(([id, opts]) => injectIfFound(id, opts));
-
-      // Keep watching dynamically
-      const observer = new MutationObserver(() => {
-        Object.entries(elementMap).forEach(([id, opts]) => injectIfFound(id, opts));
-      });
-
-      observer.observe(document.body, { childList: true, subtree: true });
-    })();
-  `;
-}
-
-
-/*function checkForSurveyElement() {
-  const elementId_main = "popup"; // popup.html
-  const elementId_main_invisible = "popup_invisible"; // popup.html (invisible)
-  const elementId_1_1 = "pricrumbs_preferred_cookie_choices_functional"; // pricrumbs_preferred_cookie_choices_functional.html
-  const elementId_1_2 = "pricrumbs_preferred_cookie_choices_performance"; // pricrumbs_preferred_cookie_choices_performance.html
-  const elementId_1_3 = "pricrumbs_preferred_cookie_choices_advertising"; // pricrumbs_preferred_cookie_choices_advertising.html
-  const elementId_2_1 = "pricrumbs_consent_history_top_websites"; // pricrumbs_consent_history_top_websites.html
-  const elementId_2_2 = "pricrumbs_consent_history_bottom_websites"; // pricrumbs_consent_history_bottom_websites.html
-  const elementId_3_1 = "pricrumbs_website_all_cookies_accepted"; // pricrumbs_website_all_cookies_accepted.html
-  const elementId_3_2 = "pricrumbs_website_all_cookies_rejected"; // pricrumbs_website_all_cookies_rejected.html
-  const elementId_3_3 = "pricrumbs_website_advertising_cookies_rejected"; // pricrumbs_website_advertising_cookies_rejected.html
-  const elementId_3_4 = "pricrumbs_website_all_cookies_default"; // pricrumbs_website_all_cookies_default.html
-
-
-  // Look for element with target ID on page
-  const observer_main = new MutationObserver((mutations, observer) => {
-      const targetElement = document.getElementById(elementId_main);
-      if (targetElement && !targetElement.querySelector("iframe")) {
-          observer.disconnect(); // Stop observing once found
-
-          // Sends message to content script from webpage to embed iframe
-          window.postMessage({ type: "FROM_SURVEY", tabId: ext.runtime.id, payload: { action: "injectHTML", html: "popup.html" } }, "*");
-      }
-  });
-  const observer_main_invisible = new MutationObserver((mutations, observer) => {
-    const targetElement = document.getElementById(elementId_main_invisible);
-    if (targetElement && !targetElement.querySelector("iframe")) {
-        observer.disconnect();
-        window.postMessage({ type: "FROM_SURVEY", tabId: ext.runtime.id, payload: { action: "injectHTML", html: "popup.html", height: "0px"} }, "*");
-    }
-  });
-  const observer_1_1 = new MutationObserver((mutations, observer) => {
-    const targetElement = document.getElementById(elementId_1_1);
-    if (targetElement && !targetElement.querySelector("iframe")) {
-        observer.disconnect();
-        window.postMessage({ type: "FROM_SURVEY", tabId: ext.runtime.id, payload: { action: "injectHTML", html: "pricrumbs_preferred_cookie_choices_functional.html" } }, "*");
-    }
-  });
-  const observer_1_2 = new MutationObserver((mutations, observer) => {
-    const targetElement = document.getElementById(elementId_1_2);
-    if (targetElement && !targetElement.querySelector("iframe")) {
-        observer.disconnect();
-        window.postMessage({ type: "FROM_SURVEY", tabId: ext.runtime.id, payload: { action: "injectHTML", html: "pricrumbs_preferred_cookie_choices_performance.html" } }, "*");
-    }
-  });
-  const observer_1_3 = new MutationObserver((mutations, observer) => {
-    const targetElement = document.getElementById(elementId_1_3);
-    if (targetElement && !targetElement.querySelector("iframe")) {
-        observer.disconnect();
-        window.postMessage({ type: "FROM_SURVEY", tabId: ext.runtime.id, payload: { action: "injectHTML", html: "pricrumbs_preferred_cookie_choices_advertising.html" } }, "*");
-    }
-  });
-  const observer_2_1 = new MutationObserver((mutations, observer) => {
-    const targetElement = document.getElementById(elementId_2_1);
-    if (targetElement && !targetElement.querySelector("iframe")) {
-        observer.disconnect();
-        window.postMessage({ type: "FROM_SURVEY", tabId: ext.runtime.id, payload: { action: "injectHTML", html: "pricrumbs_consent_history_top_websites.html" } }, "*");
-    }
-  });
-  const observer_2_2 = new MutationObserver((mutations, observer) => {
-    const targetElement = document.getElementById(elementId_2_2);
-    if (targetElement && !targetElement.querySelector("iframe")) {
-        observer.disconnect();
-        window.postMessage({ type: "FROM_SURVEY", tabId: ext.runtime.id, payload: { action: "injectHTML", html: "pricrumbs_consent_history_bottom_websites.html" } }, "*");
-    }
-  });
-  const observer_3_1 = new MutationObserver((mutations, observer) => {
-    const targetElement = document.getElementById(elementId_3_1);
-    if (targetElement && !targetElement.querySelector("iframe")) {
-        observer.disconnect();
-        window.postMessage({ type: "FROM_SURVEY", tabId: ext.runtime.id, payload: { action: "injectHTML", html: "pricrumbs_website_all_cookies_accepted.html", height: "245px" } }, "*");
-    }
-  });
-  const observer_3_2 = new MutationObserver((mutations, observer) => {
-    const targetElement = document.getElementById(elementId_3_2);
-    if (targetElement && !targetElement.querySelector("iframe")) {
-        observer.disconnect();
-        window.postMessage({ type: "FROM_SURVEY", tabId: ext.runtime.id, payload: { action: "injectHTML", html: "pricrumbs_website_all_cookies_rejected.html", height: "245px" } }, "*");
-    }
-  });
-  const observer_3_3 = new MutationObserver((mutations, observer) => {
-    const targetElement = document.getElementById(elementId_3_3);
-    if (targetElement && !targetElement.querySelector("iframe")) {
-        observer.disconnect();
-        window.postMessage({ type: "FROM_SURVEY", tabId: ext.runtime.id, payload: { action: "injectHTML", html: "pricrumbs_website_advertising_cookies_rejected.html", height: "245px" } }, "*");
-    }
-  });
-   // Observer for default cookies
-  const observer_3_4 = new MutationObserver((mutations, observer) => {
-    const targetElement = document.getElementById(elementId_3_4);
-    if (targetElement && !targetElement.querySelector("iframe")) {
-        observer.disconnect();
-        window.postMessage({ type: "FROM_SURVEY", tabId: ext.runtime.id, payload: { action: "injectHTML", html: "pricrumbs_website_all_cookies_default.html", height: "245px" } }, "*");
-    }
-  });
-
-  // Start the observers
-  observer_main.observe(document.body, { childList: true, subtree: true });
-  observer_main_invisible.observe(document.body, { childList: true, subtree: true });
-  observer_1_1.observe(document.body, { childList: true, subtree: true });
-  observer_1_2.observe(document.body, { childList: true, subtree: true });
-  observer_1_3.observe(document.body, { childList: true, subtree: true });
-  observer_2_1.observe(document.body, { childList: true, subtree: true });
-  observer_2_2.observe(document.body, { childList: true, subtree: true });
-  observer_3_1.observe(document.body, { childList: true, subtree: true });
-  observer_3_2.observe(document.body, { childList: true, subtree: true });
-  observer_3_3.observe(document.body, { childList: true, subtree: true });
-  observer_3_4.observe(document.body, { childList: true, subtree: true }); //start observer for default
-
-
-  // Check immediately in case the element is already present
-  const existingElement_main = document.getElementById(elementId_main);
-  const existingElement_main_invisible = document.getElementById(elementId_main_invisible);
-  const existingElement_1_1 = document.getElementById(elementId_1_1);
-  const existingElement_1_2 = document.getElementById(elementId_1_2);
-  const existingElement_1_3 = document.getElementById(elementId_1_3);
-  const existingElement_2_1 = document.getElementById(elementId_2_1);
-  const existingElement_2_2 = document.getElementById(elementId_2_2);
-  const existingElement_3_1 = document.getElementById(elementId_3_1);
-  const existingElement_3_2 = document.getElementById(elementId_3_2);
-  const existingElement_3_3 = document.getElementById(elementId_3_3);
-  const existingElement_3_4 = document.getElementById(elementId_3_4); // Check for default element
-
-
-  if (existingElement_main && !existingElement_main.querySelector("iframe")) {
-      observer_main.disconnect();
-      window.postMessage({ type: "FROM_SURVEY", tabId: ext.runtime.id, payload: { action: "injectHTML", html: "popup.html" } }, "*");
-  }
-  if (existingElement_main_invisible && !existingElement_main_invisible.querySelector("iframe")) {
-    observer_main.disconnect();
-    window.postMessage({ type: "FROM_SURVEY", tabId: ext.runtime.id, payload: { action: "injectHTML", html: "popup.html", height: "0px" } }, "*");
-  }
-  if (existingElement_1_1 && !existingElement_1_1.querySelector("iframe")) {
-    observer_1_1.disconnect();
-    window.postMessage({ type: "FROM_SURVEY", tabId: ext.runtime.id, payload: { action: "injectHTML", html: "pricrumbs_preferred_cookie_choices_functional.html" } }, "*");
-  }
-  if (existingElement_1_2 && !existingElement_1_2.querySelector("iframe")) {
-    observer_1_2.disconnect();
-    window.postMessage({ type: "FROM_SURVEY", tabId: ext.runtime.id, payload: { action: "injectHTML", html: "pricrumbs_preferred_cookie_choices_performance.html" } }, "*");
-  }
-  if (existingElement_1_3 && !existingElement_1_3.querySelector("iframe")) {
-    observer_1_3.disconnect();
-    window.postMessage({ type: "FROM_SURVEY", tabId: ext.runtime.id, payload: { action: "injectHTML", html: "pricrumbs_preferred_cookie_choices_advertising.html" } }, "*");
-  }
-  if (existingElement_2_1 && !existingElement_2_1.querySelector("iframe")) {
-    observer_2_1.disconnect();
-    window.postMessage({ type: "FROM_SURVEY", tabId: ext.runtime.id, payload: { action: "injectHTML", html: "pricrumbs_consent_history_top_websites.html" } }, "*");
-  }
-  if (existingElement_2_2 && !existingElement_2_2.querySelector("iframe")) {
-    observer_2_2.disconnect();
-    window.postMessage({ type: "FROM_SURVEY", tabId: ext.runtime.id, payload: { action: "injectHTML", html: "pricrumbs_consent_history_bottom_websites.html" } }, "*");
-  }
-  if (existingElement_3_1 && !existingElement_3_1.querySelector("iframe")) {
-    observer_3_1.disconnect();
-    window.postMessage({ type: "FROM_SURVEY", tabId: ext.runtime.id, payload: { action: "injectHTML", html: "pricrumbs_website_all_cookies_accepted.html", height: "245px" } }, "*");
-  }
-  if (existingElement_3_2 && !existingElement_3_2.querySelector("iframe")) {
-    observer_3_2.disconnect();
-    window.postMessage({ type: "FROM_SURVEY", tabId: ext.runtime.id, payload: { action: "injectHTML", html: "pricrumbs_website_all_cookies_rejected.html", height: "245px" } }, "*");
-  }
-  if (existingElement_3_3 && !existingElement_3_3.querySelector("iframe")) {
-    observer_3_3.disconnect();
-    window.postMessage({ type: "FROM_SURVEY", tabId: ext.runtime.id, payload: { action: "injectHTML", html: "pricrumbs_website_advertising_cookies_rejected.html", height: "245px" } }, "*");
-  }
-    // Check for default element
-  if (existingElement_3_4 && !existingElement_3_4.querySelector("iframe")) {
-    observer_3_4.disconnect();
-    window.postMessage({ type: "FROM_SURVEY", tabId: ext.runtime.id, payload: { action: "injectHTML", html: "pricrumbs_website_all_cookies_default.html", height: "245px" } }, "*");
-  }
-}*/
