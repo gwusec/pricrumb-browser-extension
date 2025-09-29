@@ -3,7 +3,7 @@
 // Listens for messages from the webpage
 // NOTE: manifest.json must be updated if website url changes
 window.addEventListener("message", (event) => {
-  if (event.source !== window || !event.data || event.data.type !== "FROM_SURVEY") return;
+  if (event.source !== window || !event.data || !(event.data.type === "FROM_SURVEY" || event.data.type === "FROM_CONTENT")) return;
 
   // This is a check called by the survey to ask if the extension is installed
   if (event.data.payload?.action === "checkExtension") {
@@ -107,8 +107,7 @@ function checkForSurveyElement() {
     const target = document.getElementById(id);
     if (target && !target.querySelector("iframe")) {
       // Post a message to the page so the page-origin script can also react if needed
-      // and so existing logic that listens for FROM_SURVEY continues to work.
-      window.postMessage({ type: "FROM_SURVEY", payload: { action: "injectHTML", ...opts } }, "*");
+      window.postMessage({ type: "FROM_CONTENT", payload: { action: "injectHTML", ...opts } }, "*");
       return true;
     }
     return false;
