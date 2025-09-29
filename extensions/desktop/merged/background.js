@@ -299,22 +299,15 @@ function domainMatch(historyDomain, cookieDomain) {
          cookieDomainNoWWW.endsWith(`.${historyDomainNoWWW}`);
 }
 
-// OLD FUNCTIOn
-/*function injectHTML(elementId, htmlFile, height = "600px") {
-      const targetElement = document.getElementById(elementId);
-      if (targetElement) {
-        const iframe = document.createElement('iframe');
-        iframe.src = ext.runtime.getURL(htmlFile);
-
-        iframe.style.width = "100%";
-        iframe.style.height = height;
-        iframe.style.border = "none"; 
-
-        targetElement.appendChild(iframe);
-      } else {
-        console.error("Error injecting iframe - Element not found:", elementId);
-      }
-}*/
+// Send message to content script to run the DOM-checker when a tab finishes loading.
+ext.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.status === "complete" && tab.url) {
+    ext.tabs.sendMessage(tabId, { action: "runSurveyElementCheck" })
+      .catch(err => {
+        console.log(`Could not message content script on tab ${tabId}: ${err && err.message ? err.message : err}`);
+      });
+  }
+});
 
 // Listen for messages from the popup.js or content.js
 ext.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -488,14 +481,3 @@ function storeCookiesInStorage(cookies) {
     }
   });
 }
-
-
-// Send message to content script to run the DOM-checker when a tab finishes loading.
-ext.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (changeInfo.status === "complete" && tab.url) {
-    ext.tabs.sendMessage(tabId, { action: "runSurveyElementCheck" })
-      .catch(err => {
-        console.log(`Could not message content script on tab ${tabId}: ${err && err.message ? err.message : err}`);
-      });
-  }
-});

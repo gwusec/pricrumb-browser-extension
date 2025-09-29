@@ -62,11 +62,11 @@ ext.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request && request.action === "runSurveyElementCheck") {
     try {
       // Run the checker that looks for elements and posts messages back to the page
-      if (typeof checkForSurveyElementCode === "function") {
-        checkForSurveyElementCode();
+      if (typeof checkForSurveyElement === "function") {
+        checkForSurveyElement();
         sendResponse({ success: true });
       } else {
-        console.warn("checkForSurveyElementCode not defined in content script");
+        console.warn("checkForSurveyElement not defined in content script");
         sendResponse({ success: false, error: "checker-not-defined" });
       }
     } catch (err) {
@@ -80,8 +80,8 @@ ext.runtime.onMessage.addListener((request, sender, sendResponse) => {
   return false;
 });
 
-// Returns a function that checks for survey element IDs and posts messages to page
-function checkForSurveyElementCode() {
+// Looks for specific survey elements (found in elementMap)
+function checkForSurveyElement() {
   // Prevent creating multiple observers when called repeatedly
   if (window.__pricrumbs_checker_installed) {
     console.log("pricrumbs checker already installed - skipping re-install.");
@@ -136,4 +136,4 @@ function checkForSurveyElementCode() {
 }
 
 // Run checker on initial load
-checkForSurveyElementCode();
+checkForSurveyElement();
