@@ -49,6 +49,22 @@ function shuffleArray(array) {
     
     return shuffled;
 }
+//new function to avoid dupliacate websites
+// Extract the main domain name for comparison (e.g., "zoom" from "www.zoom.com" or "www.zoom.us")
+function extractMainDomainName(domain) {
+    if (!domain) return '';
+    
+    // Remove www. prefix
+    let cleaned = domain.replace(/^www\./, '');
+    
+    // Split by dots and get the main part (before TLD)
+    const parts = cleaned.split('.');
+    
+    // Return the main domain name (second-to-last part before TLD)
+    // For "zoom.com" or "zoom.us", this returns "zoom"
+    // For "stackoverflow.com", this returns "stackoverflow"
+    return parts.length >= 2 ? parts[parts.length - 2].toLowerCase() : cleaned.toLowerCase();
+}
 
 async function loadCookies() {
     try {
