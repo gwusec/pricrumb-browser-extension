@@ -1,4 +1,4 @@
-// Add this to the beginning of your pricrumbs_preferred_cookie_choices.js file
+
 
 // Store user preferences and domain data
 let userPreferences = new Map();
