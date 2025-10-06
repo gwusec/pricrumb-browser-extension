@@ -2223,9 +2223,9 @@ function enhancedTCFActionDetection(tcfValue, tcfCookie, allCookies) {
 //   ext.tabs.create({ 
 //       url: ext.runtime.getURL('prefered_choices1.html')
 //To open it on the same window
-document.getElementById('openConsentPage1')?.addEventListener('click', () => {
-  window.location.href ='prefered_choices1.html';
-  });
+// document.getElementById('openConsentPage1')?.addEventListener('click', () => {
+//   window.location.href ='prefered_choices1.html';
+//   });
 document.getElementById('pricrumbs_preferred_cookie_choices_functional')?.addEventListener('click', () => {
   window.location.href ='pricrumbs_preferred_cookie_choices_functional.html';
   });
@@ -2260,15 +2260,15 @@ document.getElementById('pricrumbs_website_all_cookies_default')?.addEventListen
   });
 
 
-document.getElementById('openConsentPage2')?.addEventListener('click', () => {
-  window.location.href ='prefered_choices2.html';
-  })
-document.getElementById('openConsentPage3')?.addEventListener('click', () => {
-  window.location.href ='measure_factors.html';
-  })
-document.getElementById('openConsentPage4')?.addEventListener('click', () => {
-  window.location.href ='discrepancy_between_choices.html';
-  })
+// document.getElementById('openConsentPage2')?.addEventListener('click', () => {
+//   window.location.href ='prefered_choices2.html';
+//   })
+// document.getElementById('openConsentPage3')?.addEventListener('click', () => {
+//   window.location.href ='measure_factors.html';
+//   })
+// document.getElementById('openConsentPage4')?.addEventListener('click', () => {
+//   window.location.href ='discrepancy_between_choices.html';
+//   })
       
 
 });
