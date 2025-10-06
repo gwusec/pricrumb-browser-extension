@@ -1825,7 +1825,7 @@
   },
   {
     "domain": "nltimes.nl",
-    "tcf_string_key_name": "__cmpconsentx77104_.nltimes.nl",
+    "tcf_string_key_name": "__cmpconsentx77104",
     "default_value": "CQUML6AQUML6AAfRQBENByFgAAAAAAAAAAigAAASUgFADNAM-AjwBKoDtgHngQUAjSBIgCSgAAA",
     "decoded_default_string": {
       "version": 2,
@@ -2113,7 +2113,7 @@
   },
   {
     "domain": "thelocal.se",
-    "tcf_string_key_name": "__cmpconsentx132084_.thelocal.se",
+    "tcf_string_key_name": "__cmpconsentx132084",
     "default_value": "CQUML6AQUML6AAfBUBENByFgAAAAAEPgAAigAAATzABMNCogjLIgBCJQMIIEACgrCACgQBAAAkDRAQAmDApyBgAusJEAIAUAAwQAgABBgACAAASABCIAKACAQAAQCBQAAAAAAAQAMDAAGACwEAgABAdAxTAggECwASMyKDTAlAASCAlsqEEgCBBXCEIs8AggREwUAAAIABQEAADwWAhJICViQQBcQTQAAEAAAUQIECKRowBBQGaLQTgyfRkaQAA",
     "decoded_default_string": {
       "version": 2,
@@ -2497,7 +2497,7 @@
   },
   {
     "domain": "thelocal.de",
-    "tcf_string_key_name": "__cmpconsentx123126_.thelocal.de",
+    "tcf_string_key_name": "__cmpconsentx123126",
     "default_value": "CQUPe2AQUPe2AAfRmBENByFgAAAAAEPgAAigAAAUIABMNCogjLIgBCJQMIIEACgrCACgQBAAAkDRAQAmDApyBgAusJEAIAUAAwQAgABBgACAAASABCIAKACAQAAQCBQAAAAAAAQAMDAAGACwEAgABAdAxTAggECwASMyKDTAlAASCAlsqEEgCBBXCEIs8AggREwUAAAIABQEAADwWAhJICViQQBcQTQAAEAAAUQIECKRowBBQGaLQTgyfRkaQAACAAA",
     "decoded_default_string": {
       "version": 2,
@@ -2593,7 +2593,7 @@
   },
   {
     "domain": "spellingoefenen.nl",
-    "tcf_string_key_name": "__cmpconsentx66181_.spellingoefenen.nl",
+    "tcf_string_key_name": "__cmpconsentx66181",
     "default_value": "CQUPe2AQUPe2AAfC1BENByFgAAAAAEPgAAigAAAVvABMFCoghLAgBCIQMIIEACgrCACgQBAAAEDRAQAGDApyBgAqsJEAIAEAAAQAgABBAACAAASABCIAIACAQAAQABQAAgAAAAQAMCAAGACgAAgABANAxSAAgECgASEwCDBAhAAQCAFsKAAgCBAWAEIA0AAgRAQEAAAIABQEAADwWAhJICViQQBYQTQAAEAAAUQIECKRowAAAAACABAAABACAAAAAAAAAAAAAAAAAAAABAAA",
     "decoded_default_string": {
       "version": 2,
@@ -3073,7 +3073,7 @@
   },
   {
     "domain": "thelocal.fr",
-    "tcf_string_key_name": "__cmpconsentx123722_.thelocal.fr",
+    "tcf_string_key_name": "__cmpconsentx123722",
     "default_value": "CQUML6AQUML6AAfa6BENByFgAAAAAEPgAAigAAAUIABMNCogjLIgBCJQMIIEACgrCACgQBAAAkDRAQAmDApyBgAusJEAIAUAAwQAgABBgACAAASABCIAKACAQAAQCBQAAAAAAAQAMDAAGACwEAgABAdAxTAggECwASMyKDTAlAASCAlsqEEgCBBXCEIs8AggREwUAAAIABQEAADwWAhJICViQQBcQTQAAEAAAUQIECKRowBBQGaLQTgyfRkaQAACAAA",
     "decoded_default_string": {
       "version": 2,
@@ -3169,7 +3169,7 @@
   },
   {
     "domain": "nwzonline.de",
-    "tcf_string_key_name": "__cmpconsent3039_.nwzonline.de",
+    "tcf_string_key_name": "__cmpconsent3039",
     "default_value": "CQUML6AQUML6AAfGsBDEByFgAAAAAAAAAAigAAAAAADBICIAHAAQAAyABoAEwAPwAhABEADDAH6AXMAxQBuAFDgLzAeOBCEdARAA4ACAAGQANAAmAB-AEQAMMAfoBFgC5gGKANwAi8BQ4C8wHjkIAgAfgC5gGKAeOUgIgAcABAADIAGgATAA_ACIAH6ARYAuYBigDcAIvAUOAvMB44EISUAgADgATABEAFzAMUAi8BeYEIS0AIBQ4Dxw.YAAAAAAAAAA",
     "decoded_default_string": {
       "version": 2,
@@ -3841,7 +3841,7 @@
   },
   {
     "domain": "dasoertliche.de",
-    "tcf_string_key_name": "__cmpconsentx17562_.dasoertliche.de",
+    "tcf_string_key_name": "__cmpconsentx17562",
     "default_value": "CQUML6AQUML6AAfYaBDEByFoAP_gAEPgAAigKRtR9G__bWFHeTp3aLskaYQX19hp4sQgAgaAEmAFyDOA8IQG02AyMAyAIiACABAAozRAIQBkDAAEAUCAAIgVASDsYACAgAAKIAAEAAMQA0AQAAgIAAAgEAAYhMBOI1QAmCqgYZrsRMTAiIAAAyABAAABAIABAAMACEEYQAAAACIAQIAAAgIAEAAAAAECAQAIEAAAAAAAAAAAAAAAAAAAAAAAAAAAAII7AAkGhUQQFEQAhEICEECAAQVhABQIAgAASAAgAASBAA4AQAUWAiAAAAAAAAAAAAgwAAAAAAAAAEAEAAAIAAAAAoAAAAAAAIAAAAAAAAAAAQAAgIAAAgAAAAAABGIFAAgCgAIBAAQECAAAAAAgAAAAAAAIAAAAAAAAAIAAAAACAAAAAAAAIAEAAAAAAAAAAIEAAA",
     "decoded_default_string": {
       "version": 2,
@@ -4705,7 +4705,7 @@
   },
   {
     "domain": "gameblog.fr",
-    "tcf_string_key_name": "__cmpconsentx93127_.gameblog.fr",
+    "tcf_string_key_name": "__cmpconsentx93127",
     "default_value": "CQUML6AQUML6AAfRnBENByFgAAAAAEPgAAigAAAVvABMFCoghLAgBCIQMIIEACgrCACgQBAAAEDRAQAGDApyBgAqsJEAIAEAAAQAgABBAACAAASABCIAIACAQAAQABQAAgAAAAQAMCAAGACgAAgABANAxSAAgECgASEwCDBAhAAQCAFsKAAgCBAWAEIA0AAgRAQEAAAIABQEAADwWAhJICViQQBYQTQAAEAAAUQIECKRowAAAAACABAAABACAAAAAAAAAAAAAAAAAAAABAAA",
     "decoded_default_string": {
       "version": 2,
@@ -5761,7 +5761,7 @@
   },
   {
     "domain": "wielerflits.nl",
-    "tcf_string_key_name": "__cmpconsentx133445_.wielerflits.nl",
+    "tcf_string_key_name": "__cmpconsentx133445",
     "default_value": "CQUPe2AQUPe2AAfWlBNLByFgAAAAAAAAAAigAAASUgFADNAM-AjwBKoDtgHngQUAjSBIgCSgAAA",
     "decoded_default_string": {
       "version": 2,
@@ -7105,7 +7105,7 @@
   },
   {
     "domain": "thelocal.es",
-    "tcf_string_key_name": "__cmpconsentx132077_.thelocal.es",
+    "tcf_string_key_name": "__cmpconsentx132077",
     "default_value": "CQUML6AQUML6AAfBNBENByFgAAAAAEPgAAigAAATzABMNCogjLIgBCJQMIIEACgrCACgQBAAAkDRAQAmDApyBgAusJEAIAUAAwQAgABBgACAAASABCIAKACAQAAQCBQAAAAAAAQAMDAAGACwEAgABAdAxTAggECwASMyKDTAlAASCAlsqEEgCBBXCEIs8AggREwUAAAIABQEAADwWAhJICViQQBcQTQAAEAAAUQIECKRowBBQGaLQTgyfRkaQAA",
     "decoded_default_string": {
       "version": 2,
@@ -7297,7 +7297,7 @@
   },
   {
     "domain": "thelocal.dk",
-    "tcf_string_key_name": "__cmpconsentx132079_.thelocal.dk",
+    "tcf_string_key_name": "__cmpconsentx132079",
     "default_value": "CQUML6AQUML6AAfBPBENByFgAAAAAEPgAAigAAATzABMNCogjLIgBCJQMIIEACgrCACgQBAAAkDRAQAmDApyBgAusJEAIAUAAwQAgABBgACAAASABCIAKACAQAAQCBQAAAAAAAQAMDAAGACwEAgABAdAxTAggECwASMyKDTAlAASCAlsqEEgCBBXCEIs8AggREwUAAAIABQEAADwWAhJICViQQBcQTQAAEAAAUQIECKRowBBQGaLQTgyfRkaQAA",
     "decoded_default_string": {
       "version": 2,
@@ -7873,7 +7873,7 @@
   },
   {
     "domain": "docer.pl",
-    "tcf_string_key_name": "__cmpconsentx142422_.docer.pl",
+    "tcf_string_key_name": "__cmpconsentx142422",
     "default_value": "CQUPe2AQUPe2AAfGmBENByFgAAAAAEPgAAigAAAUIABMNCogjLIgBCJQMIIEACgrCACgQBAAAkDRAQAmDApyBgAusJEAIAUAAwQAgABBgACAAASABCIAKACAQAAQCBQAAAAAAAQAMDAAGACwEAgABAdAxTAggECwASMyKDTAlAASCAlsqEEgCBBXCEIs8AggREwUAAAIABQEAADwWAhJICViQQBcQTQAAEAAAUQIECKRowBBQGaLQTgyfRkaQAACAAA",
     "decoded_default_string": {
       "version": 2,
@@ -7969,7 +7969,7 @@
   },
   {
     "domain": "fr12.nl",
-    "tcf_string_key_name": "__cmpconsentx72955_.fr12.nl",
+    "tcf_string_key_name": "__cmpconsentx72955",
     "default_value": "CQUPe2AQUPe2AAfO7BNLByFgAAAAAAAAAAigAAASUgFADNAM-AjwBKoDtgHngQUAjSBIgCSgAAA",
     "decoded_default_string": {
       "version": 2,
@@ -9889,7 +9889,7 @@
   },
   {
     "domain": "taaloefenen.nl",
-    "tcf_string_key_name": "__cmpconsentx66181_.taaloefenen.nl",
+    "tcf_string_key_name": "__cmpconsentx66181",
     "default_value": "CQUPe2AQUPe2AAfC1BENByFgAAAAAEPgAAigAAAVvABMFCoghLAgBCIQMIIEACgrCACgQBAAAEDRAQAGDApyBgAqsJEAIAEAAAQAgABBAACAAASABCIAIACAQAAQABQAAgAAAAQAMCAAGACgAAgABANAxSAAgECgASEwCDBAhAAQCAFsKAAgCBAWAEIA0AAgRAQEAAAIABQEAADwWAhJICViQQBYQTQAAEAAAUQIECKRowAAAAACABAAABACAAAAAAAAAAAAAAAAAAAABAAA",
     "decoded_default_string": {
       "version": 2,
@@ -10657,7 +10657,7 @@
   },
   {
     "domain": "redactiesommen.nl",
-    "tcf_string_key_name": "__cmpconsentx66181_.redactiesommen.nl",
+    "tcf_string_key_name": "__cmpconsentx66181",
     "default_value": "CQUPe2AQUPe2AAfC1BENByFgAAAAAEPgAAigAAAVvABMFCoghLAgBCIQMIIEACgrCACgQBAAAEDRAQAGDApyBgAqsJEAIAEAAAQAgABBAACAAASABCIAIACAQAAQABQAAgAAAAQAMCAAGACgAAgABANAxSAAgECgASEwCDBAhAAQCAFsKAAgCBAWAEIA0AAgRAQEAAAIABQEAADwWAhJICViQQBYQTQAAEAAAUQIECKRowAAAAACABAAABACAAAAAAAAAAAAAAAAAAAABAAA",
     "decoded_default_string": {
       "version": 2,
@@ -11041,7 +11041,7 @@
   },
   {
     "domain": "sommenoefenen.nl",
-    "tcf_string_key_name": "__cmpconsentx66181_.sommenoefenen.nl",
+    "tcf_string_key_name": "__cmpconsentx66181",
     "default_value": "CQUPe2AQUPe2AAfC1BENByFgAAAAAEPgAAigAAAVvABMFCoghLAgBCIQMIIEACgrCACgQBAAAEDRAQAGDApyBgAqsJEAIAEAAAQAgABBAACAAASABCIAIACAQAAQABQAAgAAAAQAMCAAGACgAAgABANAxSAAgECgASEwCDBAhAAQCAFsKAAgCBAWAEIA0AAgRAQEAAAIABQEAADwWAhJICViQQBYQTQAAEAAAUQIECKRowAAAAACABAAABACAAAAAAAAAAAAAAAAAAAABAAA",
     "decoded_default_string": {
       "version": 2,
@@ -11617,7 +11617,7 @@
   },
   {
     "domain": "wordfeudwoorden.nl",
-    "tcf_string_key_name": "__cmpconsentx135780_.wordfeudwoorden.nl",
+    "tcf_string_key_name": "__cmpconsentx135780",
     "default_value": "CQUPe2AQUPe2AAfb0BNLByFgAAAAAAAAAAigAAASUgFADNAM-AjwBKoDtgHngQUAjSBIgCSgAAA",
     "decoded_default_string": {
       "version": 2,
@@ -12097,7 +12097,7 @@
   },
   {
     "domain": "thelocal.ch",
-    "tcf_string_key_name": "__cmpconsentx132081_.thelocal.ch",
+    "tcf_string_key_name": "__cmpconsentx132081",
     "default_value": "CQUPe2AQUPe2AAfBRBENByFgAAAAAEPgAAigAAATzABMNCogjLIgBCJQMIIEACgrCACgQBAAAkDRAQAmDApyBgAusJEAIAUAAwQAgABBgACAAASABCIAKACAQAAQCBQAAAAAAAQAMDAAGACwEAgABAdAxTAggECwASMyKDTAlAASCAlsqEEgCBBXCEIs8AggREwUAAAIABQEAADwWAhJICViQQBcQTQAAEAAAUQIECKRowBBQGaLQTgyfRkaQAA",
     "decoded_default_string": {
       "version": 2,
@@ -12385,7 +12385,7 @@
   },
   {
     "domain": "feyenoordpings.nl",
-    "tcf_string_key_name": "__cmpconsentx150254_.feyenoordpings.nl",
+    "tcf_string_key_name": "__cmpconsentx150254",
     "default_value": "CQW-KiAQW-KiAAfD-BENB6FgAAAAAAAAAAigAAASUgFADNAM-AjwBKoDtgHngQUAjSBIgCSgAAA",
     "decoded_default_string": {
       "version": 2,
@@ -12577,7 +12577,7 @@
   },
   {
     "domain": "echo-online.de",
-    "tcf_string_key_name": "__cmpconsentx9133_.echo-online.de",
+    "tcf_string_key_name": "__cmpconsentx9133",
     "default_value": "CQUSxyAQUSxyAAfRtBDEByFgAAAAAAAAAAigJOwBADOAIbAhmBJ0EnYAwAOADOAGfAdsBDMCToBQSACA8cKABAQ2OgAgPHHgAQENkIAIDxyIAEAzhMACAZwpABAeOWgAgPHLgAQDOA",
     "decoded_default_string": {
       "version": 2,
@@ -12769,7 +12769,7 @@
   },
   {
     "domain": "allgemeine-zeitung.de",
-    "tcf_string_key_name": "__cmpconsentx9133_.allgemeine-zeitung.de",
+    "tcf_string_key_name": "__cmpconsentx9133",
     "default_value": "CQUSxyAQUSxyAAfRtBDEByFgAAAAAAAAAAigJOwBADOAIbAhmBJ0EnYAwAOADOAGfAdsBDMCToBQSACA8cKABAQ2OgAgPHHgAQENkIAIDxyIAEAzhMACAZwpABAeOWgAgPHLgAQDOA",
     "decoded_default_string": {
       "version": 2,
@@ -13153,7 +13153,7 @@
   },
   {
     "domain": "mittelhessen.de",
-    "tcf_string_key_name": "__cmpconsentx9133_.mittelhessen.de",
+    "tcf_string_key_name": "__cmpconsentx9133",
     "default_value": "CQUSxyAQUSxyAAfRtBDEByFgAAAAAAAAAAigJOwBADOAIbAhmBJ0EnYAwAOADOAGfAdsBDMCToBQSACA8cKABAQ2OgAgPHHgAQENkIAIDxyIAEAzhMACAZwpABAeOWgAgPHLgAQDOA",
     "decoded_default_string": {
       "version": 2,
@@ -14113,7 +14113,7 @@
   },
   {
     "domain": "thelocal.no",
-    "tcf_string_key_name": "__cmpconsentx132082_.thelocal.no",
+    "tcf_string_key_name": "__cmpconsentx132082",
     "default_value": "CQUSxyAQUSxyAAfBSBENByFgAAAAAEPgAAigAAATzABMNCogjLIgBCJQMIIEACgrCACgQBAAAkDRAQAmDApyBgAusJEAIAUAAwQAgABBgACAAASABCIAKACAQAAQCBQAAAAAAAQAMDAAGACwEAgABAdAxTAggECwASMyKDTAlAASCAlsqEEgCBBXCEIs8AggREwUAAAIABQEAADwWAhJICViQQBcQTQAAEAAAUQIECKRowBBQGaLQTgyfRkaQAA",
     "decoded_default_string": {
       "version": 2,
@@ -15745,7 +15745,7 @@
   },
   {
     "domain": "wiesbadener-kurier.de",
-    "tcf_string_key_name": "__cmpconsentx9133_.wiesbadener-kurier.de",
+    "tcf_string_key_name": "__cmpconsentx9133",
     "default_value": "CQUSxyAQUSxyAAfRtBDEByFgAAAAAAAAAAigJOwBADOAIbAhmBJ0EnYAwAOADOAGfAdsBDMCToBQSACA8cKABAQ2OgAgPHHgAQENkIAIDxyIAEAzhMACAZwpABAeOWgAgPHLgAQDOA",
     "decoded_default_string": {
       "version": 2,
@@ -16417,7 +16417,7 @@
   },
   {
     "domain": "bandaancha.eu",
-    "tcf_string_key_name": "__cmpconsentx149263_.bandaancha.eu",
+    "tcf_string_key_name": "__cmpconsentx149263",
     "default_value": "CQUSxyAQUSxyAAfTvBENByFgAAAAAEPgAAigAAAVvABMFCoghLAgBCIQMIIEACgrCACgQBAAAEDRAQAGDApyBgAqsJEAIAEAAAQAgABBAACAAASABCIAIACAQAAQABQAAgAAAAQAMCAAGACgAAgABANAxSAAgECgASEwCDBAhAAQCAFsKAAgCBAWAEIA0AAgRAQEAAAIABQEAADwWAhJICViQQBYQTQAAEAAAUQIECKRowAAAAACABAAABACAAAAAAAAAAAAAAAAAAAABAAA",
     "decoded_default_string": {
       "version": 2,
@@ -16801,7 +16801,7 @@
   },
   {
     "domain": "hellwegeranzeiger.de",
-    "tcf_string_key_name": "__cmpconsentx19395_.hellwegeranzeiger.de",
+    "tcf_string_key_name": "__cmpconsentx19395",
     "default_value": "CQUWEuAQUWEuAAfVzBDEByFgAAAAAAAAAAYgAAAO2gBAA4AdsAAA",
     "decoded_default_string": {
       "version": 2,
@@ -17281,7 +17281,7 @@
   },
   {
     "domain": "onzetaal.nl",
-    "tcf_string_key_name": "__cmpconsentx66181_.onzetaal.nl",
+    "tcf_string_key_name": "__cmpconsentx66181",
     "default_value": "CQUSxyAQUSxyAAfC1BENByFgAAAAAEPgAAigAAAVvABMFCoghLAgBCIQMIIEACgrCACgQBAAAEDRAQAGDApyBgAqsJEAIAEAAAQAgABBAACAAASABCIAIACAQAAQABQAAgAAAAQAMCAAGACgAAgABANAxSAAgECgASEwCDBAhAAQCAFsKAAgCBAWAEIA0AAgRAQEAAAIABQEAADwWAhJICViQQBYQTQAAEAAAUQIECKRowAAAAACABAAABACAAAAAAAAAAAAAAAAAAAABAAA",
     "decoded_default_string": {
       "version": 2,
@@ -17857,7 +17857,7 @@
   },
   {
     "domain": "der-betze-brennt.de",
-    "tcf_string_key_name": "__cmpconsentx29478_.der-betze-brennt.de",
+    "tcf_string_key_name": "__cmpconsentx29478",
     "default_value": "CQUSxyAQUSxyAAfXGBENByFgAAAAAEPgAAYgAAAUIABMNCoggKIgBCIQMIIEACgrCACgQBAAAkCBAAAkDAgwAgAoMBEAAAAAAAAAAABBAACAAAQABAAAIACAQAAQCBQAAAAAAAQAMAAAGAAgAAAAAAUAQBAAAAAAACMAKABAhAAQCAEkoAAAAAABAAAAAAAAAAgAAAAAABAAAAAAAAAAAABAAAAAAAAAAAAAAAQAAAAAgAAAAAAAAAAAAAAAAAACAGOgAgBcJQAQAuEIAIAXAA",
     "decoded_default_string": {
       "version": 2,
@@ -18625,7 +18625,7 @@
   },
   {
     "domain": "thelocal.at",
-    "tcf_string_key_name": "__cmpconsentx126044_.thelocal.at",
+    "tcf_string_key_name": "__cmpconsentx126044",
     "default_value": "CQUSxyAQUSxyAAfAsBENByFgAAAAAEPgAAigAAATzABMNCogjLIgBCJQMIIEACgrCACgQBAAAkDRAQAmDApyBgAusJEAIAUAAwQAgABBgACAAASABCIAKACAQAAQCBQAAAAAAAQAMDAAGACwEAgABAdAxTAggECwASMyKDTAlAASCAlsqEEgCBBXCEIs8AggREwUAAAIABQEAADwWAhJICViQQBcQTQAAEAAAUQIECKRowBBQGaLQTgyfRkaQAA",
     "decoded_default_string": {
       "version": 2,
@@ -18913,7 +18913,7 @@
   },
   {
     "domain": "telegramitalia.it",
-    "tcf_string_key_name": "__cmpconsentx123805_.telegramitalia.it",
+    "tcf_string_key_name": "__cmpconsentx123805",
     "default_value": "CQUSxyAQUSxyAAfcNBENByFgAAAAAEPgAAigAAATzABMNCogjLIgBCJQMIIEACgrCACgQBAAAkDRAQAmDApyBgAusJEAIAUAAwQAgABBgACAAASABCIAKACAQAAQCBQAAAAAAAQAMDAAGACwEAgABAdAxTAggECwASMyKDTAlAASCAlsqEEgCBBXCEIs8AggREwUAAAIABQEAADwWAhJICViQQBcQTQAAEAAAUQIECKRowBBQGaLQTgyfRkaQAA",
     "decoded_default_string": {
       "version": 2,
@@ -19297,7 +19297,7 @@
   },
   {
     "domain": "techpulse.be",
-    "tcf_string_key_name": "__cmpconsentx85164_.techpulse.be",
+    "tcf_string_key_name": "__cmpconsentx85164",
     "default_value": "CQUSxyAQUSxyAAfSMBENByFgAAAAAEPgAAigAAAVvABMFCoghLAgBCIQMIIEACgrCACgQBAAAEDRAQAGDApyBgAqsJEAIAEAAAQAgABBAACAAASABCIAIACAQAAQABQAAgAAAAQAMCAAGACgAAgABANAxSAAgECgASEwCDBAhAAQCAFsKAAgCBAWAEIA0AAgRAQEAAAIABQEAADwWAhJICViQQBYQTQAAEAAAUQIECKRowAAAAACABAAABACAAAAAAAAAAAAAAAAAAAABAAA",
     "decoded_default_string": {
       "version": 2,
@@ -19489,7 +19489,7 @@
   },
   {
     "domain": "meta-defense.fr",
-    "tcf_string_key_name": "__cmpconsentx136557_.meta-defense.fr",
+    "tcf_string_key_name": "__cmpconsentx136557",
     "default_value": "CQUWEuAQUWEuAAfItBENByFgAAAAAEPgAAigAAAVvABMFCoghLAgBCIQMIIEACgrCACgQBAAAEDRAQAGDApyBgAqsJEAIAEAAAQAgABBAACAAASABCIAIACAQAAQABQAAgAAAAQAMCAAGACgAAgABANAxSAAgECgASEwCDBAhAAQCAFsKAAgCBAWAEIA0AAgRAQEAAAIABQEAADwWAhJICViQQBYQTQAAEAAAUQIECKRowAAAAACABAAABACAAAAAAAAAAAAAAAAAAAABAAA",
     "decoded_default_string": {
       "version": 2,
@@ -20641,7 +20641,7 @@
   },
   {
     "domain": "rlptoday.de",
-    "tcf_string_key_name": "__cmpconsentx70174_.rlptoday.de",
+    "tcf_string_key_name": "__cmpconsentx70174",
     "default_value": "CQUWEuAQUWEuAAfCuCDEByFgAAAAAAAAAAigIZwBADOAHoAeOBDMEo4A4BnADPgHoASqA8cCGYEowAyIAEAzhMACAZwuABAM4A",
     "decoded_default_string": {
       "version": 2,
@@ -20929,7 +20929,7 @@
   },
   {
     "domain": "wielerflits.be",
-    "tcf_string_key_name": "__cmpconsentx132981_.wielerflits.be",
+    "tcf_string_key_name": "__cmpconsentx132981",
     "default_value": "CQUWEuAQUWEuAAfPVBENByFsAP_gAEPgAAigLPtT_C_fbWlj-Tr3afskeYxf99hr4sQxBgLJo04BjDrW9JwS12EyNEzShqAKmRIAqnRBIQFtGAjURUABIIAVJSDsYESUgRNIJuBAgHMRQwJYCFhnmYtBOQCRwkpzcRZgmRsM6Vru3NxAw5gjPUSVI6QlUJgNCYMoGQmsbBKT87IU9-x-_4vw9N7oE2-eSVv_tCtt614IABgAJAAgAAAhBAAAAAAAAIQAAAAAQAAAEAgEAAAAAAgreACYKFRBCWBACEQgYQQIAFBWEAFAgCAAAIGiAgAMGBTkDABVYSIAQAIAAAgBAACCAAEAAAkACEQAQAEAgAAgACgABAAAAAgAYEAAMAFAABAACAaBikABAIFAAkJgEGCBCAAgEALYUABAECAsAIQBoABAiAgIAAAQACgIAAHgsBCSQErEggCwgmgAAIAAAogQIEUjRgAAAAAEACAAACAEAAAAAAAAAAAAAAAAAAAACAAA",
     "decoded_default_string": {
       "version": 2,
@@ -22657,7 +22657,7 @@
   },
   {
     "domain": "xgn.nl",
-    "tcf_string_key_name": "__cmpconsentx64712_.xgn.nl",
+    "tcf_string_key_name": "__cmpconsentx64712",
     "default_value": "CQUWEuAQUWEuAAfLIBNLByFgAAAAAEPgAAigAAAUIABMNCogjLIgBCJQMIIEACgrCACgQBAAAkDRAQAmDApyBgAusJEAIAUAAwQAgABBgACAAASABCIAKACAQAAQCBQAAAAAAAQAMDAAGACwEAgABAdAxTAggECwASMyKDTAlAASCAlsqEEgCBBXCEIs8AggREwUAAAIABQEAADwWAhJICViQQBcQTQAAEAAAUQIECKRowBBQGaLQTgyfRkaQAACAAA",
     "decoded_default_string": {
       "version": 2,
@@ -23713,7 +23713,7 @@
   },
   {
     "domain": "voetbalnederland.nl",
-    "tcf_string_key_name": "__cmpconsentx71713_.voetbalnederland.nl",
+    "tcf_string_key_name": "__cmpconsentx71713",
     "default_value": "CQUZXqAQUZXqAAfaxBNLBzFgAAAAAAAAAAigAAATJgGgA4AGaAZ8BHgCVQHbAPPAgoBGkCRAElAJRgTJAAA",
     "decoded_default_string": {
       "version": 2,
@@ -23809,7 +23809,7 @@
   },
   {
     "domain": "skaraborgsnyheter.se",
-    "tcf_string_key_name": "__cmpconsentx135190_.skaraborgsnyheter.se",
+    "tcf_string_key_name": "__cmpconsentx135190",
     "default_value": "CQUZXqAQUZXqAAfSmBSVBzFgAAAAAEPgAAigAAAVvABMFCoghLAgBCIQMIIEACgrCACgQBAAAEDRAQAGDApyBgAqsJkAIAEAAAQAgABBAACAAASABCIAIACAQAAQABQAAgAAAAQAMCAAGACgAAgABANAxSAAgECgASEwCDBAhAAQCAFsKAAgCBAWAEIA0AAgRAQEAAAIABQEAADwWAhJICViQQBYQTQAAEAAAUQIECKRowAAAAACABAAABACAAAAAAAAAAAAAAAAAAAABAAA",
     "decoded_default_string": {
       "version": 2,
@@ -23905,7 +23905,7 @@
   },
   {
     "domain": "comprobarbonoloto.es",
-    "tcf_string_key_name": "__cmpconsentx140100_.comprobarbonoloto.es",
+    "tcf_string_key_name": "__cmpconsentx140100",
     "default_value": "CQUZXqAQUZXqAAfBkBENBzFgAAAAAEPgAAigAAAUIABMNCogjLIgBCJQMIIEACgrCACgQBAAAkDRAQAmDApyBgAusJkAIAUAAwQAgABBgACAAASABCIAKACAQAAQCBQAAAAAAAQAMDAAGACwEAgABAdAxTAggECwASMyKDTAlAASCAlsqEEgCBBXCEIs8AggREwUAAAIABQEAADwWAhJICViQQBcQTQAAEAAAUQIECKRowBBQGaLQTgyfRkaQAACAAA",
     "decoded_default_string": {
       "version": 2,
@@ -24193,7 +24193,7 @@
   },
   {
     "domain": "emailn.de",
-    "tcf_string_key_name": "__cmpconsentx99430_.emailn.de",
+    "tcf_string_key_name": "__cmpconsentx99430",
     "default_value": "CQUZXqAQUZXqAAfWWBENBzFgAAAAAAAAAAigAAASUgFADNAM-AjwBKoDtgHngQUAjSBIgCSgAAA",
     "decoded_default_string": {
       "version": 2,
@@ -24385,7 +24385,7 @@
   },
   {
     "domain": "rijdendetreinen.nl",
-    "tcf_string_key_name": "__cmpconsentx66181_.rijdendetreinen.nl",
+    "tcf_string_key_name": "__cmpconsentx66181",
     "default_value": "CQUcqmAQUcqmAAfC1BENBzFgAAAAAEPgAAigAAAVvABMFCoghLAgBCIQMIIEACgrCACgQBAAAEDRAQAGDApyBgAqsJkAIAEAAAQAgABBAACAAASABCIAIACAQAAQABQAAgAAAAQAMCAAGACgAAgABANAxSAAgECgASEwCDBAhAAQCAFsKAAgCBAWAEIA0AAgRAQEAAAIABQEAADwWAhJICViQQBYQTQAAEAAAUQIECKRowAAAAACABAAABACAAAAAAAAAAAAAAAAAAAABAAA",
     "decoded_default_string": {
       "version": 2,
