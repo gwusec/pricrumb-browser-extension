@@ -60,8 +60,7 @@ async function loadCookies() {
     }
 }
 
-// Process the stored cookie data from the extension
-// Process the stored cookie data from the extension
+
 // Process the stored cookie data from the extension
 function processStoredCookieData(cookieData) {
     // Print the raw cookie data to see what's in it
