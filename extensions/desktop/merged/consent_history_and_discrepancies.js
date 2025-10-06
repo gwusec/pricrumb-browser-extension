@@ -462,6 +462,22 @@ function findDiscrepancyWebsites(cookieData, userPreferences) {
     console.log('Total discrepancies found:', discrepancies.length);
     return discrepancies;
 }
+//new function to avoid dupliacate websites
+// Extract the main domain name for comparison (e.g., "zoom" from "www.zoom.com" or "www.zoom.us")
+function extractMainDomainName(domain) {
+    if (!domain) return '';
+    
+    // Remove www. prefix
+    let cleaned = domain.replace(/^www\./, '');
+    
+    // Split by dots and get the main part (before TLD)
+    const parts = cleaned.split('.');
+    
+    // Return the main domain name (second-to-last part before TLD)
+    // For "zoom.com" or "zoom.us", this returns "zoom"
+    // For "stackoverflow.com", this returns "stackoverflow"
+    return parts.length >= 2 ? parts[parts.length - 2].toLowerCase() : cleaned.toLowerCase();
+}
 
 // Process the stored cookie data from the extension
 function processStoredCookieData(cookieData) {
@@ -470,8 +486,6 @@ function processStoredCookieData(cookieData) {
         cookie.actionTaken && cookie.actionTaken.toLowerCase() === 'yes'
     );
     
-    console.log('Action taken cookies for tables:', actionTakenCookies.length);
-
     // If we have fewer than 6 domains with action taken, use all cookies
     const cookiesToProcess = actionTakenCookies.length >= 6 ? actionTakenCookies : cookieData;
     
@@ -483,24 +497,61 @@ function processStoredCookieData(cookieData) {
         return visitsB - visitsA;  // Most frequent first (highest count)
     });
     
-    // Get the 5 most frequently visited domains
-    const mostFrequentDomains = sortedByFrequency.slice(0, 5);
+ // Track seen main domain names to ensure uniqueness
+    const seenMainDomains = new Set();
     
-    // Get the 5 least frequently visited domains (with at least 1 visit)
-    // First filter for domains with visits > 0
+    // Get EXACTLY 5 unique most frequently visited domains
+    const mostFrequentDomains = [];
+    for (const cookie of sortedByFrequency) {
+        const formattedDomain = formatDomainForDisplay(cookie.domain);
+        const mainName = extractMainDomainName(formattedDomain);
+        
+        if (!seenMainDomains.has(mainName)) {
+            seenMainDomains.add(mainName);
+            mostFrequentDomains.push({
+                domain: formattedDomain,
+                originalDomain: cookie.domain,
+                lastVisited: cookie.lastVisited,
+                categories: cookie.categories,
+                totalVisitCount: cookie.totalVisitCount
+            });
+            
+            if (mostFrequentDomains.length === 5) break;
+        }
+    }
+    
+    // Get EXACTLY 5 unique least frequently visited domains
     const domainsWithVisits = cookiesToProcess.filter(cookie => 
         parseInt(cookie.totalVisitCount) > 0
     );
     
-    // Then sort by ascending visit count
     const sortedAscending = [...domainsWithVisits].sort((a, b) => {
         const visitsA = parseInt(a.totalVisitCount) || 0;
         const visitsB = parseInt(b.totalVisitCount) || 0;
         return visitsA - visitsB;
     });
     
-    // Take the 5 domains with the lowest visit counts
-    const leastFrequentDomains = sortedAscending.slice(0, 5);
+    const leastFrequentDomains = [];
+    for (const cookie of sortedAscending) {
+        const formattedDomain = formatDomainForDisplay(cookie.domain);
+        const mainName = extractMainDomainName(formattedDomain);
+        
+        if (!seenMainDomains.has(mainName)) {
+            seenMainDomains.add(mainName);
+            leastFrequentDomains.push({
+                domain: formattedDomain,
+                originalDomain: cookie.domain,
+                lastVisited: cookie.lastVisited,
+                categories: cookie.categories,
+                totalVisitCount: cookie.totalVisitCount
+            });
+            
+            if (leastFrequentDomains.length === 5) break;
+        }
+    }
+    
+    console.log(`Selected ${mostFrequentDomains.length} unique most frequent domains`);
+    console.log(`Selected ${leastFrequentDomains.length} unique least frequent domains`);
     
     return { 
         mostRecentDomains: mostFrequentDomains, 
