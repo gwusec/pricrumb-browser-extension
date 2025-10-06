@@ -169,37 +169,101 @@ function getRecentActionDomains(cookies) {
         const visitsB = parseInt(b.totalVisitCount) || 0;
         return visitsB - visitsA;  // Most frequent first (highest count)
     });
+    //commented now but will remove later after testing:
+
+    // // Get the 5 most frequently visited domains
+    // const mostFrequentDomains = sortedByFrequency.slice(0, 5).map(cookie => ({
+    //     domain: formatDomainForDisplay(cookie.domain),
+    //     originalDomain: cookie.domain,
+    //     lastVisited: cookie.lastVisited,
+    //     categories: cookie.categories,
+    //     totalVisitCount: cookie.totalVisitCount
+    // }));
     
-    // Get the 5 most frequently visited domains
-    const mostFrequentDomains = sortedByFrequency.slice(0, 5).map(cookie => ({
-        domain: formatDomainForDisplay(cookie.domain),
-        originalDomain: cookie.domain,
-        lastVisited: cookie.lastVisited,
-        categories: cookie.categories,
-        totalVisitCount: cookie.totalVisitCount
-    }));
+    // // Get the 5 least frequently visited domains (with at least 1 visit)
+    // // First filter for domains with visits > 0
+    // const domainsWithVisits = cookiesToProcess.filter(cookie => 
+    //     parseInt(cookie.totalVisitCount) > 0
+    // );
     
-    // Get the 5 least frequently visited domains (with at least 1 visit)
-    // First filter for domains with visits > 0
+    // // Then sort by ascending visit count
+    // const sortedAscending = [...domainsWithVisits].sort((a, b) => {
+    //     const visitsA = parseInt(a.totalVisitCount) || 0;
+    //     const visitsB = parseInt(b.totalVisitCount) || 0;
+    //     return visitsA - visitsB;
+    // });
+    
+    // // Take the 5 domains with the lowest visit counts
+    // const leastFrequentDomains = sortedAscending.slice(0, 5).map(cookie => ({
+    //     domain: formatDomainForDisplay(cookie.domain),
+    //     originalDomain: cookie.domain,
+    //     lastVisited: cookie.lastVisited,
+    //     categories: cookie.categories,
+    //     totalVisitCount: cookie.totalVisitCount
+    // }));
+    
+    // return { 
+    //     mostRecentDomains: mostFrequentDomains, 
+    //     leastRecentDomains: leastFrequentDomains 
+    // };
+
+    //updated with:
+
+    // Track seen main domain names to ensure uniqueness
+    const seenMainDomains = new Set();
+    
+    // Get EXACTLY 5 unique most frequently visited domains
+    const mostFrequentDomains = [];
+    for (const cookie of sortedByFrequency) {
+        const formattedDomain = formatDomainForDisplay(cookie.domain);
+        const mainName = extractMainDomainName(formattedDomain);
+        
+        if (!seenMainDomains.has(mainName)) {
+            seenMainDomains.add(mainName);
+            mostFrequentDomains.push({
+                domain: formattedDomain,
+                originalDomain: cookie.domain,
+                lastVisited: cookie.lastVisited,
+                categories: cookie.categories,
+                totalVisitCount: cookie.totalVisitCount
+            });
+            
+            if (mostFrequentDomains.length === 5) break;
+        }
+    }
+    
+    // Get EXACTLY 5 unique least frequently visited domains
     const domainsWithVisits = cookiesToProcess.filter(cookie => 
         parseInt(cookie.totalVisitCount) > 0
     );
     
-    // Then sort by ascending visit count
     const sortedAscending = [...domainsWithVisits].sort((a, b) => {
         const visitsA = parseInt(a.totalVisitCount) || 0;
         const visitsB = parseInt(b.totalVisitCount) || 0;
         return visitsA - visitsB;
     });
     
-    // Take the 5 domains with the lowest visit counts
-    const leastFrequentDomains = sortedAscending.slice(0, 5).map(cookie => ({
-        domain: formatDomainForDisplay(cookie.domain),
-        originalDomain: cookie.domain,
-        lastVisited: cookie.lastVisited,
-        categories: cookie.categories,
-        totalVisitCount: cookie.totalVisitCount
-    }));
+    const leastFrequentDomains = [];
+    for (const cookie of sortedAscending) {
+        const formattedDomain = formatDomainForDisplay(cookie.domain);
+        const mainName = extractMainDomainName(formattedDomain);
+        
+        if (!seenMainDomains.has(mainName)) {
+            seenMainDomains.add(mainName);
+            leastFrequentDomains.push({
+                domain: formattedDomain,
+                originalDomain: cookie.domain,
+                lastVisited: cookie.lastVisited,
+                categories: cookie.categories,
+                totalVisitCount: cookie.totalVisitCount
+            });
+            
+            if (leastFrequentDomains.length === 5) break;
+        }
+    }
+    
+    console.log(`Selected ${mostFrequentDomains.length} unique most frequent domains`);
+    console.log(`Selected ${leastFrequentDomains.length} unique least frequent domains`);
     
     return { 
         mostRecentDomains: mostFrequentDomains, 
