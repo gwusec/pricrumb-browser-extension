@@ -209,6 +209,7 @@ function getRecentActionDomains(cookies) {
     // };
 
     //updated with:
+    
     // Track seen main domain names to ensure uniqueness
     const seenMainDomains = new Set();
     
