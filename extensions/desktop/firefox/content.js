@@ -14,6 +14,55 @@ window.addEventListener("message", (event) => {
     return;
   }
 
+  //this part is for eligibility check (if users have 10 or more websites action taken =yes):
+  if(event.data.payload?.action === "checkEligibility") {
+    console.log("Content script: Received eligibility check request");
+    
+    // Check ALL possible storage keys
+    chrome.storage.local.get(null, (result) => {
+      console.log("Content script: All storage keys:", Object.keys(result));
+      
+      // Try multiple possible keys
+      const cookieData = result.cookieData || 
+                        result.consentCookies || 
+                        result.cookies ||
+                        result.fetchedCookies ||
+                        [];
+      
+      console.log("Content script: Found cookie data length:", cookieData.length);
+      
+      if (cookieData.length > 0) {
+        console.log("Content script: First cookie sample:", cookieData[0]);
+      }
+      
+      // Filter websites where actionTaken is "Yes" 
+      const eligibleSites = cookieData.filter(site => {
+        const isEligible = site.actionTaken === "Yes";
+        if (isEligible) {
+          console.log("Content script: Eligible site found:", site.domain);
+        }
+        return isEligible;
+      });
+      
+      console.log("Content script: Eligible sites count:", eligibleSites.length);
+      console.log("Content script: Total sites:", cookieData.length);
+      
+      const payload = {
+        eligibleSitesCount: eligibleSites.length,
+        isEligible: eligibleSites.length >= 10,
+        totalSites: cookieData.length
+      };
+      
+      console.log("Content script: Sending eligibility response:", payload);
+      
+      window.postMessage({
+        type: "FROM_EXTENSION_ELIGIBILITY",
+        payload: payload
+      }, "*");
+    });
+    return;
+  }
+
   // Forward message to the background script
   browser.runtime.sendMessage(event.data).then((response) => {
     if (response) { // Ensure response exists before sending it back
