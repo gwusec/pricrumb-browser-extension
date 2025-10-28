@@ -7,7 +7,7 @@ let visitedDomainsCacheLastUpdated = 0; // Timestamp of last update to visitedDo
 // Opens the popup.html when the extension icon is clicked
 chrome.action.onClicked.addListener(() => {
   chrome.tabs.create({ 
-    url: chrome.runtime.getURL('popup.html') 
+    url: chrome.runtime.getURL('popup_welcome.html') 
   });
 });
 
