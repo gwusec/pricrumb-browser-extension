@@ -15,7 +15,7 @@ let visitedDomainsCacheLastUpdated = 0; // Timestamp of last update to visitedDo
 // Opens the popup.html when the extension icon is clicked
 (ext.action || ext.browserAction).onClicked.addListener(() => {
   ext.tabs.create({
-    url: ext.runtime.getURL("popup.html")
+    url: ext.runtime.getURL("popup_welcome.html")
   });
 });
 
