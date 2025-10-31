@@ -14,9 +14,28 @@ window.addEventListener("message", (event) => {
     return;
   }
 
-  //this part is for eligibility check (if users have 10 or more websites action taken =yes):
+  //this part is for eligibility check (if users have 10 or more unique websites where action taken = yes):
   if(event.data.payload?.action === "checkEligibility") {
     console.log("Content script: Received eligibility check request");
+    
+    // Helper function to extract main domain name (e.g., "zoom" from "zoom.com" or "zoom.us")
+    function extractMainDomainName(domain) {
+      if (!domain) return '';
+      
+      // Remove leading dots
+      let cleaned = domain.replace(/^\.+/, '');
+      
+      // Remove www. prefix
+      cleaned = cleaned.replace(/^www\./, '');
+      
+      // Split by dots and get the main part (before TLD)
+      const parts = cleaned.split('.');
+      
+      // Return the main domain name (second-to-last part before TLD)
+      // For "zoom.com" or "zoom.us", this returns "zoom"
+      // For "stackoverflow.com", this returns "stackoverflow"
+      return parts.length >= 2 ? parts[parts.length - 2].toLowerCase() : cleaned.toLowerCase();
+    }
     
     // Check ALL possible storage keys
     chrome.storage.local.get(null, (result) => {
@@ -37,20 +56,32 @@ window.addEventListener("message", (event) => {
       
       // Filter websites where actionTaken is "Yes" 
       const eligibleSites = cookieData.filter(site => {
-        const isEligible = site.actionTaken === "Yes";
-        if (isEligible) {
-          console.log("Content script: Eligible site found:", site.domain);
-        }
-        return isEligible;
+        return site.actionTaken === "Yes";
       });
       
-      console.log("Content script: Eligible sites count:", eligibleSites.length);
-      console.log("Content script: Total sites:", cookieData.length);
+      console.log("Content script: Sites with action taken = Yes:", eligibleSites.length);
+      
+      // Extract unique domains by main domain name
+      const uniqueDomains = new Set();
+      eligibleSites.forEach(site => {
+        if (site.domain) {
+          const mainDomain = extractMainDomainName(site.domain);
+          if (mainDomain) {
+            uniqueDomains.add(mainDomain);
+            console.log(`Content script: Added unique domain "${mainDomain}" from ${site.domain}`);
+          }
+        }
+      });
+      
+      const uniqueDomainsArray = Array.from(uniqueDomains);
+      console.log("Content script: Unique domains found:", uniqueDomainsArray);
+      console.log("Content script: Unique domains count:", uniqueDomainsArray.length);
       
       const payload = {
-        eligibleSitesCount: eligibleSites.length,
-        isEligible: eligibleSites.length >= 10,
-        totalSites: cookieData.length
+        eligibleSitesCount: uniqueDomainsArray.length,  // Now counts unique domains
+        isEligible: uniqueDomainsArray.length >= 10,     // TRUE if 10+ unique domains
+        totalSites: cookieData.length,
+        uniqueDomains: uniqueDomainsArray  // Optional: send the list of unique domains
       };
       
       console.log("Content script: Sending eligibility response:", payload);
