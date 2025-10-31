@@ -9,8 +9,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function loadSavedPreferences() {
     try {
-        const result = await chrome.storage.local.get('userCookiePreferences');
-        if (result.userCookiePreferences) {
+        const result = await ext.storage.local.get('userCookiePreferences');
+        if (result && result.userCookiePreferences) {
             // Try to handle both old and new format of preferences
             if (Array.isArray(result.userCookiePreferences)) {
                 // This is likely the new format (Map serialized to array)
@@ -51,10 +51,10 @@ async function loadSavedPreferences() {
 async function loadCookiesAndFindDiscrepancies() {
     try {
         // Load cookie data
-        const result = await chrome.storage.local.get('cookieData');
+        const result = await ext.storage.local.get('cookieData');
         console.log('Retrieved cookie data:', result.cookieData);
 
-        if (result.cookieData && Array.isArray(result.cookieData)) {
+        if (result && result.cookieData && Array.isArray(result.cookieData)) {
             // Check if we have user preferences to compare against
             if (userPreferences && userPreferences.size > 0) {
                 // Find domains with discrepancies if we have user preferences
