@@ -1656,7 +1656,7 @@ function enhancedTCFActionDetection(tcfValue, tcfCookie, allCookies) {
   function createConsentObject(cookies, currentCookie) {
       // ADD DEBUG FOR STACKOVERFLOW SPECIFICALLY
   if (currentCookie.domain && currentCookie.domain.includes('stackoverflow')) {
-    console.log("🎯 STACKOVERFLOW PROCESSING STARTED:");
+    console.log("STACKOVERFLOW PROCESSING STARTED:");
     console.log("Cookie name:", currentCookie.name);
     console.log("Cookie domain:", currentCookie.domain);
     console.log("Cookie value preview:", currentCookie.value.substring(0, 100));
@@ -1665,11 +1665,11 @@ function enhancedTCFActionDetection(tcfValue, tcfCookie, allCookies) {
   const decoded = decodeCMPValue(cookies, currentCookie);
   
   if (currentCookie.domain && currentCookie.domain.includes('stackoverflow')) {
-    console.log("🎯 STACKOVERFLOW DECODE RESULT:");
+    console.log("STACKOVERFLOW DECODE RESULT:");
     console.log("Decoded object:", decoded);
     
     if (!decoded) {
-      console.log("❌ STACKOVERFLOW DECODE FAILED - returned null!");
+      console.log("STACKOVERFLOW DECODE FAILED - returned null!");
       return null;
     }
   }
@@ -2167,9 +2167,7 @@ function enhancedTCFActionDetection(tcfValue, tcfCookie, allCookies) {
   }
 
 
-  //***************  updates to the code for Option 1:
-  // Store cookies in ext.storage.local when they're fetched
-  async function storeCookiesInStorage(cookies) {
+async function storeCookiesInStorage(cookies) {
     // Log visit counts before saving to storage
     console.log('Saving cookies to storage with visit counts:', 
       cookies.map(c => `${c.domain}: ${c.totalVisitCount}`));
@@ -2185,16 +2183,20 @@ function enhancedTCFActionDetection(tcfValue, tcfCookie, allCookies) {
         console.log("Verified storage - visit counts:",
           result.cookieData.map(c => `${c.domain}: ${c.totalVisitCount}`));
       }
+      
+      // Send completion message to consent history page (if it's listening)
+      ext.runtime.sendMessage({ action: 'cookieProcessingComplete' }).catch(() => {
+        // Ignore errors if no listener (consent history page not open)
+      });
+      console.log("Sent cookie processing completion signal");
+      
     } catch (err) {
       console.error("Storage error:", err);
     }
   }
 
+
   
-    //***************  Change ended for Option 1:
-
-
-
   
   /**
    * Sets up event listeners for the popup buttons.
@@ -2218,14 +2220,7 @@ function enhancedTCFActionDetection(tcfValue, tcfCookie, allCookies) {
     document.getElementById('openConsentPage')?.addEventListener('click', () => {
       window.location.href = 'prefered_choices.html';
   });
- //Added for Option1 openConsentPage: If we want to open it in new tap:
-//  document.getElementById('openConsentPage1')?.addEventListener('click', () => {
-//   ext.tabs.create({ 
-//       url: ext.runtime.getURL('prefered_choices1.html')
-//To open it on the same window
-// document.getElementById('openConsentPage1')?.addEventListener('click', () => {
-//   window.location.href ='prefered_choices1.html';
-//   });
+
 document.getElementById('pricrumbs_preferred_cookie_choices_functional')?.addEventListener('click', () => {
   window.location.href ='pricrumbs_preferred_cookie_choices_functional.html';
   });
@@ -2260,25 +2255,8 @@ document.getElementById('pricrumbs_website_all_cookies_default')?.addEventListen
   });
 
 
-// document.getElementById('openConsentPage2')?.addEventListener('click', () => {
-//   window.location.href ='prefered_choices2.html';
-//   })
-// document.getElementById('openConsentPage3')?.addEventListener('click', () => {
-//   window.location.href ='measure_factors.html';
-//   })
-// document.getElementById('openConsentPage4')?.addEventListener('click', () => {
-//   window.location.href ='discrepancy_between_choices.html';
-//   })
       
 
 });
-  // // Download buttons
-  // setupDownloadCookiesListener();
-  // setupDownloadTableListener();
-
-/*if (window.self !== window.top) {
-  console.log("Message from iframe sent");  
-  window.parent.postMessage({ type: "FROM_SURVEY", payload: { action: "confirmExtension" } }, "*");
-}*/
 
 
