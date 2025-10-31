@@ -133,21 +133,21 @@
             font-weight: bold;
             font-size: 18px;
         }
-        /* .NextTable {
-            background-color: #4CAF50;
-            color: white;
-            padding: 10px 20px;
-            margin: 0 5px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
+        
+        /* Section divider row styling */
+        .section-divider {
+            background-color: #e8f4f8;
+            font-weight: bold;
             text-align: center;
-            margin-top: 20px;
-        } */
+            font-size: 16px;
+            color: #333;
+            padding: 12px;
+        }
+        
         /* Add this to your CSS */
-.selection-container {
-    position: relative;
-}
+        .selection-container {
+            position: relative;
+        }
         
     </style>
 </head>
@@ -161,15 +161,13 @@
 
         <div id="loading">Loading your cookie preference data...</div>
 
-        <!-- Page 1: Most Recently Visited Websites Table -->
+        <!-- Combined Table with Both Most and Least Visited Websites -->
         <div id="page1">
-            <!-- <div class="table-header">Most Frequent Visited Websites (Your Cookie Preferences
-                )</div> -->
-                <div style="padding: 10px; margin-bottom: 15px; text-align: center;">
-                    <span style="font-size: 16px;">The </span>
-                    <span style="color: #ff9800; font-weight: bold; font-size: 25px;">!</span>
-                    <span style="font-size: 16px;"> next to a choice indicates there was a difference between the choice you made earlier and the actual consent preference in your history.</span>
-                </div>
+            <div style="padding: 10px; margin-bottom: 15px; text-align: center;">
+                <span style="font-size: 16px;">The </span>
+                <span style="color: #ff9800; font-weight: bold; font-size: 25px;">!</span>
+                <span style="font-size: 16px;"> next to a choice indicates there was a difference between the choice you made earlier and the actual consent preference in your history.</span>
+            </div>
             <table id="mostRecentTable" style="display: none;">
             <thead>
                 <tr>
@@ -181,40 +179,20 @@
                 </tr>
             </thead>
             <tbody id="mostRecentWebsitesList">
+                <!-- Most frequently visited websites will be inserted here by JS -->
+            </tbody>
+            <!-- Section divider row -->
+            <!-- <tbody>
+                <tr>
+                    <td colspan="5" class="section-divider">Least Frequently Visited Websites</td>
+                </tr>
+            </tbody> -->
+            <tbody id="leastRecentWebsitesList">
+                <!-- Least frequently visited websites will be inserted here by JS -->
             </tbody>
         </table>
-        <!-- <div class="actions">
-            <button id="nextBtn1">Next</button>
-        </div> -->
     </div>
-        
-        <!-- Least Frequently Visited Websites Table -->
-        <!-- <div id="page2" style="display: none;">
-            <div class="table-header">Least Frequent Visited Websites</div>
-            <table id="leastRecentTable" style="display: none;">
-            <thead>
-                <tr>
-                    <th class="website-cell">Website</th>
-                    <th>Functional Cookies</th>
-                    <th>Performance Cookies</th>
-                    <th>Advertising Cookies</th>
-                    <th>Cookie Expiration Date</th>
-                    <th>Freq Visit (Total)</th>
-                </tr>
-            </thead>
-            <tbody id="leastRecentWebsitesList">
-            </tbody>
-             <div class="actions"> -->
-            <!-- <button id="nextBtn2">Next</button> -->
-        <!-- </div>
-        </table> -->
-       
-    </div>
-<!-- 
-    <script>
-        // Add a page identifier for the JavaScript to know which page is being viewed
-        window.currentPage = 'most-visited';
-    </script> -->
+</body>
     <script src="consent_history_and_discrepancies.js"></script>
     <script src="ext-shim.js"></script>
 </body>
