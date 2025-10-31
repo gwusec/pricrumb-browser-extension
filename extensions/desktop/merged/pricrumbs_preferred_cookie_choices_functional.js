@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
 async function loadSavedPreferences() {
     try {
         const result = await ext.storage.local.get("userCookiePreferences");
-        if (result.userCookiePreferences && Array.isArray(result.userCookiePreferences)) {
+        if (result && result.userCookiePreferences && Array.isArray(result.userCookiePreferences)) {
             userPreferences = new Map(result.userCookiePreferences);
             console.log("Loaded saved preferences:", userPreferences);
         } else {
@@ -69,7 +69,7 @@ function extractMainDomainName(domain) {
 async function loadCookies() {
     try {
         const result = await ext.storage.local.get("cookieData");
-        const cookies = result.cookieData || [];   // ensure we always get an array
+        const cookies = (result && result.cookieData) ? result.cookieData:[];   // ensure we always get an array
         console.log("Retrieved cookie data:", cookies);
 
         if (cookies.length > 0) {
