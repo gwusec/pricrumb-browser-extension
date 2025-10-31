@@ -3,9 +3,101 @@ let userPreferences = new Map();
 let websitesWithDiscrepancies = []; // Array to store all domains with discrepancies
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM content loaded, starting preference loading...');
-    loadSavedPreferences();
+    console.log('DOM content loaded, automatically refreshing cookie data...');
+    
+    // Automatically trigger popup.html to refresh cookie data
+    automaticRefreshOnLoad();
 });
+
+// Automatically refresh cookie data when page loads
+async function automaticRefreshOnLoad() {
+    try {
+        console.log('Auto-refreshing cookie data for discrepancy detection...');
+        
+        // Set up a listener for completion message from popup
+        let cookieProcessingComplete = false;
+        const messageListener = (message) => {
+            if (message.action === 'cookieProcessingComplete') {
+                cookieProcessingComplete = true;
+                console.log('Received completion signal from popup');
+            }
+        };
+        ext.runtime.onMessage.addListener(messageListener);
+        
+        // Open popup.html in background to refresh cookie data
+        const popupURL = ext.runtime.getURL('popup.html');
+        const popupTab = await ext.tabs.create({ 
+            url: popupURL, 
+            active: false  // Opens silently in background
+        });
+        
+        console.log('Popup opened in background, waiting for cookie processing...');
+        
+        // Wait for either completion message or timeout (max 3 seconds)
+        const startTime = Date.now();
+        while (!cookieProcessingComplete && (Date.now() - startTime) < 3000) {
+            await new Promise(resolve => setTimeout(resolve, 100)); // Check every 100ms
+        }
+        
+        // Remove the listener
+        ext.runtime.onMessage.removeListener(messageListener);
+        
+        const processingTime = Date.now() - startTime;
+        console.log(`Cookie processing took ${processingTime}ms`);
+        
+        // Close the popup tab
+        if (popupTab && popupTab.id) {
+            await ext.tabs.remove(popupTab.id);
+            console.log('Background popup closed');
+        }
+        
+        // Now load preferences with fresh data
+        loadSavedPreferences();
+        
+    } catch (error) {
+        console.error('Error during automatic refresh:', error);
+        // Continue loading even if refresh fails
+        loadSavedPreferences();
+    }
+}
+
+// Function to refresh cookie data by querying browser cookies directly
+async function refreshCookieDataFromBrowser() {
+    console.log('Refreshing cookie data from browser...');
+    
+    try {
+        // Send message to background script to check cookies
+        const response = await ext.runtime.sendMessage({ 
+            action: "checkCookies", 
+            cookieNames: [
+                "OptanonConsent", "cookieyes-consent", "wscrCookieConsent",
+                "cmplz_rt_functional", "cmplz_rt_marketing", "cmplz_rt_preferences",
+                "cmplz_rt_statistics", "cmplz_rt_banner-status", "uc_userconsent",
+                "quantcast_consent", "CookieConsent", "osano_consent", "cookie_notice",
+                "cookie_law_info", "TrustArcConsent", "CONSENT", "NID", "1P_JAR",
+                "euconsent-v2", "eupubconsent-v2", "TVPtcs22", "TcString",
+                "__cmpconsent25759", "cookiebotTcfConsentString",
+                "mychannels-consentData", "sas_euconsent_v2", "EuConsent"
+            ]
+        });
+        
+        if (response && response.cookies && response.cookies.length > 0) {
+            console.log(`Refreshed ${response.cookies.length} cookies from browser`);
+            
+            // Update cookieData in storage with fresh data
+            await ext.storage.local.set({ cookieData: response.cookies });
+            console.log('Cookie data updated in storage');
+            
+            return response.cookies;
+        } else {
+            console.warn('No cookies returned from browser refresh');
+            return [];
+        }
+    } catch (error) {
+        console.error('Error refreshing cookies from browser:', error);
+        throw error;
+    }
+}
 
 async function loadSavedPreferences() {
     try {
@@ -50,15 +142,49 @@ async function loadSavedPreferences() {
 
 async function loadCookiesAndFindDiscrepancies() {
     try {
-        // Load cookie data
-        const result = await ext.storage.local.get('cookieData');
-        console.log('Retrieved cookie data:', result.cookieData);
-
-        if (result && result.cookieData && Array.isArray(result.cookieData)) {
+        // First, try to load the selected domains from preference pages
+        const selectedDomainsResult = await ext.storage.local.get('selectedDomainsForHistory');
+        
+        if (selectedDomainsResult && selectedDomainsResult.selectedDomainsForHistory && 
+            Array.isArray(selectedDomainsResult.selectedDomainsForHistory) &&
+            selectedDomainsResult.selectedDomainsForHistory.length > 0) {
+            
+            console.log('Using selected domains from preference pages:', selectedDomainsResult.selectedDomainsForHistory);
+            
+            // Use the exact domains that were shown in the preference pages
+            let selectedDomains = selectedDomainsResult.selectedDomainsForHistory;
+            
+            // Fetch fresh cookie data to get current cookie states
+            const cookieDataResult = await ext.storage.local.get('cookieData');
+            if (cookieDataResult && cookieDataResult.cookieData && Array.isArray(cookieDataResult.cookieData)) {
+                console.log('Updating with fresh cookie data for accurate discrepancy detection');
+                
+                // Update the categories in selectedDomains with fresh data
+                selectedDomains = selectedDomains.map(domain => {
+                    // Find matching cookie in fresh data
+                    const freshCookie = cookieDataResult.cookieData.find(c => 
+                        c.domain === domain.domain || 
+                        c.domain === domain.originalDomain ||
+                        formatDomainForDisplay(c.domain) === domain.domain
+                    );
+                    
+                    if (freshCookie && freshCookie.categories) {
+                        console.log(`Updated ${domain.domain} with fresh categories:`, freshCookie.categories);
+                        return {
+                            ...domain,
+                            categories: freshCookie.categories  // Use fresh categories
+                        };
+                    }
+                    return domain;  // Keep original if no fresh data found
+                });
+            } else {
+                console.warn('No fresh cookie data available, using cached categories');
+            }
+            
             // Check if we have user preferences to compare against
             if (userPreferences && userPreferences.size > 0) {
                 // Find domains with discrepancies if we have user preferences
-                websitesWithDiscrepancies = findDiscrepancyWebsites(result.cookieData, userPreferences);
+                websitesWithDiscrepancies = findDiscrepancyWebsites(selectedDomains, userPreferences);
                 console.log('Websites with discrepancies found:', websitesWithDiscrepancies.length);
                 console.log('Discrepancy details:', websitesWithDiscrepancies);
             } else {
@@ -67,8 +193,8 @@ async function loadCookiesAndFindDiscrepancies() {
                 console.log('No user preferences found, skipping discrepancy detection');
             }
             
-            // Then process the cookie data for display
-            const { mostRecentDomains, leastRecentDomains } = processStoredCookieData(result.cookieData);
+            // Split the selected domains into most/least visited based on their visit counts
+            const { mostRecentDomains, leastRecentDomains } = splitDomainsByVisitFrequency(selectedDomains);
             
             // Display domains in their respective tables
             displayWebsites(mostRecentDomains, 'mostRecentWebsitesList');
@@ -83,10 +209,47 @@ async function loadCookiesAndFindDiscrepancies() {
             
             const leastRecentTable = document.getElementById('leastRecentTable');
             if (leastRecentTable) leastRecentTable.style.display = 'table';
+            
         } else {
-            const loadingElement = document.getElementById('loading');
-            if (loadingElement) {
-                loadingElement.textContent = 'No cookie data found. Please visit the Cookie Checker first.';
+            // Fallback: Load cookie data if no selected domains found
+            console.log('No selected domains found, falling back to cookie data');
+            const result = await ext.storage.local.get('cookieData');
+            console.log('Retrieved cookie data:', result);
+
+            if (result && result.cookieData && Array.isArray(result.cookieData)) {
+                // Check if we have user preferences to compare against
+                if (userPreferences && userPreferences.size > 0) {
+                    // Find domains with discrepancies if we have user preferences
+                    websitesWithDiscrepancies = findDiscrepancyWebsites(result.cookieData, userPreferences);
+                    console.log('Websites with discrepancies found:', websitesWithDiscrepancies.length);
+                    console.log('Discrepancy details:', websitesWithDiscrepancies);
+                } else {
+                    // No user preferences, so no discrepancies
+                    websitesWithDiscrepancies = [];
+                    console.log('No user preferences found, skipping discrepancy detection');
+                }
+                
+                // Then process the cookie data for display
+                const { mostRecentDomains, leastRecentDomains } = processStoredCookieData(result.cookieData);
+                
+                // Display domains in their respective tables
+                displayWebsites(mostRecentDomains, 'mostRecentWebsitesList');
+                displayWebsites(leastRecentDomains, 'leastRecentWebsitesList');
+                
+                // Hide loading message and show tables
+                const loadingElement = document.getElementById('loading');
+                if (loadingElement) loadingElement.style.display = 'none';
+                
+                const mostRecentTable = document.getElementById('mostRecentTable');
+                if (mostRecentTable) mostRecentTable.style.display = 'table';
+                
+                const leastRecentTable = document.getElementById('leastRecentTable');
+                if (leastRecentTable) leastRecentTable.style.display = 'table';
+            } else {
+                const loadingElement = document.getElementById('loading');
+                if (loadingElement) {
+                    loadingElement.textContent = 'No cookie data found. Please visit the Cookie Checker first.';
+                }
             }
         }
     } catch (error) {
@@ -117,6 +280,7 @@ function findDiscrepancyWebsites(cookieData, userPreferences) {
     );
     
     console.log('Cookies with action taken:', actionTakenCookies.length);
+    console.log('Sample cookie data:', actionTakenCookies.length > 0 ? actionTakenCookies[0] : 'No cookies');
     
     // Debug: Log all user preference domains for easier comparison
     const allPreferenceDomains = Array.from(userPreferences.keys());
@@ -176,7 +340,11 @@ function findDiscrepancyWebsites(cookieData, userPreferences) {
             !originalDomain.startsWith('.') ? '.' + originalDomain : null,
             formattedDomain,
             formattedDomain.startsWith('www.') ? formattedDomain.substring(4) : null,
-            !formattedDomain.startsWith('www.') ? 'www.' + formattedDomain : null
+            !formattedDomain.startsWith('www.') ? 'www.' + formattedDomain : null,
+            // Additional formats for better matching
+            formattedDomain.startsWith('www.') ? '.' + formattedDomain.substring(4) : null, // .domain.com from www.domain.com
+            originalDomain.startsWith('.') && originalDomain.includes('www.') ? originalDomain.replace('.www.', '.') : null, // .domain.com from .www.domain.com
+            formattedDomain.replace('www.', '') // domain.com from www.domain.com
         ].filter(Boolean);
         
         console.log('Checking possible domain formats:', possibleFormats);
@@ -277,6 +445,30 @@ function findDiscrepancyWebsites(cookieData, userPreferences) {
     return discrepancies;
 }
 
+// Split the selected 10 domains into most visited (top 5) and least visited (bottom 5)
+function splitDomainsByVisitFrequency(domains) {
+    console.log('Splitting domains by visit frequency:', domains);
+    
+    // Sort by totalVisitCount (most frequent first)
+    const sortedDomains = [...domains].sort((a, b) => {
+        const visitsA = parseInt(a.totalVisitCount) || 0;
+        const visitsB = parseInt(b.totalVisitCount) || 0;
+        return visitsB - visitsA;  // Descending order
+    });
+    
+    // Split into top 5 and bottom 5
+    const mostRecentDomains = sortedDomains.slice(0, 5);
+    const leastRecentDomains = sortedDomains.slice(5, 10);
+    
+    console.log('Most visited (top 5):', mostRecentDomains.map(d => `${d.domain} (${d.totalVisitCount} visits)`));
+    console.log('Least visited (bottom 5):', leastRecentDomains.map(d => `${d.domain} (${d.totalVisitCount} visits)`));
+    
+    return {
+        mostRecentDomains,
+        leastRecentDomains
+    };
+}
+
 // Process the stored cookie data from the extension
 function processStoredCookieData(cookieData) {
     // Filter for cookies where the user has taken action
@@ -297,11 +489,24 @@ function processStoredCookieData(cookieData) {
         return visitsB - visitsA;  // Most frequent first (highest count)
     });
     
-    // Get the 5 most frequently visited domains
-    const mostFrequentDomains = sortedByFrequency.slice(0, 5);
+    // Track seen main domain names to ensure uniqueness
+    const seenMainDomains = new Set();
     
-    // Get the 5 least frequently visited domains (with at least 1 visit)
-    // First filter for domains with visits > 0
+    // Get EXACTLY 5 unique most frequently visited domains
+    const mostFrequentDomains = [];
+    for (const cookie of sortedByFrequency) {
+        const formattedDomain = formatDomainForDisplay(cookie.domain);
+        const mainName = extractMainDomainName(formattedDomain);
+        
+        if (!seenMainDomains.has(mainName)) {
+            seenMainDomains.add(mainName);
+            mostFrequentDomains.push(cookie);
+            
+            if (mostFrequentDomains.length === 5) break;
+        }
+    }
+    
+    // Get EXACTLY 5 unique least frequently visited domains
     const domainsWithVisits = cookiesToProcess.filter(cookie => 
         parseInt(cookie.totalVisitCount) > 0
     );
@@ -313,8 +518,21 @@ function processStoredCookieData(cookieData) {
         return visitsA - visitsB;
     });
     
-    // Take the 5 domains with the lowest visit counts
-    const leastFrequentDomains = sortedAscending.slice(0, 5);
+    const leastFrequentDomains = [];
+    for (const cookie of sortedAscending) {
+        const formattedDomain = formatDomainForDisplay(cookie.domain);
+        const mainName = extractMainDomainName(formattedDomain);
+        
+        if (!seenMainDomains.has(mainName)) {
+            seenMainDomains.add(mainName);
+            leastFrequentDomains.push(cookie);
+            
+            if (leastFrequentDomains.length === 5) break;
+        }
+    }
+    
+    console.log(`Selected ${mostFrequentDomains.length} unique most frequent domains`);
+    console.log(`Selected ${leastFrequentDomains.length} unique least frequent domains`);
     
     return { 
         mostRecentDomains: mostFrequentDomains, 
@@ -339,6 +557,22 @@ function formatDomainForDisplay(domain) {
     }
     
     return domain;
+}
+
+// Extract the main domain name for comparison (e.g., "zoom" from "www.zoom.com" or "www.zoom.us")
+function extractMainDomainName(domain) {
+    if (!domain) return '';
+    
+    // Remove www. prefix
+    let cleaned = domain.replace(/^www\./, '');
+    
+    // Split by dots and get the main part (before TLD)
+    const parts = cleaned.split('.');
+    
+    // Return the main domain name (second-to-last part before TLD)
+    // For "zoom.com" or "zoom.us", this returns "zoom"
+    // For "stackoverflow.com", this returns "stackoverflow"
+    return parts.length >= 2 ? parts[parts.length - 2].toLowerCase() : cleaned.toLowerCase();
 }
 
 // Calculate days remaining until cookie expiration
@@ -441,15 +675,17 @@ function displayWebsites(domains, tableId) {
         
         // Create favicon image element
         const favicon = document.createElement('img');
-        favicon.src = `https://www.google.com/s2/favicons?domain=${formattedDomain}&sz=32`;
         favicon.alt = '';
         favicon.style.marginRight = '8px';
         favicon.style.verticalAlign = 'middle';
         
-        // Handle favicon loading errors
+        // Handle favicon loading errors (set before src to suppress console errors)
         favicon.onerror = function() {
             this.style.display = 'none';
         };
+        
+        // Set src after error handler is attached
+        favicon.src = `https://www.google.com/s2/favicons?domain=${formattedDomain}&sz=32`;
         
         // Create a container for the favicon and domain text
         const domainContainer = document.createElement('div');
