@@ -36,6 +36,79 @@ window.addEventListener("message", (event) => {
       // For "stackoverflow.com", this returns "stackoverflow"
       return parts.length >= 2 ? parts[parts.length - 2].toLowerCase() : cleaned.toLowerCase();
     }
+        // Helper function to categorize websites based on preferences
+    function categorizeWebsites(cookieData) {
+      console.log('Categorizing websites, total cookies:', cookieData.length);
+      
+      // Filter for cookies where actionTaken = "Yes"
+      const actionTakenCookies = cookieData.filter(cookie => 
+        cookie.actionTaken && cookie.actionTaken.toLowerCase() === 'yes'
+      );
+      
+      // Filter for default cookies
+      const defaultActionCookies = cookieData.filter(cookie => 
+        cookie.actionTaken && cookie.actionTaken.toLowerCase() === 'default'
+      );
+      
+      console.log('Cookies with action taken:', actionTakenCookies.length);
+      console.log('Cookies with default action:', defaultActionCookies.length);
+      
+      // Arrays to store categorized domains
+      const category1 = []; // Accept all (functional=true, performance=true, advertising=true)
+      const category2 = []; // Reject all (functional=false, performance=false, advertising=false)
+      const category3 = []; // Mixed (functional=true, performance=true, advertising=false)
+      const category4 = defaultActionCookies.length > 0; // Has default action cookies
+      
+      // Process each cookie with action taken
+      for (const cookie of actionTakenCookies) {
+        if (!cookie.domain) continue;
+        
+        let preferences = null;
+        
+        // Try to get preferences from the cookie
+        if (cookie.categories && typeof cookie.categories === 'object') {
+          preferences = {
+            functional: cookie.categories.functional === true,
+            performance: cookie.categories.performance === true,
+            advertising: cookie.categories.advertising === true
+          };
+        } else if ('functional' in cookie && 'performance' in cookie && 'advertising' in cookie) {
+          preferences = {
+            functional: cookie.functional === "Yes" || cookie.functional === true,
+            performance: cookie.performance === "Yes" || cookie.performance === true,
+            advertising: cookie.advertising === "Yes" || cookie.advertising === true
+          };
+        }
+        
+        // Categorize based on preferences
+        if (preferences && 
+            preferences.functional !== undefined && 
+            preferences.performance !== undefined && 
+            preferences.advertising !== undefined) {
+          
+          if (preferences.functional === true && preferences.performance === true && preferences.advertising === true) {
+            category1.push(cookie.domain);
+          } else if (preferences.functional === false && preferences.performance === false && preferences.advertising === false) {
+            category2.push(cookie.domain);
+          } else if (preferences.functional === true && preferences.performance === true && preferences.advertising === false) {
+            category3.push(cookie.domain);
+          }
+        }
+      }
+      
+      console.log('Category 1 (Accept all) count:', category1.length);
+      console.log('Category 2 (Reject all) count:', category2.length);
+      console.log('Category 3 (Mixed) count:', category3.length);
+      console.log('Category 4 (Default) has data:', category4);
+      
+      return {
+        hasAllAccepted: category1.length > 0,
+        hasAllRejected: category2.length > 0,
+        hasAdvertisingRejected: category3.length > 0,
+        hasDefaultCookies: category4
+      };
+    }
+
     
     // Check ALL possible storage keys
     chrome.storage.local.get(null, (result) => {
@@ -76,12 +149,19 @@ window.addEventListener("message", (event) => {
       const uniqueDomainsArray = Array.from(uniqueDomains);
       console.log("Content script: Unique domains found:", uniqueDomainsArray);
       console.log("Content script: Unique domains count:", uniqueDomainsArray.length);
+
+      // NEW: Categorize websites to determine which types are available
+      const websiteTypes = categorizeWebsites(cookieData);
+      console.log("Content script: Website types available:", websiteTypes);
+
       
       const payload = {
         eligibleSitesCount: uniqueDomainsArray.length,  // Now counts unique domains
         isEligible: uniqueDomainsArray.length >= 10,     // TRUE if 10+ unique domains
         totalSites: cookieData.length,
-        uniqueDomains: uniqueDomainsArray  // Optional: send the list of unique domains
+        uniqueDomains: uniqueDomainsArray, // Optional: send the list of unique domains
+        websiteTypes: websiteTypes  //  website type availability
+
       };
       
       console.log("Content script: Sending eligibility response:", payload);
