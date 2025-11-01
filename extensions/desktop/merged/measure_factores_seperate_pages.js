@@ -68,7 +68,25 @@ async function loadCookieDataAndSelectWebsites() {
         
         // Display the selected website based on the category type
         displayWebsite(matchingWebsites, categoryType);
-        
+
+        if (matchingWebsites) {
+    // Compute the booleans based on category availability
+    const websiteData = {
+        hasAdvertisingRejected: !!matchingWebsites.category3,  // mixed
+        hasAllAccepted: !!matchingWebsites.category1,          // accept all
+        hasAllRejected: !!matchingWebsites.category2,          // reject all
+        hasDefaultCookies: !!matchingWebsites.category4        // default
+    };
+    // Send to the survey page
+    window.postMessage({
+        type: "WEBSITE_DATA",
+        payload: websiteData
+    }, "*");
+
+    console.log(" Sent WEBSITE_DATA to survey:", websiteData);
+}
+
+       
     } catch (error) {
         console.error('Error in loadCookieDataAndSelectWebsites:', error);
         showError('An error occurred while loading data: ' + error.message);
