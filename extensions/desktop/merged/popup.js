@@ -108,16 +108,23 @@ try {
     return tcfCookieSet.has(cookieName)
   }
 
-  // Function to find default TCF data for a domain
+// Function to find default TCF data for a domain
 function findDefaultTCFData(domain, tcfKeyName) {
-    // Clean domain for comparison
+  // Clean domain for comparison - remove leading dots and convert to lowercase
   const cleanDomain = domain.replace(/^\.+/, '').toLowerCase();
+  const cleanDomainNoWWW = cleanDomain.replace(/^www\./, '');
   
   return defaultTCFData.find(entry => {
     const entryDomain = entry.domain.toLowerCase();
+    const entryDomainNoWWW = entryDomain.replace(/^www\./, '');
     
-    // Check if domains match (with or without leading dot)
-    if (entryDomain !== cleanDomain) return false;
+    // Check if domains match (with or without www. or leading dot)
+    const domainsMatch = entryDomain === cleanDomain || 
+                         entryDomainNoWWW === cleanDomainNoWWW ||
+                         entryDomain === cleanDomainNoWWW ||
+                         entryDomainNoWWW === cleanDomain;
+    
+    if (!domainsMatch) return false;
     
     if (tcfKeyName && entry.tcf_string_key_name !== "undefined") {
       return entry.tcf_string_key_name === tcfKeyName;
@@ -221,13 +228,27 @@ function compareTCFLegitimateInterests11(userLI, defaultLI) {
 
   // Check if domain is in no-store-before-interaction list
   function isNoStoreBeforeInteractionSite(domain) {
-    const cleanDomain = domain.replace(/^\.+/, '').toLowerCase();
+  // Clean the domain: remove leading dots and convert to lowercase
+  const cleanDomain = domain.replace(/^\.+/, '').toLowerCase();
+  
+  // Also create a version without www. for comparison
+  const cleanDomainNoWWW = cleanDomain.replace(/^www\./, '');
+  
+  return noStoreBeforeInteractionSites.some(entry => {
+    const entryDomain = entry.domain.toLowerCase();
+    // Also create a version of the entry domain without www.
+    const entryDomainNoWWW = entryDomain.replace(/^www\./, '');
     
-    return noStoreBeforeInteractionSites.some(entry => {
-      const entryDomain = entry.domain.toLowerCase();
-      return entryDomain === cleanDomain;
-    });
+    // Match if either:
+    // 1. Exact match (with or without www.)
+    // 2. Both normalize to the same domain when www. is removed
+    return entryDomain === cleanDomain || 
+           entryDomainNoWWW === cleanDomainNoWWW ||
+           entryDomain === cleanDomainNoWWW ||
+           entryDomainNoWWW === cleanDomain;
+  });
   }
+
   /**
    * Parses a cookie string into an object.
    * @param {string} value - The cookie string.
