@@ -293,6 +293,78 @@ function checkForSurveyElement() {
   // Expose the observer in case something else wants to disconnect it later
   window.__pricrumbs_checker_observer = observer;
 }
+// Listen for preference check requests
+window.addEventListener("message", (event) => {
+  if (event.source !== window) return;
+  if (!event.data || event.data.type !== "CHECK_PREFERENCES") return;
+  
+  const category = event.data.payload?.category;
+  if (!category) return;
+  
+  console.log(` Extension: Checking ${category} preferences`);
+  
+  // Check preferences and respond
+  checkCategoryPreferences(category).then(result => {
+    window.postMessage({
+      type: "PREFERENCES_STATUS",
+      payload: {
+        category: category,
+        isComplete: result.isComplete,
+        completedCount: result.completedCount,
+        totalCount: result.totalCount
+      }
+    }, "*");
+  });
+});
+
+async function checkCategoryPreferences(category) {
+  try {
+    // Get selected domains
+    const domainsResult = await ext.storage.local.get('selectedDomainsForHistory');
+    const selectedDomains = domainsResult.selectedDomainsForHistory || [];
+    
+    if (selectedDomains.length === 0) {
+      console.warn(' No selected domains found');
+      return { isComplete: false, completedCount: 0, totalCount: 0 };
+    }
+    
+    // Get user preferences
+    const prefsResult = await ext.storage.local.get('userCookiePreferences');
+    const userPreferences = prefsResult.userCookiePreferences || [];
+    const prefsMap = new Map(userPreferences);
+    
+    console.log(`Checking ${selectedDomains.length} domains for ${category} preferences`);
+    
+    let completedCount = 0;
+    
+    // Check each domain
+    for (const domainObj of selectedDomains) {
+      const domain = domainObj.originalDomain || domainObj.domain;
+      const prefs = prefsMap.get(domain);
+      
+      // Check if this category has a value set (not null/undefined)
+      if (prefs && prefs[category] !== null && prefs[category] !== undefined) {
+        completedCount++;
+        console.log(`✓ ${domain}: ${category} = ${prefs[category]}`);
+      } else {
+        console.log(`✗ ${domain}: ${category} = NOT SET`);
+      }
+    }
+    
+    console.log(`Result: ${completedCount}/${selectedDomains.length} complete`);
+    
+    return {
+      isComplete: completedCount === selectedDomains.length && selectedDomains.length >= 10,
+      completedCount: completedCount,
+      totalCount: selectedDomains.length
+    };
+  } catch (error) {
+    console.error('Error checking preferences:', error);
+    return { isComplete: false, completedCount: 0, totalCount: 0 };
+  }
+}
+
+
 
 // Run checker on initial load
 checkForSurveyElement();
