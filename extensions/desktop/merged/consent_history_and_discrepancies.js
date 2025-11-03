@@ -773,13 +773,13 @@ function getSelectionStatus(domain, category, userPref, hasDiscrepancy) {
     const button = document.createElement('button');
     
     if (isAccepted) {
-        button.textContent = 'Accepted';
+        button.textContent = 'Allowed';
         button.className = 'toggle-btn accept selected';
         button.style.backgroundColor = '#4c7aaf';
         button.style.color = 'white';
         button.style.borderColor = '#4c7aaf';
     } else {
-        button.textContent = 'Rejected';
+        button.textContent = 'Not Allowed';
         button.className = 'toggle-btn reject selected';
         button.style.backgroundColor = '#919291';
         button.style.color = 'white';
