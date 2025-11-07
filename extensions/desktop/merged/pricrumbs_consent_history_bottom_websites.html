@@ -184,15 +184,19 @@
         </div>
     </div> -->
         
-        <!-- Least Frequently Visited Websites Table -->
+        <!-- Websites with Discrepancies Table -->
         <div id="page2" >
-            <!-- <div class="table-header">Least Frequent Visited Websites (Your Cookie Preferences)</div> -->
+            <div class="table-header">Websites with Discrepancies</div>
             <div style="padding: 10px; margin-bottom: 15px; text-align: center;">
-                <span style="font-size: 16px;">The </span>
+                <span style="font-size: 16px;">The table below shows websites where there was a difference between your stated preferences and the actual cookies consent settings stored in your browser. The </span>
                 <span style="color: #ff9800; font-weight: bold; font-size: 25px;">!</span>
-                <span style="font-size: 16px;"> next to a choice indicates there was a difference between the choice you made earlier and the actual consent preference in your history.</span>
+                <span style="font-size: 16px;"> indicates the specific cookie category with a discrepancy.</span>
             </div>
-            <table id="leastRecentTable">
+            <div id="noDiscrepanciesMessage" style="display: none; text-align: center; padding: 20px; background-color: #e8f4f8; border-radius: 5px; margin: 20px 0;">
+                <p style="font-size: 18px; color: #4c7aaf; font-weight: bold;">✓ No discrepancies found!</p>
+                <p style="font-size: 16px; color: #666;">All your cookie preferences match the settings stored in your browser.</p>
+            </div>
+            <table id="leastRecentTable" style="display: none;">
             <thead>
                 <tr>
                     <th class="website-cell">Website</th>
@@ -204,10 +208,11 @@
             </thead>
             <tbody id="leastRecentWebsitesList">
             </tbody>
+        </table>
              <div class="actions">
             <!-- <button id="nextBtn2">Next</button> -->
         </div>
-        </table>
+        </div>
        
     </div>
 
