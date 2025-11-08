@@ -2274,6 +2274,10 @@ document.getElementById('pricrumbs_website_advertising_cookies_rejected')?.addEv
 document.getElementById('pricrumbs_website_all_cookies_default')?.addEventListener('click', () => {
   window.location.href ='pricrumbs_website_all_cookies_default.html';
   });
+document.getElementById('pricrumbs_websites_with_discripincies')?.addEventListener('click', () => {
+  window.location.href ='pricrumbs_websites_with_discripincies.html';
+  });
+
 
 
       
