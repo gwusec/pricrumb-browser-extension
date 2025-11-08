@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <title>Your Cookie Preferences</title>
-    <!-- <link rel="stylesheet" href="button-toggle.css"> -->
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -22,7 +21,7 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            /* margin: 20px 0; */
+            margin-bottom: 20px;
         }
         th, td {
             padding: 12px;
@@ -38,27 +37,9 @@
             border-radius: 4px;
             cursor: pointer;
         }
-        .save-btn {
-            background-color: #4CAF50;
-            color: white;
-            font-size: 16px;
-            padding: 12px 24px;
-        }
         .actions {
             text-align: center;
             margin-top: 20px;
-        }
-        .description {
-            text-align: center;
-            background-color: #d9ebf0;
-            font-size: 16px;
-            color: #080707;
-            line-height: 1.8;
-            font-weight: bold;
-            letter-spacing: 1px;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 20px;
         }
         
         /* Center content in table cells */
@@ -107,7 +88,7 @@
             align-items: center;
             font-weight: bold;
             cursor: default;
-            pointer-events: none; /* Makes buttons non-clickable */
+            pointer-events: none;
         }
         
         /* Different styles for accept and reject buttons */
@@ -127,100 +108,48 @@
         .table-header {
             background-color: #e8f4f8;
             padding: 7px;
-            margin-top: 10px;
+            margin-top: 20px;
+            margin-bottom: 10px;
             text-align: center;
             border-radius: 5px;
             font-weight: bold;
             font-size: 18px;
         }
-        .NextTable {
-            background-color: #4CAF50;
-            color: white;
-            padding: 10px 20px;
-            margin: 0 5px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            text-align: center;
-            margin-top: 20px;
-        }
-        /* Add this to your CSS */
-.selection-container {
-    position: relative;
-}
-
         
+        .selection-container {
+            position: relative;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- <h1>Your Cookie Preferences</h1>
-        <p class="description">
-            Below are the cookie preferences that have been saved in your browser. These settings show whether you've 
-            accepted or rejected cookies for different websites you've visited and the cookie's expiration date.
-        </p> -->
-
         <div id="loading">Loading your cookie preference data...</div>
 
-        <!-- Page 1: Most Recently Visited Websites Table
-        <div id="page1">
-            <div class="table-header">Most Frequent Visited Websites</div>
-            <table id="mostRecentTable" style="display: none;">
-            <thead>
-                <tr>
-                    <th class="website-cell">Website</th>
-                    <th>Functional Cookies</th>
-                    <th>Performance Cookies</th>
-                    <th>Advertising Cookies</th>
-                    <th>Cookie Expiration Date</th>
-                    <th>Freq Visit (Total)</th>
-                </tr>
-            </thead>
-            <tbody id="mostRecentWebsitesList">
-            </tbody>
-        </table>
-        <div class="actions">
-            <button id="nextBtn1">Next</button>
+        <!-- Info message about discrepancy markers -->
+        <div style="padding: 10px; margin-bottom: 15px; text-align: center;">
+            <span style="font-size: 16px;">The </span>
+            <span style="color: #ff9800; font-weight: bold; font-size: 25px;">!</span>
+            <span style="font-size: 16px;"> next to a choice indicates there was a difference between the choice you made earlier and the actual cookies consent preference in your history.</span>
         </div>
-    </div> -->
-        
-        <!-- Websites with Discrepancies Table -->
-        <div id="page2" >
-            <div class="table-header">Websites with Discrepancies</div>
-            <div style="padding: 10px; margin-bottom: 15px; text-align: center;">
-                <span style="font-size: 16px;">The table below shows websites where there was a difference between your stated preferences and the actual cookies consent settings stored in your browser. The </span>
-                <span style="color: #ff9800; font-weight: bold; font-size: 25px;">!</span>
-                <span style="font-size: 16px;"> indicates the specific cookie category with a discrepancy.</span>
-            </div>
-            <div id="noDiscrepanciesMessage" style="display: none; text-align: center; padding: 20px; background-color: #e8f4f8; border-radius: 5px; margin: 20px 0;">
-                <p style="font-size: 18px; color: #4c7aaf; font-weight: bold;">✓ No discrepancies found!</p>
-                <p style="font-size: 16px; color: #666;">All your cookie preferences match the settings stored in your browser.</p>
-            </div>
-            <table id="leastRecentTable" style="display: none;">
+
+        <!-- Bottom 5 Least Frequently Visited Websites ONLY -->
+        <div class="table-header">Bottom 5 Least Frequently Visited Websites</div>
+        <table id="leastRecentTable" style="display: none;">
             <thead>
                 <tr>
                     <th class="website-cell">Website</th>
                     <th>Functional Cookies</th>
                     <th>Performance Cookies</th>
                     <th>Advertising Cookies</th>
-                    <th>Cookie Settings Will Expires in:</th>
+                    <th>Cookie Settings Will Expire in:</th>
                 </tr>
             </thead>
             <tbody id="leastRecentWebsitesList">
+                <!-- Bottom 5 websites will be inserted here by JS -->
             </tbody>
         </table>
-             <div class="actions">
-            <!-- <button id="nextBtn2">Next</button> -->
-        </div>
-        </div>
-       
     </div>
 
-    
-    <!-- <script>
-        // Add a page identifier for the JavaScript to know which page is being viewed
-        window.currentPage = 'least-visited';
-    </script> -->
     <script src="consent_history_and_discrepancies.js"></script>
     <script src="ext-shim.js"></script>
 </body>
