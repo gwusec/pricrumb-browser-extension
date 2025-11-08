@@ -193,26 +193,36 @@ async function loadCookiesAndFindDiscrepancies() {
                 console.log('No user preferences found, skipping discrepancy detection');
             }
             
-            // Split the selected domains into most/least visited based on their visit counts
-            const { mostRecentDomains, leastRecentDomains } = splitDomainsByVisitFrequency(selectedDomains);
+            // Detect which page we're on and display accordingly
+            const isDiscrepanciesOnlyPage = document.getElementById('WebsitesWithDiscrepancies') !== null;
+            const hasTopFive = document.getElementById('mostRecentWebsitesList') !== null;
+            const hasBottomFive = document.getElementById('leastRecentWebsitesList') !== null;
             
-            // For the discrepancy page, we want to show ALL domains with discrepancies,
-            // not just the ones in leastRecentDomains
-            const allDomains = [...mostRecentDomains, ...leastRecentDomains];
+            if (isDiscrepanciesOnlyPage) {
+                // Discrepancies-only page - show only websites with discrepancies
+                console.log(' Page detected: Discrepancies-Only Page');
+                displayWebsitesWithDiscrepanciesOnly(selectedDomains, 'WebsitesWithDiscrepancies');
+            } else if (hasTopFive || hasBottomFive) {
+                // Original page - show top 5 and/or bottom 5
+                console.log(' Page detected: Original Page');
+                const { mostRecentDomains, leastRecentDomains } = splitDomainsByVisitFrequency(selectedDomains);
+                
+                if (hasTopFive) {
+                    displayWebsites(mostRecentDomains, 'mostRecentWebsitesList');
+                    const mostRecentTable = document.getElementById('mostRecentTable');
+                    if (mostRecentTable) mostRecentTable.style.display = 'table';
+                }
+                
+                if (hasBottomFive) {
+                    displayWebsites(leastRecentDomains, 'leastRecentWebsitesList');
+                    const leastRecentTable = document.getElementById('leastRecentTable');
+                    if (leastRecentTable) leastRecentTable.style.display = 'table';
+                }
+            }
             
-            // Display domains in their respective tables
-            displayWebsites(mostRecentDomains, 'mostRecentWebsitesList');
-            displayWebsites(allDomains, 'leastRecentWebsitesList');  // Pass ALL domains to check for discrepancies
-            
-            // Hide loading message and show tables
+            // Hide loading message
             const loadingElement = document.getElementById('loading');
             if (loadingElement) loadingElement.style.display = 'none';
-            
-            const mostRecentTable = document.getElementById('mostRecentTable');
-            if (mostRecentTable) mostRecentTable.style.display = 'table';
-            
-            // Note: leastRecentTable visibility is controlled by displayWebsites function
-            // based on whether there are discrepancies or not
             
         } else {
             // Fallback: Load cookie data if no selected domains found
@@ -233,25 +243,39 @@ async function loadCookiesAndFindDiscrepancies() {
                     console.log('No user preferences found, skipping discrepancy detection');
                 }
                 
-                // Then process the cookie data for display
+                // Process the cookie data for display
                 const { mostRecentDomains, leastRecentDomains } = processStoredCookieData(result.cookieData);
                 
-                // For the discrepancy page, we want to show ALL domains with discrepancies
-                const allDomains = [...mostRecentDomains, ...leastRecentDomains];
+                // Detect which page we're on and display accordingly
+                const isDiscrepanciesOnlyPage = document.getElementById('WebsitesWithDiscrepancies') !== null;
+                const hasTopFive = document.getElementById('mostRecentWebsitesList') !== null;
+                const hasBottomFive = document.getElementById('leastRecentWebsitesList') !== null;
                 
-                // Display domains in their respective tables
-                displayWebsites(mostRecentDomains, 'mostRecentWebsitesList');
-                displayWebsites(allDomains, 'leastRecentWebsitesList');  // Pass ALL domains to check for discrepancies
+                if (isDiscrepanciesOnlyPage) {
+                    // Discrepancies-only page
+                    console.log('Page detected: Discrepancies-Only Page (Fallback)');
+                    const allDomains = [...mostRecentDomains, ...leastRecentDomains];
+                    displayWebsitesWithDiscrepanciesOnly(allDomains, 'WebsitesWithDiscrepancies');
+                } else if (hasTopFive || hasBottomFive) {
+                    // Original page
+                    console.log(' Page detected: Original Page (Fallback)');
+                    
+                    if (hasTopFive) {
+                        displayWebsites(mostRecentDomains, 'mostRecentWebsitesList');
+                        const mostRecentTable = document.getElementById('mostRecentTable');
+                        if (mostRecentTable) mostRecentTable.style.display = 'table';
+                    }
+                    
+                    if (hasBottomFive) {
+                        displayWebsites(leastRecentDomains, 'leastRecentWebsitesList');
+                        const leastRecentTable = document.getElementById('leastRecentTable');
+                        if (leastRecentTable) leastRecentTable.style.display = 'table';
+                    }
+                }
                 
-                // Hide loading message and show tables
+                // Hide loading message
                 const loadingElement = document.getElementById('loading');
                 if (loadingElement) loadingElement.style.display = 'none';
-                
-                const mostRecentTable = document.getElementById('mostRecentTable');
-                if (mostRecentTable) mostRecentTable.style.display = 'table';
-                
-                // Note: leastRecentTable visibility is controlled by displayWebsites function
-                // based on whether there are discrepancies or not
             } else {
                 const loadingElement = document.getElementById('loading');
                 if (loadingElement) {
@@ -658,9 +682,9 @@ function getDiscrepancyInfo(domain) {
     });
     
     if (discrepancy) {
-        console.log(' Found discrepancy for domain:', domain, discrepancy);
+        console.log('✓ Found discrepancy for domain:', domain, discrepancy);
     } else {
-        console.log(' No discrepancy found for domain:', domain);
+        console.log('✗ No discrepancy found for domain:', domain);
     }
     
     return discrepancy;
@@ -678,89 +702,11 @@ function displayWebsites(domains, tableId) {
     
     websitesList.innerHTML = '';
 
-    // Only filter for discrepancies if this is the leastRecentWebsitesList table
-    let domainsToDisplay = domains;
+    // NO FILTERING - just display all domains passed to this function
+    console.log(`Displaying ${domains.length} domains in table ${tableId}`);
     
-    if (tableId === 'leastRecentWebsitesList') {
-        console.log('==========================================');
-        console.log('FILTERING FOR DISCREPANCIES');
-        console.log('==========================================');
-        console.log('Total domains passed to filter:', domains.length);
-        console.log('Domains:', domains.map(d => d.domain));
-        console.log('Total discrepancies in websitesWithDiscrepancies:', websitesWithDiscrepancies.length);
-        console.log('Discrepancy domains:', websitesWithDiscrepancies.map(d => d.domain));
-        
-        // Filter domains to only include those with discrepancies
-        domainsToDisplay = domains.filter(domain => {
-            console.log(`\n--- Checking domain: ${domain.domain} ---`);
-            
-            const discrepancyInfo = getDiscrepancyInfo(domain.domain);
-            if (!discrepancyInfo) {
-                console.log(` No discrepancy info found for ${domain.domain}`);
-                return false;
-            }
-            
-            if (!discrepancyInfo.statedPreferences) {
-                console.log(` No stated preferences for ${domain.domain}`);
-                return false;
-            }
-            
-            console.log(`  Found discrepancy info for ${domain.domain}`);
-            console.log(`  Stated preferences:`, discrepancyInfo.statedPreferences);
-            console.log(`  Domain categories:`, domain.categories);
-            
-            // Check each category for discrepancies
-            const categories = ['functional', 'performance', 'advertising'];
-            const hasDiscrepancy = categories.some(category => {
-                const userValue = discrepancyInfo.statedPreferences[category];
-                if (typeof userValue !== 'number') {
-                    console.log(`  - ${category}: no numeric user value (${userValue})`);
-                    return false;
-                }
-                
-                // Determine if the cookie is accepted in history
-                let isAccepted = false;
-                if (domain.categories && domain.categories[category] !== undefined) {
-                    isAccepted = domain.categories[category];
-                }
-                
-                // Check for discrepancy: accepted but user chose 1-2, or rejected but user chose 4-5
-                const hasDisc = (isAccepted && userValue <= 2) || (!isAccepted && userValue >= 4);
-                console.log(`  - ${category}: userValue=${userValue}, isAccepted=${isAccepted}, hasDiscrepancy=${hasDisc}`);
-                
-                return hasDisc;
-            });
-            
-            console.log(`  Final result for ${domain.domain}: ${hasDiscrepancy ? 'HAS DISCREPANCY ' : 'no discrepancy '}`);
-            return hasDiscrepancy;
-        });
-        
-        console.log('==========================================');
-        console.log(`FILTERING COMPLETE: ${domainsToDisplay.length} domains with discrepancies out of ${domains.length} total`);
-        console.log('Filtered domains:', domainsToDisplay.map(d => d.domain));
-        console.log('==========================================\n');
-        
-        // Show appropriate message or table
-        if (domainsToDisplay.length === 0) {
-            if (table) table.style.display = 'none';
-            if (noDiscrepanciesMessage) noDiscrepanciesMessage.style.display = 'block';
-            
-            const emptyRow = document.createElement('tr');
-            const emptyCell = document.createElement('td');
-            emptyCell.colSpan = 5;
-            emptyCell.textContent = 'No websites with discrepancies found.';
-            emptyCell.style.textAlign = 'center';
-            emptyRow.appendChild(emptyCell);
-            websitesList.appendChild(emptyRow);
-            return;
-        } else {
-            if (table) table.style.display = 'table';
-            if (noDiscrepanciesMessage) noDiscrepanciesMessage.style.display = 'none';
-        }
-    }
-    
-    // Display the domains (filtered or not depending on tableId)
-    domainsToDisplay.forEach((domain, index) => {
+    // Display all domains without filtering
+    domains.forEach((domain, index) => {
         console.log(`Displaying domain in table: ${domain.domain}`);
         
         const row = document.createElement('tr');
@@ -933,4 +879,112 @@ function getWillingnessText(value) {
         case 5: return "Willing";
         default: return "Unknown";
     }
+}
+// NEW FUNCTION: Display only websites with discrepancies (for discrepancies-only page)
+function displayWebsitesWithDiscrepanciesOnly(domains, tableId) {
+    const websitesList = document.getElementById(tableId);
+    const table = document.getElementById('leastRecentTable');
+    const noDiscrepanciesMessage = document.getElementById('noDiscrepanciesMessage');
+    
+    if (!websitesList) {
+        console.error(`Element with ID ${tableId} not found`);
+        return;
+    }
+    
+    websitesList.innerHTML = '';
+    
+    console.log('==========================================');
+    console.log('FILTERING FOR DISCREPANCIES ONLY');
+    console.log('==========================================');
+    console.log('Total domains to check:', domains.length);
+    console.log('Total discrepancies found:', websitesWithDiscrepancies.length);
+    
+    // Filter to show only domains with discrepancies
+    const domainsWithDiscrepancies = domains.filter(domain => {
+        const discrepancyInfo = getDiscrepancyInfo(domain.domain);
+        if (!discrepancyInfo || !discrepancyInfo.statedPreferences) {
+            return false;
+        }
+        
+        // Check if any category has a discrepancy
+        const categories = ['functional', 'performance', 'advertising'];
+        return categories.some(category => {
+            const userValue = discrepancyInfo.statedPreferences[category];
+            if (typeof userValue !== 'number') return false;
+            
+            let isAccepted = false;
+            if (domain.categories && domain.categories[category] !== undefined) {
+                isAccepted = domain.categories[category];
+            }
+            
+            // Discrepancy = accepted but user chose 1-2, or rejected but user chose 4-5
+            return (isAccepted && userValue <= 2) || (!isAccepted && userValue >= 4);
+        });
+    });
+    
+    console.log(`Filtered result: ${domainsWithDiscrepancies.length} websites with discrepancies`);
+    console.log('==========================================\n');
+    
+    // Show message or table
+    if (domainsWithDiscrepancies.length === 0) {
+        if (table) table.style.display = 'none';
+        if (noDiscrepanciesMessage) noDiscrepanciesMessage.style.display = 'block';
+        return;
+    }
+    
+    if (table) table.style.display = 'table';
+    if (noDiscrepanciesMessage) noDiscrepanciesMessage.style.display = 'none';
+    
+    // Display each domain with discrepancies
+    domainsWithDiscrepancies.forEach(domain => {
+        const row = document.createElement('tr');
+        
+        // Website cell
+        const domainCell = document.createElement('td');
+        domainCell.className = 'website-cell';
+        const formattedDomain = formatDomainForDisplay(domain.domain);
+        
+        const favicon = document.createElement('img');
+        favicon.alt = '';
+        favicon.style.marginRight = '8px';
+        favicon.style.verticalAlign = 'middle';
+        favicon.onerror = function() { this.style.display = 'none'; };
+        favicon.src = `https://www.google.com/s2/favicons?domain=${formattedDomain}&sz=32`;
+        
+        const domainContainer = document.createElement('div');
+        domainContainer.style.display = 'flex';
+        domainContainer.style.alignItems = 'center';
+        domainContainer.appendChild(favicon);
+        domainContainer.appendChild(document.createTextNode(formattedDomain));
+        domainCell.appendChild(domainContainer);
+        row.appendChild(domainCell);
+        
+        // Get discrepancy info
+        const discrepancyInfo = getDiscrepancyInfo(domain.domain);
+        
+        // Category cells
+        ['functional', 'performance', 'advertising'].forEach(category => {
+            const cell = document.createElement('td');
+            const selectionStatus = getSelectionStatus(
+                domain, 
+                category, 
+                discrepancyInfo ? discrepancyInfo.statedPreferences : null,
+                discrepancyInfo ? discrepancyInfo.categories[category] : false
+            );
+            cell.appendChild(selectionStatus);
+            row.appendChild(cell);
+        });
+        
+        // Expiration cell
+        const expirationCell = document.createElement('td');
+        expirationCell.style.fontWeight = 'bold';
+        if (domain.expiration && domain.expiration !== "Session cookie") {
+            expirationCell.textContent = calculateDaysRemaining(domain.expiration);
+        } else {
+            expirationCell.textContent = "Session cookie";
+        }
+        row.appendChild(expirationCell);
+        
+        websitesList.appendChild(row);
+    });
 }
