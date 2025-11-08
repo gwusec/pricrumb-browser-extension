@@ -260,7 +260,9 @@ function checkForSurveyElement() {
     "pricrumbs_website_all_cookies_accepted": { html: "pricrumbs_website_all_cookies_accepted.html", height: "245px" },
     "pricrumbs_website_all_cookies_rejected": { html: "pricrumbs_website_all_cookies_rejected.html", height: "245px" },
     "pricrumbs_website_advertising_cookies_rejected": { html: "pricrumbs_website_advertising_cookies_rejected.html", height: "245px" },
-    "pricrumbs_website_all_cookies_default": { html: "pricrumbs_website_all_cookies_default.html", height: "245px" }
+    "pricrumbs_website_all_cookies_default": { html: "pricrumbs_website_all_cookies_default.html", height: "245px" },
+    "pricrumbs_websites_with_discripincies": { html: "pricrumbs_websites_with_discripincies.html", height: "950px" },
+
   };
 
   function injectIfFound(id, opts) {
