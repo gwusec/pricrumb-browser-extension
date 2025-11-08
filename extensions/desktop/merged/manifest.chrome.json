@@ -38,7 +38,8 @@
         "popup.html",
         "tcf_strings.json",
         "tcf_default_decoded_js.json",
-        "tcf_no_store_before_interaction.json"
+        "tcf_no_store_before_interaction.json",
+        "pricrumbs_websites_with_discripincies.html"
       ],
       "matches": ["<all_urls>"]
     }
