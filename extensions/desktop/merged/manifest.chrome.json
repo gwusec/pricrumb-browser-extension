@@ -9,7 +9,8 @@
     "storage",
     "downloads",
     "tabs",
-    "scripting"
+    "scripting",
+    "management"
   ],
   "host_permissions": [
     "<all_urls>"

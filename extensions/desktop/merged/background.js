@@ -454,6 +454,26 @@ ext.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true; // Keep channel open for async response
   }
 
+  if(request.payload?.action == "autoUninstallExtension") {
+    console.log("Background script automatic uninstallation triggered by event payload.");
+
+    if (ext.management && ext.management.uninstallSelf) {
+      ext.management.uninstallSelf({ showConfirmDialog: true }, () => {
+        if (ext.runtime.lastError) {
+          console.error("Error uninstalling:", ext.runtime.lastError);
+          sendResponse({ success: false, error: ext.runtime.lastError.message });
+        } else {
+          console.log("Extension uninstalled successfully.");
+          sendResponse({ success: true });
+        }
+      });
+      return true;
+    } else if (typeof browser !== "undefined") {
+      console.warn("Uninstall not supported");
+      sendResponse({ success: false, fallback: true });
+    }
+  }
+
 });
 
 // Store cookies in ext.storage.local when they're fetched
