@@ -858,7 +858,7 @@ function getSelectionStatus(domain, category, userPref, hasDiscrepancy) {
             discrepancyMarker.style.zIndex = '10';
             
             // Add tooltip showing what the user preference was
-            discrepancyMarker.title = `Your previous choice was: "${valueText}", but actual setting is: ${isAccepted ? 'Accept' : 'Reject'}`;
+            discrepancyMarker.title = `Your previous choice was: "${valueText}", but actual setting is: ${isAccepted ? 'Allowed' : 'Not Allowed'}`;
             
             container.appendChild(discrepancyMarker);
             container.style.overflow = 'visible';
