@@ -9,7 +9,8 @@
     "storage",
     "downloads",
     "tabs",
-    "scripting"
+    "scripting",
+    "management"
   ],
   "host_permissions": [
     "<all_urls>"
@@ -36,6 +37,7 @@
         "pricrumbs_website_advertising_cookies_rejected.html",
         "pricrumbs_website_all_cookies_default.html",
         "popup.html",
+        "popup_welcome.html",
         "tcf_strings.json",
         "tcf_default_decoded_js.json",
         "tcf_no_store_before_interaction.json",
