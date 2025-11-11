@@ -252,7 +252,7 @@ function checkForSurveyElement() {
   const elementMap = {
     "popup": { html: "popup.html", height: "600px" },
     "popup_invisible": { html: "popup.html", height: "0px" },
-    "pricrumbs_preferred_cookie_choices_functional": { html: "pricrumbs_preferred_cookie_choices_functional.html", height: "600px" },
+    "pricrumbs_preferred_cookie_choices_functional": { html: "pricrumbs_preferred_cookie_choices_functional.html", height: "480px" },
     "pricrumbs_preferred_cookie_choices_performance": { html: "pricrumbs_preferred_cookie_choices_performance.html", height: "600px" },
     "pricrumbs_preferred_cookie_choices_advertising": { html: "pricrumbs_preferred_cookie_choices_advertising.html", height: "600px" },
     "pricrumbs_consent_history_top_websites": { html: "pricrumbs_consent_history_top_websites.html", height: "950px" },
