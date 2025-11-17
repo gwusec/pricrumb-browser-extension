@@ -4,24 +4,72 @@
     <meta charset="UTF-8">
     <title>Advertising Cookies Preferences</title>
     <link rel="stylesheet" href="button-toggle.css">
-    <style>
+    <style>      
         body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            background-color: #f5f5f5;
+            margin: 0;                     /* no extra outer margin in embedded mode */
+            background-color: transparent; /* let the survey background show through */
         }
+
         .container {
-            max-width: 800px;
-            margin: 0 auto;
+            width: 100%;        /* always fill the host div */
+            max-width: 100%;    /* don't cap at 800px when embedded */
+            margin: 0;          /* no extra centering margin */
             background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 0;         /* optional – or a small value if you want some inner space */
+            border-radius: 0;   /* optional – removes the card look */
+            box-shadow: none;   /* optional – removes the card shadow */
+        }
+        
+        /* Introduction screen */
+        .intro-text {
+            text-align: center;
+            background-color: #d9ebf0;
+            font-size: 16px;
+            color: #080707;
+            line-height: 1.8;
+            font-weight: bold;
+            letter-spacing: 1px;
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        
+        /* Category selection */
+        .category-selection {
+            display: flex;
+            justify-content: center;
+            margin: 30px 0;
+        }
+        
+        .category-btn {
+            background-color: #9fd7e6;
+            color: rgb(18, 17, 17);
+            padding: 12px 20px;
+            margin: 0 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        
+        .category-btn.active {
+            background-color: #4682B4;
+            color: white;
         }
         
         /* Domain question section */
         .question-section {
-            display: none;
+            background: white;
+            padding: 0;
+            margin: 0;
+
+            width: 100%;
+            max-width: 100%;
+
+            height: auto;
+            min-height: 0;
+            border: none;
         }
         
         .cookie-info {
@@ -41,47 +89,28 @@
         }
         
         .domain-name {
-            font-size: 18px;
+            font-size: 24px;
             font-weight: bold;
             margin-bottom: 15px;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
         }
         
         .question {
             margin-bottom: 15px;
-            font-size: 18px;
-        }
-        
-        /* Toggle container - center buttons */
-        .toggle-container {
+            font-size: 20px;
             display: flex;
             justify-content: center;
+
+        }
+        
+        /* Toggle container - Updated to center buttons */
+        .toggle-container {
+            display: flex;
+            justify-content: center; /* Center the buttons */
             margin: 15px 0;
             gap: 10px;
-        }
-        
-        .toggle-btn {
-            padding: 10px 30px;
-            font-size: 16px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: all 0.2s ease;
-        }
-        
-        .toggle-btn.reject {
-            background-color: #f0f0f0;
-            color: #333;
-        }
-        
-        .toggle-btn.accept {
-            background-color: #f0f0f0;
-            color: #333;
-        }
-        
-        .toggle-btn.selected {
-            background-color: #4c7aaf;
-            color: white;
         }
         
         /* Navigation */
@@ -99,6 +128,11 @@
             border-radius: 4px;
             cursor: pointer;
             font-size: 16px;
+        }
+        
+        .save-btn {
+            background-color: #27ae60;
+            color: white;
         }
         
         button:disabled {
@@ -124,25 +158,18 @@
             border-radius: 5px;
             transition: width 0.3s ease;
         }
-        
         .instructions {
             font-size: 16px;
             font-weight: bold;
             color: #2c3e50;
             margin-bottom: 20px;
         }
-        
-        /* Completion view */
-        #completionView {
+         /* Completion view - FIXED: initially hidden */
+         #completionView {
+            font-size: 18px;
             display: none;
             text-align: center;
-            /* padding: 30px; */
         }
-        
-        /* #completionView h2 {
-            color: #27ae60;
-            margin-bottom: 20px;
-        } */
     </style>
 </head>
 <body>
@@ -165,13 +192,12 @@
                        
             <!-- Domain question -->
             <div class="domain-card">
+                <div class="question">
+                    <b>How willing are you to allow advertising cookies for this website?</b>
+                </div>
+
                 <div class="domain-name" id="currentDomainName"></div>
 
-                <div class="question">
-                    This website may retain data about your interests across websites to display relevant and engaging ads that are more valuable for publishers and third-party advertisers.<br/><br/>Sharing this information with the website is optional and does not affect the website's main functionalities.<br/><br/>
-                    <b>How willing are you to allow this website to retain this data about your interactions?</b>
-                </div>
-                
                 <div class="toggle-container">
                     <!-- Toggle buttons will be inserted by JavaScript -->
                 </div>
@@ -192,8 +218,8 @@
         
         <!-- Completion view with simple thank you message -->
         <div id="completionView">
-            <h2>Thank you!</h2>
-            <p>Your advertising cookie preferences have been saved.</p>
+            <h2>Your responses have been saved!</h2>
+            <p>Please move on to the next question.</p>
         </div>
     </div>
     
