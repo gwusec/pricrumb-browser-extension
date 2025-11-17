@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- <title>RQ3</title> -->
     <style>
-        /* EMBED-FRIENDLY: don't touch the host page background or add global padding */
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             color: #333;
@@ -13,9 +12,10 @@
             margin: 0;
             line-height: 1.6;
             background-color: transparent;  /* was #f5f5f5 */
+            justify-content: center;
+
         }
 
-        /* EMBED-FRIENDLY: let the host decide the width; no fixed max-width or centering */
         .container {
             width: 100%;
             max-width: 100%;         /* was max-width: 800px */
@@ -26,6 +26,7 @@
             padding: 0;              /* was 20px; keeps the panel tight */
             margin-left: auto;
             margin-right: auto;
+            justify-content: center;
         }
 
         h1, h2 {
@@ -41,13 +42,22 @@
             margin-bottom: 20px;
         }
 
-        .section {
+        /* .section {
             margin-bottom: 30px;
             padding: 15px;
             border-radius: 5px;
             background-color: #f9f9f9;
             justify-content: center;
-            /* border-left: 4px solid #007bff; */
+        } */
+
+        .section {
+            width: fit-content;        /* shrink container to its children */
+            margin: 20px auto;            /* center the whole box */
+            text-align: center;        /* center text inside */
+            font-size: 1.2rem;         /* increase font size */
+            padding: 10px 20px;        /* optional: nicer spacing */
+            background-color: transparent;
+            border-radius: 5px;
         }
 
         .website-card:hover {
@@ -68,7 +78,7 @@
 
         h3 {
             margin: 0;
-            font-size: 1.1rem;
+            font-size: 1.8rem;
             color: #333;
         }
 
