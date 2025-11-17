@@ -5,18 +5,34 @@
     <title>Functional Cookies Preferences</title>
     <link rel="stylesheet" href="button-toggle.css">
     <style>
-        body {
+        /* body {
             font-family: Arial, sans-serif;
             margin: 20px;
             background-color: #f5f5f5;
+        } */
+        
+        body {
+            margin: 0;                     /* no extra outer margin in embedded mode */
+            background-color: transparent; /* let the survey background show through */
         }
-        .container {
+
+        /* .container {
             max-width: 800px;
             margin: 0 auto;
             background-color: white;
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        } */
+
+        .container {
+            width: 100%;        /* always fill the host div */
+            max-width: 100%;    /* don't cap at 800px when embedded */
+            margin: 0;          /* no extra centering margin */
+            background-color: white;
+            padding: 0;         /* optional – or a small value if you want some inner space */
+            border-radius: 0;   /* optional – removes the card look */
+            box-shadow: none;   /* optional – removes the card shadow */
         }
         
         /* Introduction screen */
@@ -59,7 +75,16 @@
         
         /* Domain question section */
         .question-section {
-            display: none;
+            background: white;
+            padding: 0;
+            margin: 0;
+
+            width: 100%;
+            max-width: 100%;
+
+            height: auto;
+            min-height: 0;
+            border: none;
         }
         
         .cookie-info {
@@ -79,14 +104,19 @@
         }
         
         .domain-name {
-            font-size: 18px;
+            font-size: 24px;
             font-weight: bold;
             margin-bottom: 15px;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
         }
         
         .question {
             margin-bottom: 15px;
-            font-size: 18px;
+            font-size: 20px;
+            display: flex;
+            justify-content: center;
 
         }
         
@@ -151,6 +181,7 @@
         }
          /* Completion view - FIXED: initially hidden */
          #completionView {
+            font-size: 18px;
             display: none;
             text-align: center;
         }
