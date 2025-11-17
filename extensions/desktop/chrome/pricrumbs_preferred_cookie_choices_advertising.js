@@ -15,6 +15,14 @@ document.addEventListener('DOMContentLoaded', () => {
     loadCookies();
     loadSavedPreferences();
     
+    // Listen for survey pings asking for completion status
+    window.addEventListener('message', (e) => {
+        if (e.data?.type === 'CHECK_PREFERENCES' &&
+            e.data?.payload?.category === currentCookieCategory) {
+            notifyStatus();
+        }
+    });
+
     // Set up navigation listeners
     const previousButton = document.getElementById('previousButton');
     if (previousButton) {
@@ -569,6 +577,7 @@ function updateDomainDisplay() {
         
         // Save the preference (passing the numeric value)
         savePreference(currentDomain.domain, currentCookieCategory, value);
+        notifyStatus();
         
         // Highlight the selected button
         buttons.forEach(btn => {
@@ -648,6 +657,7 @@ function completeCategory() {
     
     // Save preferences
     saveAllPreferences();
+    notifyStatus();
 }
 
 // Save all preferences
@@ -662,4 +672,22 @@ function saveAllPreferences() {
             console.log('All preferences saved successfully');
         }
     });
+}
+
+function notifyStatus() {
+    const totalCount = allDomains.length;
+    const completedCount = Object.values(domainSelections)
+        .filter(sel => sel[currentCookieCategory] !== null && sel[currentCookieCategory] !== undefined)
+        .length;
+    const isComplete = totalCount > 0 && completedCount >= totalCount;
+
+    window.parent.postMessage({
+        type: 'PREFERENCES_STATUS',
+        payload: {
+            category: currentCookieCategory,
+            isComplete,
+            completedCount,
+            totalCount
+        }
+    }, '*');
 }
