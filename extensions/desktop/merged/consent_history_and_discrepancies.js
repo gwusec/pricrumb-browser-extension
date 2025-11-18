@@ -757,7 +757,7 @@ function displayWebsites(domains, tableId) {
                 domain, 
                 category, 
                 discrepancyInfo ? discrepancyInfo.statedPreferences : null,
-                discrepancyInfo ? discrepancyInfo.categories[category] : false
+                discrepancyInfo ? discrepancyInfo.categories[category] : false, false // Don't show discrepancies on top websites page
             );
             cell.appendChild(selectionStatus);
             row.appendChild(cell);
@@ -779,7 +779,7 @@ function displayWebsites(domains, tableId) {
 }
 
 // Helper function to get a single button showing the selection status (Updated to work with the scale)
-function getSelectionStatus(domain, category, userPref, hasDiscrepancy) {
+function getSelectionStatus(domain, category, userPref, hasDiscrepancy, showDiscrepancies = true) {
     console.log(`Creating selection status for ${domain.domain}, category ${category}, discrepancy: ${hasDiscrepancy}`);
     
     const container = document.createElement('div');
@@ -835,7 +835,7 @@ function getSelectionStatus(domain, category, userPref, hasDiscrepancy) {
     container.appendChild(button);
     
     // Check for discrepancy according to the 5-point scale logic
-    if (userPref && typeof userPref[category] === 'number') {
+    if ( showDiscrepancies && userPref && typeof userPref[category] === 'number') {
         const userValue = userPref[category];
         const valueText = getWillingnessText(userValue);
         
@@ -969,7 +969,7 @@ function displayWebsitesWithDiscrepanciesOnly(domains, tableId) {
                 domain, 
                 category, 
                 discrepancyInfo ? discrepancyInfo.statedPreferences : null,
-                discrepancyInfo ? discrepancyInfo.categories[category] : false
+                discrepancyInfo ? discrepancyInfo.categories[category] : false, true // Show discrepancies on discrepancies page
             );
             cell.appendChild(selectionStatus);
             row.appendChild(cell);
