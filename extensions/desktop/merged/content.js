@@ -36,7 +36,8 @@ window.addEventListener("message", (event) => {
       // For "stackoverflow.com", this returns "stackoverflow"
       return parts.length >= 2 ? parts[parts.length - 2].toLowerCase() : cleaned.toLowerCase();
     }
-        // Helper function to categorize websites based on preferences
+    
+    // Helper function to categorize websites based on preferences
     function categorizeWebsites(cookieData) {
       console.log('Categorizing websites, total cookies:', cookieData.length);
       
@@ -108,69 +109,160 @@ window.addEventListener("message", (event) => {
         hasDefaultCookies: category4
       };
     }
-
     
-    // Check ALL possible storage keys
-    chrome.storage.local.get(null, (result) => {
-      console.log("Content script: All storage keys:", Object.keys(result));
-      
-      // Try multiple possible keys
-      const cookieData = result.cookieData || 
-                        result.consentCookies || 
-                        result.cookies ||
-                        result.fetchedCookies ||
-                        [];
-      
-      console.log("Content script: Found cookie data length:", cookieData.length);
-      
-      if (cookieData.length > 0) {
-        console.log("Content script: First cookie sample:", cookieData[0]);
-      }
-      
-      // Filter websites where actionTaken is "Yes" 
-      const eligibleSites = cookieData.filter(site => {
-        return site.actionTaken === "Yes";
-      });
-      
-      console.log("Content script: Sites with action taken = Yes:", eligibleSites.length);
-      
-      // Extract unique domains by main domain name
-      const uniqueDomains = new Set();
-      eligibleSites.forEach(site => {
-        if (site.domain) {
-          const mainDomain = extractMainDomainName(site.domain);
-          if (mainDomain) {
-            uniqueDomains.add(mainDomain);
-            console.log(`Content script: Added unique domain "${mainDomain}" from ${site.domain}`);
-          }
+    // Wrap in async function to use await
+    (async () => {
+      try {
+        // Convert chrome.storage.local.get to promise
+        const result = await new Promise((resolve) => {
+          chrome.storage.local.get(null, (result) => resolve(result));
+        });
+        
+        console.log("Content script: All storage keys:", Object.keys(result));
+        
+        // Try multiple possible keys
+        const cookieData = result.cookieData || 
+                          result.consentCookies || 
+                          result.cookies ||
+                          result.fetchedCookies ||
+                          [];
+        
+        console.log("Content script: Found cookie data length:", cookieData.length);
+        
+        if (cookieData.length > 0) {
+          console.log("Content script: First cookie sample:", cookieData[0]);
         }
-      });
-      
-      const uniqueDomainsArray = Array.from(uniqueDomains);
-      console.log("Content script: Unique domains found:", uniqueDomainsArray);
-      console.log("Content script: Unique domains count:", uniqueDomainsArray.length);
+        
+        // Filter websites where actionTaken is "Yes" 
+        const eligibleSites = cookieData.filter(site => {
+          return site.actionTaken === "Yes";
+        });
+        
+        console.log("Content script: Sites with action taken = Yes:", eligibleSites.length);
+        
+        // Extract unique domains by main domain name
+        const uniqueDomains = new Set();
+        eligibleSites.forEach(site => {
+          if (site.domain) {
+            const mainDomain = extractMainDomainName(site.domain);
+            if (mainDomain) {
+              uniqueDomains.add(mainDomain);
+              console.log(`Content script: Added unique domain "${mainDomain}" from ${site.domain}`);
+            }
+          }
+        });
+        
+        const uniqueDomainsArray = Array.from(uniqueDomains);
+        console.log("Content script: Unique domains found:", uniqueDomainsArray);
+        console.log("Content script: Unique domains count:", uniqueDomainsArray.length);
 
-      // NEW: Categorize websites to determine which types are available
-      const websiteTypes = categorizeWebsites(cookieData);
-      console.log("Content script: Website types available:", websiteTypes);
+        // Categorize websites to determine which types are available
+        const websiteTypes = categorizeWebsites(cookieData);
+        console.log("Content script: Website types available:", websiteTypes);
 
-      
-      const payload = {
-        eligibleSitesCount: uniqueDomainsArray.length,  // Now counts unique domains
-        isEligible: uniqueDomainsArray.length >= 10,     // TRUE if 10+ unique domains
-        totalSites: cookieData.length,
-        uniqueDomains: uniqueDomainsArray, // Optional: send the list of unique domains
-        websiteTypes: websiteTypes  //  website type availability
+        // Check for discrepancies between user preferences and actual cookie settings
+        let hasDiscrepancies = false;
+        try {
+          // Get user preferences from storage
+          const prefsResult = await new Promise((resolve) => {
+            chrome.storage.local.get('userCookiePreferences', (result) => resolve(result));
+          });
+          
+          const userPreferences = prefsResult.userCookiePreferences;
+          
+          if (userPreferences && userPreferences.length > 0) {
+            const prefsMap = new Map(userPreferences);
+            console.log("Content script: Checking for discrepancies, user prefs count:", prefsMap.size);
+            
+            // Check each eligible site for discrepancies
+            for (const cookie of eligibleSites) {
+              if (!cookie.domain) continue;
+              
+              // Try to find matching user preference
+              const possibleFormats = [
+                cookie.domain,
+                cookie.domain.startsWith('.') ? cookie.domain.substring(1) : '.' + cookie.domain,
+                cookie.domain.replace(/^\./, ''),
+                cookie.domain.replace(/^www\./, ''),
+                'www.' + cookie.domain.replace(/^\./, '')
+              ];
+              
+              let userPref = null;
+              for (const format of possibleFormats) {
+                if (prefsMap.has(format)) {
+                  userPref = prefsMap.get(format);
+                  break;
+                }
+              }
+              
+              if (!userPref) continue;
+              
+              // Get actual cookie preferences
+              let actualPrefs = {
+                functional: false,
+                performance: false,
+                advertising: false
+              };
+              
+              if (cookie.categories) {
+                actualPrefs = {
+                  functional: cookie.categories.functional === true,
+                  performance: cookie.categories.performance === true,
+                  advertising: cookie.categories.advertising === true
+                };
+              }
+              
+              // Check for discrepancies using 5-point scale logic
+              const categories = ['functional', 'performance', 'advertising'];
+              for (const category of categories) {
+                const userValue = userPref[category];
+                if (typeof userValue === 'number') {
+                  const actualAccepted = actualPrefs[category];
+                  // Discrepancy = accepted but user chose 1-2, OR rejected but user chose 4-5
+                  if ((actualAccepted && userValue <= 2) || (!actualAccepted && userValue >= 4)) {
+                    hasDiscrepancies = true;
+                    console.log(`Content script: Found discrepancy for ${cookie.domain}, category ${category}`);
+                    break;
+                  }
+                }
+              }
+              
+              if (hasDiscrepancies) break; // Stop checking once we find one
+            }
+            
+            console.log("Content script: hasDiscrepancies =", hasDiscrepancies);
+          } else {
+            console.log("Content script: No user preferences found, hasDiscrepancies = false");
+          }
+        } catch (error) {
+          console.error("Content script: Error checking for discrepancies:", error);
+          hasDiscrepancies = false;
+        }
 
-      };
-      
-      console.log("Content script: Sending eligibility response:", payload);
-      
-      window.postMessage({
-        type: "FROM_EXTENSION_ELIGIBILITY",
-        payload: payload
-      }, "*");
-    });
+        // Create payload with hasDiscrepancies
+        const payload = {
+          eligibleSitesCount: uniqueDomainsArray.length,
+          isEligible: uniqueDomainsArray.length >= 10,
+          totalSites: cookieData.length,
+          uniqueDomains: uniqueDomainsArray,
+          websiteTypes: {
+            ...websiteTypes,
+            hasDiscrepancies: hasDiscrepancies
+          }
+        };
+        
+        console.log("Content script: Sending eligibility response:", payload);
+        
+        window.postMessage({
+          type: "FROM_EXTENSION_ELIGIBILITY",
+          payload: payload
+        }, "*");
+        
+      } catch (error) {
+        console.error("Content script: Error in eligibility check:", error);
+      }
+    })(); // Immediately invoke the async function
+    
     return;
   }
 
@@ -262,7 +354,6 @@ function checkForSurveyElement() {
     "pricrumbs_website_advertising_cookies_rejected": { html: "pricrumbs_website_advertising_cookies_rejected.html", height: "245px" },
     "pricrumbs_website_all_cookies_default": { html: "pricrumbs_website_all_cookies_default.html", height: "245px" },
     "pricrumbs_websites_with_discripincies": { html: "pricrumbs_websites_with_discripincies.html", height: "950px" },
-
   };
 
   function injectIfFound(id, opts) {
@@ -295,6 +386,7 @@ function checkForSurveyElement() {
   // Expose the observer in case something else wants to disconnect it later
   window.__pricrumbs_checker_observer = observer;
 }
+
 // Listen for preference check requests
 window.addEventListener("message", (event) => {
   if (event.source !== window) return;
@@ -303,7 +395,7 @@ window.addEventListener("message", (event) => {
   const category = event.data.payload?.category;
   if (!category) return;
   
-  console.log(` Extension: Checking ${category} preferences`);
+  console.log(`Extension: Checking ${category} preferences`);
   
   // Check preferences and respond
   checkCategoryPreferences(category).then(result => {
@@ -326,7 +418,7 @@ async function checkCategoryPreferences(category) {
     const selectedDomains = domainsResult.selectedDomainsForHistory || [];
     
     if (selectedDomains.length === 0) {
-      console.warn(' No selected domains found');
+      console.warn('No selected domains found');
       return { isComplete: false, completedCount: 0, totalCount: 0 };
     }
     
@@ -365,8 +457,6 @@ async function checkCategoryPreferences(category) {
     return { isComplete: false, completedCount: 0, totalCount: 0 };
   }
 }
-
-
 
 // Run checker on initial load
 checkForSurveyElement();
