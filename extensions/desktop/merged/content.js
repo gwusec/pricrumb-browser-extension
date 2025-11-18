@@ -160,95 +160,13 @@ window.addEventListener("message", (event) => {
         const websiteTypes = categorizeWebsites(cookieData);
         console.log("Content script: Website types available:", websiteTypes);
 
-        // Check for discrepancies between user preferences and actual cookie settings
-        let hasDiscrepancies = false;
-        try {
-          // Get user preferences from storage
-          const prefsResult = await new Promise((resolve) => {
-            chrome.storage.local.get('userCookiePreferences', (result) => resolve(result));
-          });
-          
-          const userPreferences = prefsResult.userCookiePreferences;
-          
-          if (userPreferences && userPreferences.length > 0) {
-            const prefsMap = new Map(userPreferences);
-            console.log("Content script: Checking for discrepancies, user prefs count:", prefsMap.size);
-            
-            // Check each eligible site for discrepancies
-            for (const cookie of eligibleSites) {
-              if (!cookie.domain) continue;
-              
-              // Try to find matching user preference
-              const possibleFormats = [
-                cookie.domain,
-                cookie.domain.startsWith('.') ? cookie.domain.substring(1) : '.' + cookie.domain,
-                cookie.domain.replace(/^\./, ''),
-                cookie.domain.replace(/^www\./, ''),
-                'www.' + cookie.domain.replace(/^\./, '')
-              ];
-              
-              let userPref = null;
-              for (const format of possibleFormats) {
-                if (prefsMap.has(format)) {
-                  userPref = prefsMap.get(format);
-                  break;
-                }
-              }
-              
-              if (!userPref) continue;
-              
-              // Get actual cookie preferences
-              let actualPrefs = {
-                functional: false,
-                performance: false,
-                advertising: false
-              };
-              
-              if (cookie.categories) {
-                actualPrefs = {
-                  functional: cookie.categories.functional === true,
-                  performance: cookie.categories.performance === true,
-                  advertising: cookie.categories.advertising === true
-                };
-              }
-              
-              // Check for discrepancies using 5-point scale logic
-              const categories = ['functional', 'performance', 'advertising'];
-              for (const category of categories) {
-                const userValue = userPref[category];
-                if (typeof userValue === 'number') {
-                  const actualAccepted = actualPrefs[category];
-                  // Discrepancy = accepted but user chose 1-2, OR rejected but user chose 4-5
-                  if ((actualAccepted && userValue <= 2) || (!actualAccepted && userValue >= 4)) {
-                    hasDiscrepancies = true;
-                    console.log(`Content script: Found discrepancy for ${cookie.domain}, category ${category}`);
-                    break;
-                  }
-                }
-              }
-              
-              if (hasDiscrepancies) break; // Stop checking once we find one
-            }
-            
-            console.log("Content script: hasDiscrepancies =", hasDiscrepancies);
-          } else {
-            console.log("Content script: No user preferences found, hasDiscrepancies = false");
-          }
-        } catch (error) {
-          console.error("Content script: Error checking for discrepancies:", error);
-          hasDiscrepancies = false;
-        }
-
-        // Create payload with hasDiscrepancies
+        // Create payload (WITHOUT hasDiscrepancies - that will be checked later)
         const payload = {
           eligibleSitesCount: uniqueDomainsArray.length,
           isEligible: uniqueDomainsArray.length >= 10,
           totalSites: cookieData.length,
           uniqueDomains: uniqueDomainsArray,
-          websiteTypes: {
-            ...websiteTypes,
-            hasDiscrepancies: hasDiscrepancies
-          }
+          websiteTypes: websiteTypes
         };
         
         console.log("Content script: Sending eligibility response:", payload);
@@ -262,6 +180,149 @@ window.addEventListener("message", (event) => {
         console.error("Content script: Error in eligibility check:", error);
       }
     })(); // Immediately invoke the async function
+    
+    return;
+  }
+
+  // Check for discrepancies after user sets preferences
+  if(event.data.payload?.action === "checkDiscrepancies") {
+    console.log("Content script: Received discrepancy check request");
+    
+    (async () => {
+      try {
+        // Get user preferences
+        const prefsResult = await new Promise((resolve) => {
+          chrome.storage.local.get('userCookiePreferences', (result) => resolve(result));
+        });
+        
+        // Get cookie data and selected domains
+        const cookieResult = await new Promise((resolve) => {
+          chrome.storage.local.get(['cookieData', 'selectedDomainsForHistory'], (result) => resolve(result));
+        });
+        
+        const userPreferences = prefsResult.userCookiePreferences;
+        const cookieData = cookieResult.cookieData || [];
+        const selectedDomains = cookieResult.selectedDomainsForHistory || [];
+        
+        console.log("Content script: User preferences count:", userPreferences?.length || 0);
+        console.log("Content script: Cookie data count:", cookieData.length);
+        console.log("Content script: Selected domains count:", selectedDomains.length);
+        
+        let hasDiscrepancies = false;
+        
+        if (userPreferences && userPreferences.length > 0) {
+          const prefsMap = new Map(userPreferences);
+          console.log("Content script: Preferences map size:", prefsMap.size);
+          
+          // Use selected domains if available, otherwise use all eligible sites
+          const domainsToCheck = selectedDomains.length > 0 
+            ? selectedDomains 
+            : cookieData.filter(site => site.actionTaken === "Yes");
+          
+          console.log("Content script: Checking", domainsToCheck.length, "domains for discrepancies");
+          
+          // Check for discrepancies
+          for (const domainObj of domainsToCheck) {
+            const domain = domainObj.originalDomain || domainObj.domain;
+            if (!domain) continue;
+            
+            console.log(`Content script: Checking domain: ${domain}`);
+            
+            // Try to find matching user preference with multiple formats
+            const possibleFormats = [
+              domain,
+              domain.startsWith('.') ? domain.substring(1) : '.' + domain,
+              domain.replace(/^\./, ''),
+              domain.replace(/^www\./, ''),
+              'www.' + domain.replace(/^\./, '')
+            ];
+            
+            let userPref = null;
+            let matchedFormat = null;
+            for (const format of possibleFormats) {
+              if (prefsMap.has(format)) {
+                userPref = prefsMap.get(format);
+                matchedFormat = format;
+                break;
+              }
+            }
+            
+            if (!userPref) {
+              console.log(`Content script: No preferences found for ${domain}`);
+              continue;
+            }
+            
+            console.log(`Content script: Found preferences for ${matchedFormat}:`, userPref);
+            
+            // Get actual cookie preferences
+            let actualPrefs = {
+              functional: false,
+              performance: false,
+              advertising: false
+            };
+            
+            if (domainObj.categories) {
+              actualPrefs = {
+                functional: domainObj.categories.functional === true,
+                performance: domainObj.categories.performance === true,
+                advertising: domainObj.categories.advertising === true
+              };
+            } else {
+              // Try to find in cookieData
+              const cookieMatch = cookieData.find(c => 
+                c.domain === domain || 
+                c.domain === domainObj.originalDomain ||
+                c.domain.replace(/^\./, '') === domain.replace(/^\./, '')
+              );
+              
+              if (cookieMatch && cookieMatch.categories) {
+                actualPrefs = {
+                  functional: cookieMatch.categories.functional === true,
+                  performance: cookieMatch.categories.performance === true,
+                  advertising: cookieMatch.categories.advertising === true
+                };
+              }
+            }
+            
+            console.log(`Content script: Actual preferences for ${domain}:`, actualPrefs);
+            
+            // Check for discrepancies using 5-point scale logic
+            const categories = ['functional', 'performance', 'advertising'];
+            for (const category of categories) {
+              const userValue = userPref[category];
+              if (typeof userValue === 'number') {
+                const actualAccepted = actualPrefs[category];
+                // Discrepancy = accepted but user chose 1-2, OR rejected but user chose 4-5
+                if ((actualAccepted && userValue <= 2) || (!actualAccepted && userValue >= 4)) {
+                  hasDiscrepancies = true;
+                  console.log(` Content script: DISCREPANCY FOUND for ${domain}, category ${category}`);
+                  console.log(`   User value: ${userValue}, Actual: ${actualAccepted ? 'Allowed' : 'Not Allowed'}`);
+                  break;
+                }
+              }
+            }
+            
+            if (hasDiscrepancies) break; // Stop checking once we find one
+          }
+        } else {
+          console.log("Content script: No user preferences found");
+        }
+        
+        console.log("Content script: Final discrepancy result:", hasDiscrepancies);
+        
+        window.postMessage({
+          type: "FROM_EXTENSION_DISCREPANCIES",
+          payload: { hasDiscrepancies: hasDiscrepancies }
+        }, "*");
+        
+      } catch (error) {
+        console.error("Content script: Error checking discrepancies:", error);
+        window.postMessage({
+          type: "FROM_EXTENSION_DISCREPANCIES",
+          payload: { hasDiscrepancies: false }
+        }, "*");
+      }
+    })();
     
     return;
   }
@@ -439,9 +500,9 @@ async function checkCategoryPreferences(category) {
       // Check if this category has a value set (not null/undefined)
       if (prefs && prefs[category] !== null && prefs[category] !== undefined) {
         completedCount++;
-        console.log(`✓ ${domain}: ${category} = ${prefs[category]}`);
+        console.log(` ${domain}: ${category} = ${prefs[category]}`);
       } else {
-        console.log(`✗ ${domain}: ${category} = NOT SET`);
+        console.log(` ${domain}: ${category} = NOT SET`);
       }
     }
     
