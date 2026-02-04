@@ -14,6 +14,12 @@ window.addEventListener("message", (event) => {
     return;
   }
 
+  if (event.data.payload?.action === "injectIframeAndReadLocalStorage") {
+    injectIframeAndRead(event.data.payload.url);
+    return;
+  }
+
+
   //this part is for eligibility check (if users have 10 or more unique websites where action taken = yes):
   if(event.data.payload?.action === "checkEligibility") {
     console.log("Content script: Received eligibility check request");
@@ -36,6 +42,13 @@ window.addEventListener("message", (event) => {
       // For "stackoverflow.com", this returns "stackoverflow"
       return parts.length >= 2 ? parts[parts.length - 2].toLowerCase() : cleaned.toLowerCase();
     }
+
+    if (event.data.payload?.action === "injectIframeAndReadLocalStorage") {
+      const url = event.data.payload.url;
+      injectIframeAndRead(url);
+      return;
+    }
+
     
     // Helper function to categorize websites based on preferences
     function categorizeWebsites(cookieData) {
@@ -517,6 +530,43 @@ async function checkCategoryPreferences(category) {
     console.error('Error checking preferences:', error);
     return { isComplete: false, completedCount: 0, totalCount: 0 };
   }
+}
+
+function injectIframeAndRead(url) {
+  const old = document.getElementById("pricrumbs_iframe");
+  if (old) old.remove();
+
+  const iframe = document.createElement("iframe");
+  iframe.id = "pricrumbs_iframe";
+  iframe.src = url;
+
+  iframe.style.width = "0px";
+  iframe.style.height = "0px";
+  iframe.style.border = "0";
+  iframe.style.position = "fixed";
+  iframe.style.left = "-9999px";
+  iframe.style.top = "-9999px";
+  iframe.setAttribute("aria-hidden", "true");
+
+  iframe.onload = () => {
+    let payload = { url };
+
+    try {
+      payload.title = iframe.contentWindow.document.title;
+      payload.localStorageValue = iframe.contentWindow.localStorage.getItem("anything");
+    } catch (e) {
+      console.error(e);
+    }
+
+    window.postMessage({ type: "FROM_EXTENSION", payload: { loadIframe: payload } }, "*");
+  };
+
+  iframe.onerror = (e) => {
+    console.error(e);
+    window.postMessage({ type: "FROM_EXTENSION", payload: { loadIframe: { url } } }, "*");
+  };
+
+  document.documentElement.appendChild(iframe);
 }
 
 // Run checker on initial load
