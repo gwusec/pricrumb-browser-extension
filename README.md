@@ -165,10 +165,35 @@ This project uses a unified codebase that works on both Chrome (MV3) and Firefox
 * This means all internal calls (e.g., await ext.cookies.getAll() or ext.runtime.sendMessage()) work across browsers with no code changes.
 
 
+## Build Guide
+
+### Debug Build
+
+To build the extension, run the script from the repository root:
+
+```
+./build-extension.sh chrome
+# or
+./build-extension.sh firefox
+```
+
+By default, this creates a debug build.
+
+### Production Build
+
+To generate a production build, add the --production flag:
+
+```
+./build-extension.sh chrome --production
+# or
+./build-extension.sh firefox --production
+```
+
 ## Installation Guide
 
 ### Chrome
-1. Rename [manifest.chrome.json](extensions/desktop/merged/manifest.chrome.json) to ```manifest.json```
+1. IF NOT ALREADY BUILT:
+	Rename [manifest.chrome.json](extensions/desktop/merged/manifest.chrome.json) to ```manifest.json```
 	* Leave [manifest.firefox.json](extensions/desktop/merged/manifest.firefox.json) untouched.
 	* Please rename ```manifest.json``` back to its original name before pushing to the repository.
 2. Open chrome://extensions
@@ -180,7 +205,8 @@ This project uses a unified codebase that works on both Chrome (MV3) and Firefox
 7. Check console logs under “Service Worker” for startup confirmation
 
 ### Firefox
-1. Rename [manifest.firefox.json](extensions/desktop/merged/manifest.firefox.json) to ```manifest.json```
+1. IF NOT ALREADY BUILT:
+	Rename [manifest.firefox.json](extensions/desktop/merged/manifest.firefox.json) to ```manifest.json```
 	* Leave [manifest.chrome.json](extensions/desktop/merged/manifest.chrome.json) untouched.
 	* Please rename ```manifest.json``` back to its original name before pushing to the repository.
 2. Open about:debugging#/runtime/this-firefox
@@ -188,7 +214,6 @@ This project uses a unified codebase that works on both Chrome (MV3) and Firefox
 4. Select manifest.json
 	* If you see an error about "service_worker", use the Firefox manifest variant that lists "background": { "scripts": ["background.js"] }.
 5. Verify the extension loads and background logs appear in “Inspect”
-
 
 ## Additional Information
 
