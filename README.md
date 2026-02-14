@@ -111,6 +111,14 @@ A website (e.g., the survey) communicates with the extension by posting messages
 		* Returns a final array of cookies enriched with: ```firstVisited```, ```lastVisited```, ```totalVisitCount```, and ```avgDailyVisits```.
 * fetchAllCookies
 	* Retrieve formatted list of all cookies from the browser.
+* checkEligibility
+	* Checks if the user has visited 10 or more unique websites where they took an explicit consent action.
+	* Returns unique domains and website types found (All Accepted, All Rejected, Advertising Rejected, or Default).
+* checkDiscrepancies
+	* Compares the user's stored 5-point scale preferences against the actual cookie states.
+	* Returns a boolean flag indicating if any discrepancies were found.
+* downloadCookies
+	* Utility to trigger a JSON download of the current filtered cookie data.
 * injectHTML: 
 	* Embed an extension HTML page into the active tab’s DOM.
 	* Example InjectHTML Payload from content script:
@@ -223,7 +231,7 @@ The extension detects non-TCF cookies from these Consent Management Platforms (C
 * CookieYes (cookieyes-consent)
 * WSCR (wscrCookieConsent)
 * Complianz (cmplz_rt_*)
-* Usercentrics (uc_userconsen)
+* Usercentrics (uc_userconsent)
 * Quantcast (quantcast_consent)
 * Cookiebot (CookieConsent)
 * Osano (osano_consent)
@@ -231,8 +239,12 @@ The extension detects non-TCF cookies from these Consent Management Platforms (C
 * Cookie Law Info (cookie_law_info)
 * TrustArc (TrustArcConsent)
 
-The extension also detects TCF cookies in the EU:
-* TO DO
+### TCF v2 Strings:
+The extension identifies and decodes Transparency and Consent Framework (TCF) v2 strings (e.g., `euconsent-v2`, `TcString`). It compares decoded purposes (1-11) and legitimate interests against `tcf_default_decoded_js.json` to determine if a string represents an explicit user action ("Yes") or the site's default configuration ("Default").
 
-Additional pages:
-* TO DO
+### Survey-Injected Pages:
+These HTML files are designed to be injected into survey pages via iframes:
+* `pricrumbs_preferred_cookie_choices_[functional/performance/advertising].html`: Pages for capturing user willingness to share specific categories of data on a 5-point scale.
+* `pricrumbs_consent_history_[top/bottom]_websites.html`: Displays of the user's most and least frequently visited domains with their consent status.
+* `pricrumbs_websites_with_discripincies.html`: A focused view showing only the websites where the user's stated preference contradicts the actual cookie state.
+* `popup_welcome.html`: The welcome screen for the extension.
