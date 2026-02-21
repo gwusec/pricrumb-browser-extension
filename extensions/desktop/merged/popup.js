@@ -1702,6 +1702,8 @@ function enhancedTCFActionDetection(tcfValue, tcfCookie, allCookies) {
   return {
     cmpName: decoded.cmpName,
     domain: currentCookie.domain,
+    domainHash: currentCookie.domainHash || null,
+    domainRankRange: currentCookie.domainRankRange || null,
     categories: {
       necessary: decoded.necessary,
       functional: decoded.functional,
@@ -2188,6 +2190,37 @@ function enhancedTCFActionDetection(tcfValue, tcfCookie, allCookies) {
   }
 
 
+function normalizeConsentValue(value) {
+  if (value === true) return "yes";
+  if (value === false) return "no";
+  return "unknown";
+}
+
+function buildDomainConsentRecords(cookies) {
+  const recordsByKey = new Map();
+
+  cookies.forEach(cookie => {
+    const domainHash = cookie.domainHash || null;
+    const domainKey = domainHash || (cookie.domain || "").toLowerCase();
+    if (!domainKey) return;
+
+    if (!recordsByKey.has(domainKey)) {
+      recordsByKey.set(domainKey, {
+        domainHash,
+        domainRankRange: cookie.domainRankRange || null,
+        consent: {
+          necessary: normalizeConsentValue(cookie.categories?.necessary),
+          functional: normalizeConsentValue(cookie.categories?.functional),
+          performance: normalizeConsentValue(cookie.categories?.performance),
+          advertising: normalizeConsentValue(cookie.categories?.advertising)
+        }
+      });
+    }
+  });
+
+  return Array.from(recordsByKey.values());
+}
+
 async function storeCookiesInStorage(cookies) {
     // Log visit counts before saving to storage
     console.log('Saving cookies to storage with visit counts:', 
@@ -2204,6 +2237,28 @@ async function storeCookiesInStorage(cookies) {
         console.log("Verified storage - visit counts:",
           result.cookieData.map(c => `${c.domain}: ${c.totalVisitCount}`));
       }
+
+      const consentDomainRecords = buildDomainConsentRecords(cookies);
+      console.log("Consent payload preview:", consentDomainRecords.slice(0, 5));
+      await ext.storage.local.set({ consentDomainData: consentDomainRecords });
+      console.log(`Saved ${consentDomainRecords.length} consent domain records`);
+
+      ext.runtime.sendMessage({
+        action: "submitConsentData",
+        payload: { records: consentDomainRecords }
+      })
+        .then((response) => {
+          if (response?.ok) {
+            console.log("Consent data upload succeeded.");
+          } else if (response?.skipped) {
+            console.log("Consent data upload skipped (endpoint not configured).");
+          } else {
+            console.warn("Consent data upload failed.", response);
+          }
+        })
+        .catch(() => {
+          console.warn("Consent data upload failed (no response).");
+        });
       
       // Send completion message to consent history page (if it's listening)
       ext.runtime.sendMessage({ action: 'cookieProcessingComplete' }).catch(() => {

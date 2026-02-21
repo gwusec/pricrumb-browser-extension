@@ -11,6 +11,93 @@ try {
 const historyCache = {}; // Cache to store history data per domain
 const visitedDomainsCache = new Set(); // Cache to store domains the user has visited
 let visitedDomainsCacheLastUpdated = 0; // Timestamp of last update to visitedDomainsCache
+let top1mDomainRankMapPromise = null;
+let domainHmacKeyPromise = null;
+const SURVEY_APP_ENDPOINT = "http://localhost:8080/consent-data";
+
+// Parse top-1m-websites.csv once and cache the Map<domain, rank_range>
+async function getTop1mDomainRankMap() {
+  if (top1mDomainRankMapPromise) {
+    return top1mDomainRankMapPromise;
+  }
+
+  top1mDomainRankMapPromise = (async () => {
+    const response = await fetch(ext.runtime.getURL("top-1m-websites.csv"));
+    const text = await response.text();
+    const map = new Map();
+
+    text.split(/\r?\n/).forEach(line => {
+      if (!line) return;
+      const commaIndex = line.indexOf(",");
+      if (commaIndex === -1) return;
+      const rankRange = line.slice(0, commaIndex).trim();
+      const domain = line.slice(commaIndex + 1).trim().toLowerCase();
+      if (domain && !map.has(domain)) {
+        map.set(domain, rankRange);
+      }
+    });
+
+    console.log(`Loaded top-1m domain map with ${map.size} entries`);
+    return map;
+  })();
+
+  return top1mDomainRankMapPromise;
+}
+
+function canonicalizeDomain(domain) {
+  let d = (domain || "").trim().toLowerCase();
+  if (d.startsWith(".")) d = d.slice(1);
+  if (d.endsWith(".")) d = d.slice(0, -1);
+  if (d.startsWith("www.")) d = d.slice(4);
+  return d;
+}
+
+function bufferToHex(buffer) {
+  const bytes = new Uint8Array(buffer);
+  let hex = "";
+  for (let i = 0; i < bytes.length; i++) {
+    hex += bytes[i].toString(16).padStart(2, "0");
+  }
+  return hex;
+}
+
+async function getDomainHmacKey() {
+  if (domainHmacKeyPromise) {
+    return domainHmacKeyPromise;
+  }
+
+  domainHmacKeyPromise = (async () => {
+    try {
+      const response = await fetch(ext.runtime.getURL("domain_hmac.key"));
+      const b64 = (await response.text()).trim();
+      const binary = atob(b64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      return crypto.subtle.importKey(
+        "raw",
+        bytes,
+        { name: "HMAC", hash: "SHA-256" },
+        false,
+        ["sign"]
+      );
+    } catch (error) {
+      console.error("Failed to load domain HMAC key:", error);
+      return null;
+    }
+  })();
+
+  return domainHmacKeyPromise;
+}
+
+async function hashDomain(domain, outLen = 32) {
+  const key = await getDomainHmacKey();
+  if (!key) return null;
+  const msg = new TextEncoder().encode(canonicalizeDomain(domain));
+  const signature = await crypto.subtle.sign("HMAC", key, msg);
+  return bufferToHex(signature).slice(0, outLen);
+}
 
 // Opens the popup.html when the extension icon is clicked
 (ext.action || ext.browserAction).onClicked.addListener(() => {
@@ -387,9 +474,23 @@ ext.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
         return Promise.all(domainPromises);
       })
-      .then((cookiesWithHistory) => {
+      .then(async (cookiesWithHistory) => {
+        const rankMap = await getTop1mDomainRankMap();
+        const cookiesWithMetadata = await Promise.all(
+          cookiesWithHistory.map(async (cookie) => {
+            const canonicalDomain = canonicalizeDomain(cookie.domain);
+            const domainRankRange = canonicalDomain ? (rankMap.get(canonicalDomain) || "100000+") : null;
+            const domainHash = canonicalDomain ? await hashDomain(canonicalDomain) : null;
+            return {
+              ...cookie,
+              domainRankRange,
+              domainHash
+            };
+          })
+        );
+
         console.log("Promises resolved! Sending response with cookies...");
-        sendResponse({ cookies: cookiesWithHistory });
+        sendResponse({ cookies: cookiesWithMetadata });
       })
       .catch((err) => {
         console.error("Error in checkCookies flow:", err);
@@ -498,6 +599,38 @@ function storeCookiesInStorage(cookies) {
             result.cookieData.map(c => `${c.domain}: ${c.totalVisitCount}`));
         }
       });
+    return true;
+  }
+
+  if (request.action === "submitConsentData") {
+    console.log("submitConsentData received");
+    const records = request.payload?.records || [];
+    if (!SURVEY_APP_ENDPOINT) {
+      console.warn("SURVEY_APP_ENDPOINT is not set. Skipping consent data upload.");
+      sendResponse({ ok: false, skipped: true });
+      return false;
     }
-  });
+
+    fetch(SURVEY_APP_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        timestamp: Date.now(),
+        records
+      })
+    })
+      .then(async (res) => {
+        const text = await res.text();
+        if (!res.ok) {
+          throw new Error(`Survey app responded ${res.status}: ${text}`);
+        }
+        sendResponse({ ok: true });
+      })
+      .catch((error) => {
+        console.error("Failed to submit consent data:", error);
+        sendResponse({ ok: false, error: error.message });
+      });
+    return true;
+  }
+});
 }
