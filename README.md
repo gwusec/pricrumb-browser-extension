@@ -111,6 +111,14 @@ A website (e.g., the survey) communicates with the extension by posting messages
 		* Returns a final array of cookies enriched with: ```firstVisited```, ```lastVisited```, ```totalVisitCount```, and ```avgDailyVisits```.
 * fetchAllCookies
 	* Retrieve formatted list of all cookies from the browser.
+* checkEligibility
+	* Checks if the user has visited 10 or more unique websites where they took an explicit consent action.
+	* Returns unique domains and website types found (All Accepted, All Rejected, Advertising Rejected, or Default).
+* checkDiscrepancies
+	* Compares the user's stored 5-point scale preferences against the actual cookie states.
+	* Returns a boolean flag indicating if any discrepancies were found.
+* downloadCookies
+	* Utility to trigger a JSON download of the current filtered cookie data.
 * injectHTML: 
 	* Embed an extension HTML page into the active tab’s DOM.
 	* Example InjectHTML Payload from content script:
@@ -165,10 +173,35 @@ This project uses a unified codebase that works on both Chrome (MV3) and Firefox
 * This means all internal calls (e.g., await ext.cookies.getAll() or ext.runtime.sendMessage()) work across browsers with no code changes.
 
 
+## Build Guide
+
+### Debug Build
+
+To build the extension, run the script from the repository root:
+
+```
+./build-extension.sh chrome
+# or
+./build-extension.sh firefox
+```
+
+By default, this creates a debug build.
+
+### Production Build
+
+To generate a production build, add the --production flag:
+
+```
+./build-extension.sh chrome --production
+# or
+./build-extension.sh firefox --production
+```
+
 ## Installation Guide
 
 ### Chrome
-1. Rename [manifest.chrome.json](extensions/desktop/merged/manifest.chrome.json) to ```manifest.json```
+1. IF NOT ALREADY BUILT:
+	Rename [manifest.chrome.json](extensions/desktop/merged/manifest.chrome.json) to ```manifest.json```
 	* Leave [manifest.firefox.json](extensions/desktop/merged/manifest.firefox.json) untouched.
 	* Please rename ```manifest.json``` back to its original name before pushing to the repository.
 2. Open chrome://extensions
@@ -180,7 +213,8 @@ This project uses a unified codebase that works on both Chrome (MV3) and Firefox
 7. Check console logs under “Service Worker” for startup confirmation
 
 ### Firefox
-1. Rename [manifest.firefox.json](extensions/desktop/merged/manifest.firefox.json) to ```manifest.json```
+1. IF NOT ALREADY BUILT:
+	Rename [manifest.firefox.json](extensions/desktop/merged/manifest.firefox.json) to ```manifest.json```
 	* Leave [manifest.chrome.json](extensions/desktop/merged/manifest.chrome.json) untouched.
 	* Please rename ```manifest.json``` back to its original name before pushing to the repository.
 2. Open about:debugging#/runtime/this-firefox
@@ -188,7 +222,6 @@ This project uses a unified codebase that works on both Chrome (MV3) and Firefox
 4. Select manifest.json
 	* If you see an error about "service_worker", use the Firefox manifest variant that lists "background": { "scripts": ["background.js"] }.
 5. Verify the extension loads and background logs appear in “Inspect”
-
 
 ## Additional Information
 
@@ -198,7 +231,7 @@ The extension detects non-TCF cookies from these Consent Management Platforms (C
 * CookieYes (cookieyes-consent)
 * WSCR (wscrCookieConsent)
 * Complianz (cmplz_rt_*)
-* Usercentrics (uc_userconsen)
+* Usercentrics (uc_userconsent)
 * Quantcast (quantcast_consent)
 * Cookiebot (CookieConsent)
 * Osano (osano_consent)
@@ -206,8 +239,12 @@ The extension detects non-TCF cookies from these Consent Management Platforms (C
 * Cookie Law Info (cookie_law_info)
 * TrustArc (TrustArcConsent)
 
-The extension also detects TCF cookies in the EU:
-* TO DO
+### TCF v2 Strings:
+The extension identifies and decodes Transparency and Consent Framework (TCF) v2 strings (e.g., `euconsent-v2`, `TcString`). It compares decoded purposes (1-11) and legitimate interests against `tcf_default_decoded_js.json` to determine if a string represents an explicit user action ("Yes") or the site's default configuration ("Default").
 
-Additional pages:
-* TO DO
+### Survey-Injected Pages:
+These HTML files are designed to be injected into survey pages via iframes:
+* `pricrumbs_preferred_cookie_choices_[functional/performance/advertising].html`: Pages for capturing user willingness to share specific categories of data on a 5-point scale.
+* `pricrumbs_consent_history_[top/bottom]_websites.html`: Displays of the user's most and least frequently visited domains with their consent status.
+* `pricrumbs_websites_with_discripincies.html`: A focused view showing only the websites where the user's stated preference contradicts the actual cookie state.
+* `popup_welcome.html`: The welcome screen for the extension.
