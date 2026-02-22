@@ -12,9 +12,11 @@ const historyCache = {}; // Cache to store history data per domain
 const visitedDomainsCache = new Set(); // Cache to store domains the user has visited
 let visitedDomainsCacheLastUpdated = 0; // Timestamp of last update to visitedDomainsCache
 let top1mDomainRankMapPromise = null;
-let domainHmacKeyPromise = null;
+const domainHashCache = new Map();
 let browsingHistoryDataCache = null;
 let browsingHistoryDataCacheLastUpdated = 0;
+const DOMAIN_HASH_SERVICE_ENDPOINT = "http://localhost:8082/v1/hash-domains";
+const DOMAIN_HASH_REQUEST_TIMEOUT_MS = 10000;
 const SURVEY_APP_ENDPOINT = "http://localhost:8080/postsurvey/consent-data";
 
 // Parse top-1m-websites.csv once and cache the Map<domain, rank_range>
@@ -54,51 +56,191 @@ function canonicalizeDomain(domain) {
   return d;
 }
 
-function bufferToHex(buffer) {
-  const bytes = new Uint8Array(buffer);
-  let hex = "";
-  for (let i = 0; i < bytes.length; i++) {
-    hex += bytes[i].toString(16).padStart(2, "0");
-  }
-  return hex;
+function isHexDomainHash(value, lengths = [64]) {
+  if (typeof value !== "string") return false;
+  const normalized = value.trim().toLowerCase();
+  if (!/^[0-9a-f]+$/.test(normalized)) return false;
+  return lengths.includes(normalized.length);
 }
 
-async function getDomainHmacKey() {
-  if (domainHmacKeyPromise) {
-    return domainHmacKeyPromise;
+async function hashDomains(domains, { strict = false } = {}) {
+  const canonicalDomains = Array.from(
+    new Set(
+      (Array.isArray(domains) ? domains : [])
+        .map(canonicalizeDomain)
+        .filter(Boolean)
+    )
+  );
+
+  if (!canonicalDomains.length) {
+    return new Map();
   }
 
-  domainHmacKeyPromise = (async () => {
+  const uncachedDomains = canonicalDomains.filter((domain) => !domainHashCache.has(domain));
+  if (uncachedDomains.length) {
+    if (!DOMAIN_HASH_SERVICE_ENDPOINT) {
+      throw new Error("Domain hash service endpoint is not configured.");
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), DOMAIN_HASH_REQUEST_TIMEOUT_MS);
+    let response = null;
+
     try {
-      const response = await fetch(ext.runtime.getURL("domain_hmac.key"));
-      const b64 = (await response.text()).trim();
-      const binary = atob(b64);
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) {
-        bytes[i] = binary.charCodeAt(i);
-      }
-      return crypto.subtle.importKey(
-        "raw",
-        bytes,
-        { name: "HMAC", hash: "SHA-256" },
-        false,
-        ["sign"]
-      );
+      response = await fetch(DOMAIN_HASH_SERVICE_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ domains: uncachedDomains }),
+        signal: controller.signal
+      });
     } catch (error) {
-      console.error("Failed to load domain HMAC key:", error);
+      if (strict) {
+        throw new Error(`Failed to reach domain hash service: ${error.message}`);
+      }
+      console.warn("Domain hash service request failed:", error);
+      return new Map(
+        canonicalDomains
+          .filter((domain) => domainHashCache.has(domain))
+          .map((domain) => [domain, domainHashCache.get(domain)])
+      );
+    } finally {
+      clearTimeout(timeoutId);
+    }
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`Domain hash service responded ${response.status}: ${text}`);
+    }
+
+    const payload = await response.json();
+    const hashes = Array.isArray(payload?.hashes) ? payload.hashes : [];
+
+    hashes.forEach((entry) => {
+      const domain = canonicalizeDomain(entry?.domain);
+      const domainHash = String(entry?.domainHash || "").trim().toLowerCase();
+      if (!domain || !isHexDomainHash(domainHash, [64])) return;
+      domainHashCache.set(domain, domainHash);
+    });
+  }
+
+  const result = new Map();
+  canonicalDomains.forEach((domain) => {
+    const hash = domainHashCache.get(domain);
+    if (hash) {
+      result.set(domain, hash);
+    }
+  });
+
+  if (strict) {
+    const missing = canonicalDomains.filter((domain) => !result.has(domain));
+    if (missing.length) {
+      throw new Error(`Domain hash service did not return hashes for ${missing.length} domain(s).`);
+    }
+  }
+
+  return result;
+}
+
+function getCanonicalDomainForRecord(record) {
+  if (!record || typeof record !== "object") return "";
+
+  const directCandidates = [
+    record.domain,
+    record.originalDomain,
+    record.canonicalDomain
+  ];
+  for (const candidate of directCandidates) {
+    const canonical = canonicalizeDomain(candidate);
+    if (canonical) return canonical;
+  }
+
+  const nestedCandidates = [
+    record.cookieDomain,
+    record.sourceDomain,
+    record.url
+  ];
+  for (const candidate of nestedCandidates) {
+    if (typeof candidate !== "string") continue;
+    try {
+      const parsedUrl = new URL(candidate);
+      const canonical = canonicalizeDomain(parsedUrl.hostname);
+      if (canonical) return canonical;
+    } catch (_error) {
+      const canonical = canonicalizeDomain(candidate);
+      if (canonical) return canonical;
+    }
+  }
+
+  return "";
+}
+
+function sanitizeDomainRecord(record, domainHash) {
+  const sanitized = {
+    ...record,
+    domainHash: domainHash || null
+  };
+  delete sanitized.domain;
+  delete sanitized.originalDomain;
+  delete sanitized.canonicalDomain;
+  delete sanitized.cookieDomain;
+  delete sanitized.sourceDomain;
+  delete sanitized.url;
+  return sanitized;
+}
+
+async function ensureHashedRecords(records, label) {
+  const source = Array.isArray(records) ? records : [];
+  const domainsToHash = [];
+  const hashedOrRawItems = source.map((record, index) => {
+    if (!record || typeof record !== "object") {
       return null;
     }
-  })();
 
-  return domainHmacKeyPromise;
-}
+    const canonicalDomain = getCanonicalDomainForRecord(record);
+    const existingHash = String(record.domainHash || "").trim().toLowerCase();
+    const hasFullHash = isHexDomainHash(existingHash, [64]);
+    const hasLegacyHash = isHexDomainHash(existingHash, [32]);
 
-async function hashDomain(domain, outLen = 32) {
-  const key = await getDomainHmacKey();
-  if (!key) return null;
-  const msg = new TextEncoder().encode(canonicalizeDomain(domain));
-  const signature = await crypto.subtle.sign("HMAC", key, msg);
-  return bufferToHex(signature).slice(0, outLen);
+    if (canonicalDomain) {
+      domainsToHash.push(canonicalDomain);
+      return {
+        index,
+        canonicalDomain,
+        existingHash: hasFullHash ? existingHash : (hasLegacyHash ? existingHash : null)
+      };
+    }
+
+    if (hasFullHash || hasLegacyHash) {
+      return {
+        index,
+        canonicalDomain: "",
+        existingHash
+      };
+    }
+
+    throw new Error(`${label}[${index}] is missing both a hash and a raw domain.`);
+  });
+
+  const hashMap = await hashDomains(domainsToHash, { strict: true });
+  return hashedOrRawItems
+    .map((item) => {
+      if (!item) return null;
+      const originalRecord = source[item.index];
+      const resolvedHash = item.canonicalDomain
+        ? hashMap.get(item.canonicalDomain)
+        : item.existingHash;
+
+      if (!resolvedHash) {
+        throw new Error(`${label}[${item.index}] could not be hashed.`);
+      }
+
+      if (!isHexDomainHash(resolvedHash, [64, 32])) {
+        throw new Error(`${label}[${item.index}] has invalid hash format.`);
+      }
+
+      return sanitizeDomainRecord(originalRecord, resolvedHash);
+    })
+    .filter(Boolean);
 }
 
 // Opens the popup.html when the extension icon is clicked
@@ -551,14 +693,14 @@ async function getBrowsingHistoryData(forceRefresh = false) {
   }
 
   const rankMap = await getTop1mDomainRankMap();
-  const browsingHistoryData = await Promise.all(
-    Array.from(domainStats.entries()).map(async ([domain, stats]) => ({
-      domainHash: await hashDomain(domain),
-      domainRankRange: rankMap.get(domain) || "100000+",
-      numberOfVisits: stats.numberOfVisits,
-      dates: Array.from(stats.datesSet).sort()
-    }))
-  );
+  const domains = Array.from(domainStats.keys());
+  const hashMap = await hashDomains(domains, { strict: true });
+  const browsingHistoryData = Array.from(domainStats.entries()).map(([domain, stats]) => ({
+    domainHash: hashMap.get(domain) || null,
+    domainRankRange: rankMap.get(domain) || "100000+",
+    numberOfVisits: stats.numberOfVisits,
+    dates: Array.from(stats.datesSet).sort()
+  }));
 
   browsingHistoryData.sort((a, b) => (b.numberOfVisits || 0) - (a.numberOfVisits || 0));
   browsingHistoryDataCache = browsingHistoryData;
@@ -668,18 +810,24 @@ ext.runtime.onMessage.addListener((request, sender, sendResponse) => {
       })
       .then(async (cookiesWithHistory) => {
         const rankMap = await getTop1mDomainRankMap();
-        const cookiesWithMetadata = await Promise.all(
-          cookiesWithHistory.map(async (cookie) => {
-            const canonicalDomain = canonicalizeDomain(cookie.domain);
-            const domainRankRange = canonicalDomain ? (rankMap.get(canonicalDomain) || "100000+") : null;
-            const domainHash = canonicalDomain ? await hashDomain(canonicalDomain) : null;
-            return {
-              ...cookie,
-              domainRankRange,
-              domainHash
-            };
-          })
+        const domains = Array.from(
+          new Set(
+            cookiesWithHistory
+              .map((cookie) => canonicalizeDomain(cookie.domain))
+              .filter(Boolean)
+          )
         );
+        const hashMap = await hashDomains(domains, { strict: true });
+        const cookiesWithMetadata = cookiesWithHistory.map((cookie) => {
+          const canonicalDomain = canonicalizeDomain(cookie.domain);
+          const domainRankRange = canonicalDomain ? (rankMap.get(canonicalDomain) || "100000+") : null;
+          const domainHash = canonicalDomain ? (hashMap.get(canonicalDomain) || null) : null;
+          return {
+            ...cookie,
+            domainRankRange,
+            domainHash
+          };
+        });
 
         console.log("Promises resolved! Sending response with cookies...");
         sendResponse({ cookies: cookiesWithMetadata });
@@ -772,28 +920,34 @@ ext.runtime.onMessage.addListener((request, sender, sendResponse) => {
       return false;
     }
 
-    fetch(SURVEY_APP_ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        timestamp: Date.now(),
-        records,
-        consentDomainData,
-        browsingHistoryData,
-        participantId
-      })
-    })
-      .then(async (res) => {
+    (async () => {
+      try {
+        const hashedConsentDomainData = await ensureHashedRecords(consentDomainData, "consentDomainData");
+        const hashedBrowsingHistoryData = await ensureHashedRecords(browsingHistoryData, "browsingHistoryData");
+        const hashedRecords = await ensureHashedRecords(records, "records");
+
+        const res = await fetch(SURVEY_APP_ENDPOINT, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            timestamp: Date.now(),
+            records: hashedRecords,
+            consentDomainData: hashedConsentDomainData,
+            browsingHistoryData: hashedBrowsingHistoryData,
+            participantId
+          })
+        });
+
         const text = await res.text();
         if (!res.ok) {
           throw new Error(`Survey app responded ${res.status}: ${text}`);
         }
         sendResponse({ ok: true });
-      })
-      .catch((error) => {
+      } catch (error) {
         console.error("Failed to submit consent data:", error);
         sendResponse({ ok: false, error: error.message });
-      });
+      }
+    })();
     return true;
   }
 
@@ -817,25 +971,32 @@ ext.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const rankMap = await getTop1mDomainRankMap();
         const prefsMap = new Map(userPreferences);
 
-        const records = await Promise.all(
-          selectedDomains.map(async (domainObj) => {
-            const rawDomain = domainObj?.originalDomain || domainObj?.domain || "";
-            const canonicalDomain = canonicalizeDomain(rawDomain);
-            if (!canonicalDomain) return null;
-
-            const prefs = findDomainPreferences(rawDomain, prefsMap) || {};
-            const matchedCookie = findCookieMetadataForDomain(rawDomain, cookieData);
-            const domainHash = await hashDomain(canonicalDomain);
-
-            return {
-              domainHash: domainHash || matchedCookie?.domainHash || null,
-              trancoRank: rankMap.get(canonicalDomain) || matchedCookie?.domainRankRange || "100000+",
-              functional: prefs.functional ?? null,
-              performance: prefs.performance ?? null,
-              advertising: prefs.advertising ?? null
-            };
-          })
+        const canonicalDomains = Array.from(
+          new Set(
+            selectedDomains
+              .map((domainObj) => canonicalizeDomain(domainObj?.originalDomain || domainObj?.domain || ""))
+              .filter(Boolean)
+          )
         );
+        const hashMap = await hashDomains(canonicalDomains, { strict: true });
+
+        const records = selectedDomains.map((domainObj) => {
+          const rawDomain = domainObj?.originalDomain || domainObj?.domain || "";
+          const canonicalDomain = canonicalizeDomain(rawDomain);
+          if (!canonicalDomain) return null;
+
+          const prefs = findDomainPreferences(rawDomain, prefsMap) || {};
+          const matchedCookie = findCookieMetadataForDomain(rawDomain, cookieData);
+          const domainHash = hashMap.get(canonicalDomain) || null;
+
+          return {
+            domainHash: domainHash || matchedCookie?.domainHash || null,
+            trancoRank: rankMap.get(canonicalDomain) || matchedCookie?.domainRankRange || "100000+",
+            functional: prefs.functional ?? null,
+            performance: prefs.performance ?? null,
+            advertising: prefs.advertising ?? null
+          };
+        });
 
         sendResponse({
           category,

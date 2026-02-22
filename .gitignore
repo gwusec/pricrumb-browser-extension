@@ -23,6 +23,10 @@ dist/
 build/
 out/
 
+# Local secrets
+extensions/desktop/merged/domain_hmac.key
+ops/domain-hash-service/secrets/domain_hmac.key
+
 # Temporary files
 tmp/
 .cache/

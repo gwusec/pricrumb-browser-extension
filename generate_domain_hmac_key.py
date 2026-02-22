@@ -1,20 +1,22 @@
-from pathlib import Path
+import os
 import base64
 import secrets
-import os
+from pathlib import Path
 
 
-def generate_key_file(path="extensions/desktop/merged/domain_hmac.key", nbytes=32):
+def generate_key_file(path="ops/domain-hash-service/secrets/domain_hmac.key", nbytes=32):
     key = secrets.token_bytes(nbytes)
     data = base64.b64encode(key)
-    Path(path).write_bytes(data)
+    target = Path(path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_bytes(data)
 
     try:
-        os.chmod(path, 0o600)
+        os.chmod(target, 0o600)
     except Exception:
         pass
 
-    return path
+    return str(target)
 
 
 if __name__ == "__main__":

@@ -42,8 +42,12 @@ fi
 rm -rf "$OUT_DIR"
 mkdir -p "$OUT_DIR"
 
-# Copy all files except manifest variants
-rsync -av --exclude="manifest.chrome.json" --exclude="manifest.firefox.json" "$SRC_DIR/" "$OUT_DIR/"
+# Copy all files except manifest variants and local/private key material
+rsync -av \
+  --exclude="manifest.chrome.json" \
+  --exclude="manifest.firefox.json" \
+  --exclude="domain_hmac.key" \
+  "$SRC_DIR/" "$OUT_DIR/"
 
 # Copy correct manifest
 cp "$MANIFEST_SRC" "$OUT_DIR/manifest.json"
