@@ -15,11 +15,23 @@ This runbook describes the hashing architecture and the commands needed to run t
    - extension sanitizes submit payload
    - survey frontend sanitizes extension data before saving survey fields
    - survey backend sanitizes before database writes
+8. The same HMAC key should be reused for all participants in the same study.
+   - Reason: HMAC is deterministic for the same input + same key, so the same domain will produce the same hash across participants.
+   - This enables cross-participant comparisons without storing raw domains.
 
 ## Services and Ports
 
 - Survey backend: `http://localhost:8080`
 - Domain hash service: `http://localhost:8082`
+
+## HMAC Key File (Exact Name and Location)
+
+- File name: `domain_hmac.key`
+- Exact location (inside the extension project): `ops/domain-hash-service/secrets/domain_hmac.key`
+
+How to use it:
+- If the team already has a shared study key, place that file at `ops/domain-hash-service/secrets/domain_hmac.key` before starting the hash service.
+- If no key exists yet, run `python generate_domain_hmac_key.py` once from the extension project root. The script writes the key to that exact path.
 
 ## Startup Commands (Every Time)
 
@@ -44,17 +56,34 @@ What this does:
 
 ### Terminal B: Extension hash service
 1. Go to the directory where the extension project is.
-2. Run:
+2. Make sure the shared HMAC key file exists at:
+   - `ops/domain-hash-service/secrets/domain_hmac.key`
+3. If this is the first run (or the key file is missing), run:
 
 ```powershell
 python generate_domain_hmac_key.py
+```
+
+4. Then run:
+
+```powershell
 cd ops/domain-hash-service
 docker compose up -d
 ```
 
 What this does:
 - `python generate_domain_hmac_key.py`: creates/rotates the HMAC key file used by hash service.
+  - Output file: `ops/domain-hash-service/secrets/domain_hmac.key`
+  - Run this only once per study (or when intentionally rotating the key).
+  - Reusing the same key keeps hashes comparable across participants and sessions.
 - `docker compose up -d`: starts hash API + nginx.
+
+### Why the key is usually generated only once
+
+- If two participants both have the same domain (for example `google.com`), you want the hashed value to be the same so records can be compared.
+- That only happens if the same hashing key is reused.
+- If you generate a new key every run, the same domain will hash to a different value, breaking comparability across participants/runs.
+- Recommended practice: use one key per study/cohort, rotate only when you intentionally want a new hash namespace.
 
 ## Health Checks
 
