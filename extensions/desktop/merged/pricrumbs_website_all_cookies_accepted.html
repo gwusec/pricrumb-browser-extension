@@ -42,12 +42,16 @@
         }
 
         .section {
-            margin-bottom: 30px;
+            margin-bottom: 0;
             padding: 15px;
             border-radius: 5px;
-            background-color: #f9f9f9;
-            justify-content: center;
+            background-color: #fff;
             /* border-left: 4px solid #007bff; */
+        }
+
+        .website-card {
+            background-color: #fff;
+
         }
 
         .website-card:hover {
@@ -57,7 +61,11 @@
         .website-header {
             display: flex;
             align-items: center;
+            justify-content: center;
             margin-bottom: 10px;
+            background-color: #fff;
+            padding: 8px 12px;
+            border-radius: 4px;
         }
 
         .favicon {
@@ -66,10 +74,12 @@
             margin-right: 10px;
         }
 
-        h3 {
+        .website-header h3 {
             margin: 0;
-            font-size: 1.1rem;
+            font-size: 1.35rem;
             color: #333;
+            text-align: center;
+
         }
 
         .website-details {
@@ -125,30 +135,17 @@
 </head>
 <body>
     <div class="container">
-        <!-- <h1>Correaltions between the factors and users choices</h1> -->
         
         <!-- Loading View -->
         <div id="loadingView">
             <div class="spinner"></div>
-            <!-- <p>Cookie choices basaed on 3 critirias</p> -->
         </div>
         
         <!-- Websites View -->
         <div id="websitesView" style="display: none;">
-            <!-- <p class="introduction">
-                Based on your browsing history and cookie preferences, we've identified patterns in how you interact with different types of websites. Here's what we found:
-            </p> -->
-            
-            <!-- <div class="analysis-header">Websites where all cookie types has been accepted:</div> -->
+           
             <div id="category1" class="section"></div>
-            
-            <!-- <div class="analysis-header">Websites where all cookie types has been rejected:</div>
-            <div id="category2" class="section"></div>
-            
-            <div class="analysis-header">Websites with mixed preferences (Accept Functional & Performance, Reject Advertising):</div>
-            <div id="category3" class="section"></div> -->
-            
-            <!-- <button id="backButton" class="button">Back to Main</button> -->
+
         </div>
     </div>
     <!-- <script>

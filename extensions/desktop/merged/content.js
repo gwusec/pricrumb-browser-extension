@@ -1,5 +1,48 @@
 // Content script
 
+function normalizeConsentValue(value) {
+  if (value === true || value === "yes" || value === "Yes") return "yes";
+  if (value === false || value === "no" || value === "No") return "no";
+  return "unknown";
+}
+
+function buildDomainConsentRecords(cookieData) {
+  if (!Array.isArray(cookieData)) return [];
+
+  const recordsByKey = new Map();
+
+  cookieData.forEach((cookie) => {
+    const domainHash = cookie?.domainHash || null;
+    const domainKey = domainHash || (cookie?.domain || "").toLowerCase();
+    if (!domainKey) return;
+
+    const numberOfVisits = Number(cookie?.totalVisitCount) || 0;
+    const dates = Array.isArray(cookie?.visitedDates) ? cookie.visitedDates : [];
+
+    if (!recordsByKey.has(domainKey)) {
+      recordsByKey.set(domainKey, {
+        domainHash,
+        domainRankRange: cookie?.domainRankRange || null,
+        numberOfVisits,
+        dates: Array.from(new Set(dates)).sort(),
+        consent: {
+          necessary: normalizeConsentValue(cookie?.categories?.necessary),
+          functional: normalizeConsentValue(cookie?.categories?.functional),
+          performance: normalizeConsentValue(cookie?.categories?.performance),
+          advertising: normalizeConsentValue(cookie?.categories?.advertising),
+        }
+      });
+      return;
+    }
+
+    const existing = recordsByKey.get(domainKey);
+    existing.numberOfVisits = Math.max(existing.numberOfVisits || 0, numberOfVisits);
+    existing.dates = Array.from(new Set([...(existing.dates || []), ...dates])).sort();
+  });
+
+  return Array.from(recordsByKey.values());
+}
+
 // Listens for messages from the webpage
 // NOTE: manifest.json must be updated if website url changes
 window.addEventListener("message", (event) => {
@@ -19,6 +62,136 @@ window.addEventListener("message", (event) => {
     return;
   }
 
+  if (event.data.payload?.action === "setParticipantId") {
+    const participantId = typeof event.data.payload?.participantId === "string"
+      ? event.data.payload.participantId.trim()
+      : "";
+
+    if (participantId) {
+      ext.storage.local.set({ participantId }).catch((error) => {
+        console.warn("Content script: Failed to persist participant ID:", error);
+      });
+    }
+    return;
+  }
+
+  if (event.data.payload?.action === "getConsentChoices") {
+    (async () => {
+      try {
+        const category = event.data.payload?.category || null;
+        const response = await ext.runtime.sendMessage({
+          action: "getConsentChoices",
+          category
+        });
+
+        window.postMessage({
+          type: "FROM_EXTENSION_CONSENT_CHOICES",
+          payload: {
+            category,
+            choices: Array.isArray(response?.choices) ? response.choices : []
+          }
+        }, "*");
+      } catch (error) {
+        console.error("Content script: Error reading consent choices:", error);
+        window.postMessage({
+          type: "FROM_EXTENSION_CONSENT_CHOICES",
+          payload: {
+            category: event.data.payload?.category || null,
+            choices: [],
+            error: String(error)
+          }
+        }, "*");
+      }
+    })();
+    return;
+  }
+
+  if (event.data.payload?.action === "getConsentDomainData") {
+    (async () => {
+      try {
+        const result = await ext.storage.local.get(["consentDomainData", "cookieData", "browsingHistoryData"]);
+        const consentDomainData = Array.isArray(result.consentDomainData) && result.consentDomainData.length > 0
+          ? result.consentDomainData
+          : buildDomainConsentRecords(result.cookieData || []);
+        let browsingHistoryData = Array.isArray(result.browsingHistoryData) ? result.browsingHistoryData : [];
+
+        if (browsingHistoryData.length === 0) {
+          try {
+            const historyResponse = await ext.runtime.sendMessage({ action: "getBrowsingHistoryData" });
+            browsingHistoryData = Array.isArray(historyResponse?.browsingHistoryData)
+              ? historyResponse.browsingHistoryData
+              : [];
+            await ext.storage.local.set({ browsingHistoryData });
+          } catch (historyError) {
+            console.error("Content script: Error fetching browsing history data:", historyError);
+          }
+        }
+
+        window.postMessage({
+          type: "FROM_EXTENSION_CONSENT_DOMAIN_DATA",
+          payload: {
+            records: consentDomainData,
+            consentDomainData,
+            consentDomainDataCount: consentDomainData.length,
+            browsingHistoryData,
+            browsingHistoryDataCount: browsingHistoryData.length,
+            count: consentDomainData.length,
+            fetchedAt: new Date().toISOString()
+          }
+        }, "*");
+      } catch (error) {
+        console.error("Content script: Error reading consent domain data:", error);
+        window.postMessage({
+          type: "FROM_EXTENSION_CONSENT_DOMAIN_DATA",
+          payload: {
+            records: [],
+            consentDomainData: [],
+            consentDomainDataCount: 0,
+            browsingHistoryData: [],
+            browsingHistoryDataCount: 0,
+            count: 0,
+            error: String(error)
+          }
+        }, "*");
+      }
+    })();
+    return;
+  }
+
+  if (event.data.payload?.action === "getBrowsingHistoryData") {
+    (async () => {
+      try {
+        const result = await ext.storage.local.get(["browsingHistoryData"]);
+        let records = Array.isArray(result.browsingHistoryData) ? result.browsingHistoryData : [];
+
+        if (records.length === 0) {
+          try {
+            const response = await ext.runtime.sendMessage({ action: "getBrowsingHistoryData" });
+            records = Array.isArray(response?.browsingHistoryData) ? response.browsingHistoryData : [];
+            await ext.storage.local.set({ browsingHistoryData: records });
+          } catch (backgroundError) {
+            console.error("Content script: Error fetching browsing history from background:", backgroundError);
+          }
+        }
+
+        window.postMessage({
+          type: "FROM_EXTENSION_BROWSING_HISTORY_DATA",
+          payload: {
+            records,
+            count: records.length,
+            fetchedAt: new Date().toISOString()
+          }
+        }, "*");
+      } catch (error) {
+        console.error("Content script: Error reading browsing history data:", error);
+        window.postMessage({
+          type: "FROM_EXTENSION_BROWSING_HISTORY_DATA",
+          payload: { records: [], count: 0, error: String(error) }
+        }, "*");
+      }
+    })();
+    return;
+  }
 
   //this part is for eligibility check (if users have 10 or more unique websites where action taken = yes):
   if(event.data.payload?.action === "checkEligibility") {
@@ -423,10 +596,10 @@ function checkForSurveyElement() {
     "pricrumbs_preferred_cookie_choices_advertising": { html: "pricrumbs_preferred_cookie_choices_advertising.html", height: "480px" },
     "pricrumbs_consent_history_top_websites": { html: "pricrumbs_consent_history_top_websites.html", height: "1020px" },
     "pricrumbs_consent_history_bottom_websites": { html: "pricrumbs_consent_history_bottom_websites.html", height: "600px" },
-    "pricrumbs_website_all_cookies_accepted": { html: "pricrumbs_website_all_cookies_accepted.html", height: "245px" },
-    "pricrumbs_website_all_cookies_rejected": { html: "pricrumbs_website_all_cookies_rejected.html", height: "245px" },
-    "pricrumbs_website_advertising_cookies_rejected": { html: "pricrumbs_website_advertising_cookies_rejected.html", height: "245px" },
-    "pricrumbs_website_all_cookies_default": { html: "pricrumbs_website_all_cookies_default.html", height: "245px" },
+    "pricrumbs_website_all_cookies_accepted": { html: "pricrumbs_website_all_cookies_accepted.html", height: "150px" },
+    "pricrumbs_website_all_cookies_rejected": { html: "pricrumbs_website_all_cookies_rejected.html", height: "150px" },
+    "pricrumbs_website_advertising_cookies_rejected": { html: "pricrumbs_website_advertising_cookies_rejected.html", height: "150px" },
+    "pricrumbs_website_all_cookies_default": { html: "pricrumbs_website_all_cookies_default.html", height: "150px" },
     "pricrumbs_websites_with_discripincies": { html: "pricrumbs_websites_with_discripincies.html", height: "950px" },
   };
 

@@ -1717,6 +1717,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     firstVisited: decoded.firstVisited,
     lastVisited: decoded.lastVisited,
     totalVisitCount: currentCookie.totalVisitCount || 0,
+    visitedDates: Array.isArray(currentCookie.visitedDates) ? currentCookie.visitedDates : [],
     avgDailyVisits: currentCookie.avgDailyVisits || 0,
     rawCookie: decoded.rawCookie || currentCookie.value,
     actionTaken: decoded.actionTaken,
@@ -2215,10 +2216,15 @@ function buildDomainConsentRecords(cookies) {
     const domainKey = domainHash || (cookie.domain || "").toLowerCase();
     if (!domainKey) return;
 
+    const numberOfVisits = Number(cookie.totalVisitCount) || 0;
+    const dates = Array.isArray(cookie.visitedDates) ? cookie.visitedDates : [];
+
     if (!recordsByKey.has(domainKey)) {
       recordsByKey.set(domainKey, {
         domainHash,
         domainRankRange: cookie.domainRankRange || null,
+        numberOfVisits,
+        dates: Array.from(new Set(dates)).sort(),
         consent: {
           necessary: normalizeConsentValue(cookie.categories?.necessary),
           functional: normalizeConsentValue(cookie.categories?.functional),
@@ -2226,7 +2232,12 @@ function buildDomainConsentRecords(cookies) {
           advertising: normalizeConsentValue(cookie.categories?.advertising)
         }
       });
+      return;
     }
+
+    const existing = recordsByKey.get(domainKey);
+    existing.numberOfVisits = Math.max(existing.numberOfVisits || 0, numberOfVisits);
+    existing.dates = Array.from(new Set([...(existing.dates || []), ...dates])).sort();
   });
 
   return Array.from(recordsByKey.values());
@@ -2251,12 +2262,35 @@ function buildDomainConsentRecords(cookies) {
 
       const consentDomainRecords = buildDomainConsentRecords(cookies);
       console.log("Consent payload preview:", consentDomainRecords.slice(0, 5));
-      await ext.storage.local.set({ consentDomainData: consentDomainRecords });
+      let browsingHistoryData = [];
+      try {
+        const historyResponse = await ext.runtime.sendMessage({ action: "getBrowsingHistoryData" });
+        browsingHistoryData = Array.isArray(historyResponse?.browsingHistoryData)
+          ? historyResponse.browsingHistoryData
+          : [];
+      } catch (historyError) {
+        console.warn("Failed to fetch browsingHistoryData:", historyError);
+      }
+
+      await ext.storage.local.set({
+        consentDomainData: consentDomainRecords,
+        browsingHistoryData
+      });
       console.log(`Saved ${consentDomainRecords.length} consent domain records`);
+      console.log(`Saved ${browsingHistoryData.length} browsing history domain records`);
+      const participantResult = await ext.storage.local.get("participantId");
+      const participantId = typeof participantResult.participantId === "string"
+        ? participantResult.participantId.trim()
+        : null;
 
       ext.runtime.sendMessage({
         action: "submitConsentData",
-        payload: { records: consentDomainRecords }
+        payload: {
+          records: consentDomainRecords,
+          consentDomainData: consentDomainRecords,
+          browsingHistoryData,
+          participantId
+        }
       })
         .then((response) => {
           if (response?.ok) {

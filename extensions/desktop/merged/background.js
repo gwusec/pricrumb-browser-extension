@@ -13,7 +13,9 @@ const visitedDomainsCache = new Set(); // Cache to store domains the user has vi
 let visitedDomainsCacheLastUpdated = 0; // Timestamp of last update to visitedDomainsCache
 let top1mDomainRankMapPromise = null;
 let domainHmacKeyPromise = null;
-const SURVEY_APP_ENDPOINT = "http://localhost:8080/consent-data";
+let browsingHistoryDataCache = null;
+let browsingHistoryDataCacheLastUpdated = 0;
+const SURVEY_APP_ENDPOINT = "http://localhost:8080/postsurvey/consent-data";
 
 // Parse top-1m-websites.csv once and cache the Map<domain, rank_range>
 async function getTop1mDomainRankMap() {
@@ -336,6 +338,16 @@ function fetchPaginatedHistory(cookieDomain, callback) {
     let avgDailyVisits = dailyVisitCounts.length > 0
       ? Math.round((dailyVisitCounts.reduce((sum, count) => sum + count, 0) / dailyVisitCounts.length) * 10) / 10
       : 0;
+    const uniqueVisitedDates = Array.from(
+      new Set(
+        allVisits.map((visitTime) => {
+          const date = new Date(visitTime);
+          const month = String(date.getMonth() + 1).padStart(2, "0");
+          const day = String(date.getDate()).padStart(2, "0");
+          return `${date.getFullYear()}-${month}-${day}`;
+        })
+      )
+    ).sort();
 
     console.log(`Domain ${cookieDomain} final counts: ${totalVisitCount} visits across ${dailyVisitMap.size} days`);
     console.log(`Processed ${processedVisitIds.size} unique visit IDs`);
@@ -347,6 +359,7 @@ function fetchPaginatedHistory(cookieDomain, callback) {
       totalVisitCount: totalVisitCount,
       avgDailyVisits: avgDailyVisits,
       daysVisited: dailyVisitMap.size,
+      visitedDates: uniqueVisitedDates,
     };
 
     // Store in cache
@@ -384,6 +397,175 @@ function domainMatch(historyDomain, cookieDomain) {
     historyDomainNoWWW.endsWith(`.${cookieDomainNoWWW}`) ||
     cookieDomain.endsWith(`.${historyDomain}`) ||
     cookieDomainNoWWW.endsWith(`.${historyDomainNoWWW}`);
+}
+
+function historySearchAsync(query) {
+  return new Promise((resolve) => {
+    ext.history.search(query, (results) => {
+      if (ext.runtime.lastError) {
+        console.error("History search error:", ext.runtime.lastError);
+        resolve([]);
+        return;
+      }
+      resolve(Array.isArray(results) ? results : []);
+    });
+  });
+}
+
+function historyGetVisitsAsync(url) {
+  return new Promise((resolve) => {
+    ext.history.getVisits({ url }, (visits) => {
+      if (ext.runtime.lastError) {
+        console.error(`History getVisits error for ${url}:`, ext.runtime.lastError);
+        resolve([]);
+        return;
+      }
+      resolve(Array.isArray(visits) ? visits : []);
+    });
+  });
+}
+
+function getPreferenceVariants(domain) {
+  const standardized = standardizeDomain(domain);
+  if (!standardized) return [];
+
+  const variants = new Set([standardized]);
+  variants.add(`.${standardized}`);
+
+  if (standardized.startsWith("www.")) {
+    const withoutWww = standardized.slice(4);
+    variants.add(withoutWww);
+    variants.add(`.${withoutWww}`);
+  } else {
+    variants.add(`www.${standardized}`);
+    variants.add(`.www.${standardized}`);
+  }
+
+  return Array.from(variants);
+}
+
+function findDomainPreferences(domain, prefsMap) {
+  const variants = getPreferenceVariants(domain);
+  for (const key of variants) {
+    if (prefsMap.has(key)) return prefsMap.get(key);
+  }
+  return null;
+}
+
+function findCookieMetadataForDomain(domain, cookies) {
+  const variants = new Set(getPreferenceVariants(domain));
+  for (const cookie of cookies) {
+    const cookieDomain = standardizeDomain(cookie?.domain);
+    if (!cookieDomain) continue;
+
+    if (variants.has(cookieDomain) || variants.has(`.${cookieDomain}`)) {
+      return cookie;
+    }
+  }
+  return null;
+}
+
+async function getBrowsingHistoryData(forceRefresh = false) {
+  const cacheAge = Date.now() - browsingHistoryDataCacheLastUpdated;
+  if (!forceRefresh && browsingHistoryDataCache && browsingHistoryDataCacheLastUpdated > 0 && cacheAge < 3600000) {
+    console.log(`Using cached browsingHistoryData (${browsingHistoryDataCache.length} domains, age ${Math.round(cacheAge / 60000)}m)`);
+    return browsingHistoryDataCache;
+  }
+
+  const oneYearAgo = Date.now() - (365 * 24 * 60 * 60 * 1000);
+  const maxResultsPerBatch = 5000;
+  const maxFetchAttempts = 30;
+  const historyItemsByUrl = new Map();
+  let endTime = Date.now();
+  let previousEndTime = null;
+  let fetchAttempts = 0;
+
+  while (fetchAttempts < maxFetchAttempts) {
+    fetchAttempts += 1;
+    const results = await historySearchAsync({
+      text: "",
+      startTime: oneYearAgo,
+      endTime,
+      maxResults: maxResultsPerBatch
+    });
+
+    if (!results.length || endTime === previousEndTime) {
+      break;
+    }
+
+    results.forEach((item) => {
+      if (item?.url) {
+        historyItemsByUrl.set(item.url, item);
+      }
+    });
+
+    const timestamps = results
+      .map((item) => item?.lastVisitTime)
+      .filter((value) => typeof value === "number");
+    if (!timestamps.length) {
+      break;
+    }
+
+    previousEndTime = endTime;
+    endTime = Math.min(...timestamps) - 1;
+    if (endTime <= oneYearAgo) {
+      break;
+    }
+  }
+
+  const domainStats = new Map();
+
+  for (const url of historyItemsByUrl.keys()) {
+    let canonicalDomain = "";
+    try {
+      const parsedUrl = new URL(url);
+      canonicalDomain = canonicalizeDomain(parsedUrl.hostname);
+    } catch (_error) {
+      continue;
+    }
+    if (!canonicalDomain) continue;
+
+    const visits = await historyGetVisitsAsync(url);
+    const relevantVisits = visits.filter((visit) =>
+      typeof visit?.visitTime === "number" &&
+      visit.visitTime >= oneYearAgo &&
+      !["auto_redirect", "auto_subframe", "reload"].includes(visit.transition)
+    );
+    if (!relevantVisits.length) continue;
+
+    if (!domainStats.has(canonicalDomain)) {
+      domainStats.set(canonicalDomain, {
+        numberOfVisits: 0,
+        datesSet: new Set()
+      });
+    }
+
+    const stats = domainStats.get(canonicalDomain);
+    relevantVisits.forEach((visit) => {
+      stats.numberOfVisits += 1;
+      const date = new Date(visit.visitTime);
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      stats.datesSet.add(`${date.getFullYear()}-${month}-${day}`);
+    });
+  }
+
+  const rankMap = await getTop1mDomainRankMap();
+  const browsingHistoryData = await Promise.all(
+    Array.from(domainStats.entries()).map(async ([domain, stats]) => ({
+      domainHash: await hashDomain(domain),
+      domainRankRange: rankMap.get(domain) || "100000+",
+      numberOfVisits: stats.numberOfVisits,
+      dates: Array.from(stats.datesSet).sort()
+    }))
+  );
+
+  browsingHistoryData.sort((a, b) => (b.numberOfVisits || 0) - (a.numberOfVisits || 0));
+  browsingHistoryDataCache = browsingHistoryData;
+  browsingHistoryDataCacheLastUpdated = Date.now();
+  console.log(`Built browsingHistoryData for ${browsingHistoryData.length} domains`);
+
+  return browsingHistoryData;
 }
 
 // Send message to content script to run the DOM-checker when a tab finishes loading.
@@ -458,7 +640,8 @@ ext.runtime.onMessage.addListener((request, sender, sendResponse) => {
                   firstVisited: historyData.firstVisited ?? null,
                   lastVisited: historyData.lastVisited ?? null,
                   totalVisitCount: historyData.totalVisitCount ?? 0,
-                  avgDailyVisits: historyData.avgDailyVisits ?? 0
+                  avgDailyVisits: historyData.avgDailyVisits ?? 0,
+                  visitedDates: Array.isArray(historyData.visitedDates) ? historyData.visitedDates : []
                 });
               }
             });
@@ -473,7 +656,8 @@ ext.runtime.onMessage.addListener((request, sender, sendResponse) => {
                   firstVisited: null,
                   lastVisited: null,
                   totalVisitCount: 0,
-                  avgDailyVisits: 0
+                  avgDailyVisits: 0,
+                  visitedDates: []
                 });
               }
             }, 10000);
@@ -563,6 +747,113 @@ ext.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true; // Keep channel open for async response
   }
 
+  if (request.action === "getBrowsingHistoryData") {
+    getBrowsingHistoryData(Boolean(request.forceRefresh))
+      .then((browsingHistoryData) => {
+        sendResponse({ browsingHistoryData });
+      })
+      .catch((error) => {
+        console.error("Failed to build browsingHistoryData:", error);
+        sendResponse({ browsingHistoryData: [] });
+      });
+    return true;
+  }
+
+  if (request.action === "submitConsentData") {
+    console.log("submitConsentData received");
+    const records = request.payload?.records || request.payload?.consentDomainData || [];
+    const consentDomainData = request.payload?.consentDomainData || records;
+    const browsingHistoryData = request.payload?.browsingHistoryData || [];
+    const participantId = request.payload?.participantId || null;
+
+    if (!SURVEY_APP_ENDPOINT) {
+      console.warn("SURVEY_APP_ENDPOINT is not set. Skipping consent data upload.");
+      sendResponse({ ok: false, skipped: true });
+      return false;
+    }
+
+    fetch(SURVEY_APP_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        timestamp: Date.now(),
+        records,
+        consentDomainData,
+        browsingHistoryData,
+        participantId
+      })
+    })
+      .then(async (res) => {
+        const text = await res.text();
+        if (!res.ok) {
+          throw new Error(`Survey app responded ${res.status}: ${text}`);
+        }
+        sendResponse({ ok: true });
+      })
+      .catch((error) => {
+        console.error("Failed to submit consent data:", error);
+        sendResponse({ ok: false, error: error.message });
+      });
+    return true;
+  }
+
+  if (request.action === "getConsentChoices") {
+    (async () => {
+      try {
+        const category = request.category || request.payload?.category || null;
+        const result = await ext.storage.local.get([
+          "selectedDomainsForHistory",
+          "userCookiePreferences",
+          "cookieData"
+        ]);
+
+        const selectedDomains = Array.isArray(result.selectedDomainsForHistory)
+          ? result.selectedDomainsForHistory
+          : [];
+        const userPreferences = Array.isArray(result.userCookiePreferences)
+          ? result.userCookiePreferences
+          : [];
+        const cookieData = Array.isArray(result.cookieData) ? result.cookieData : [];
+        const rankMap = await getTop1mDomainRankMap();
+        const prefsMap = new Map(userPreferences);
+
+        const records = await Promise.all(
+          selectedDomains.map(async (domainObj) => {
+            const rawDomain = domainObj?.originalDomain || domainObj?.domain || "";
+            const canonicalDomain = canonicalizeDomain(rawDomain);
+            if (!canonicalDomain) return null;
+
+            const prefs = findDomainPreferences(rawDomain, prefsMap) || {};
+            const matchedCookie = findCookieMetadataForDomain(rawDomain, cookieData);
+            const domainHash = await hashDomain(canonicalDomain);
+
+            return {
+              domainHash: domainHash || matchedCookie?.domainHash || null,
+              trancoRank: rankMap.get(canonicalDomain) || matchedCookie?.domainRankRange || "100000+",
+              functional: prefs.functional ?? null,
+              performance: prefs.performance ?? null,
+              advertising: prefs.advertising ?? null
+            };
+          })
+        );
+
+        sendResponse({
+          category,
+          choices: records.filter(Boolean)
+        });
+      } catch (error) {
+        console.error("Failed to build consent choices payload:", error);
+        sendResponse({
+          category: request.category || request.payload?.category || null,
+          choices: [],
+          error: error.message
+        });
+      }
+    })();
+
+    return true;
+  }
+
   if (request.payload?.action == "autoUninstallExtension") {
     console.log("Background script automatic uninstallation triggered by event payload.");
 
@@ -607,38 +898,6 @@ function storeCookiesInStorage(cookies) {
             result.cookieData.map(c => `${c.domain}: ${c.totalVisitCount}`));
         }
       });
-    return true;
-  }
-
-  if (request.action === "submitConsentData") {
-    console.log("submitConsentData received");
-    const records = request.payload?.records || [];
-    if (!SURVEY_APP_ENDPOINT) {
-      console.warn("SURVEY_APP_ENDPOINT is not set. Skipping consent data upload.");
-      sendResponse({ ok: false, skipped: true });
-      return false;
     }
-
-    fetch(SURVEY_APP_ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        timestamp: Date.now(),
-        records
-      })
-    })
-      .then(async (res) => {
-        const text = await res.text();
-        if (!res.ok) {
-          throw new Error(`Survey app responded ${res.status}: ${text}`);
-        }
-        sendResponse({ ok: true });
-      })
-      .catch((error) => {
-        console.error("Failed to submit consent data:", error);
-        sendResponse({ ok: false, error: error.message });
-      });
-    return true;
-  }
-});
+  });
 }
