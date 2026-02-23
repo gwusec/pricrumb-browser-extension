@@ -846,20 +846,18 @@ function getSelectionStatus(domain, category, userPref, hasDiscrepancy, showDisc
         if (hasDiscrepancyByScale) {
             console.log(`Adding discrepancy marker for ${domain.domain}, category ${category}`);
             
+            // Outer span acts as the tooltip trigger
             const discrepancyMarker = document.createElement('span');
             discrepancyMarker.textContent = '!';
-            discrepancyMarker.style.position = 'absolute';
-            discrepancyMarker.style.top = '10px';
-            discrepancyMarker.style.right = '20px';
-            discrepancyMarker.style.color = '#ff9800';
-            discrepancyMarker.style.fontWeight = 'bold';
-            discrepancyMarker.style.fontSize = '25px';
-            discrepancyMarker.style.cursor = 'pointer';
-            discrepancyMarker.style.zIndex = '10';
+            discrepancyMarker.className = 'discrepancy-marker';
             
-            // Add tooltip showing what the user preference was
-            discrepancyMarker.title = `Your previous choice was: "${valueText}", but actual setting is: ${isAccepted ? 'Allowed' : 'Not Allowed'}`;
+            // Inner span is the tooltip bubble
+            const tooltipText = document.createElement('span');
+            tooltipText.className = 'discrepancy-tooltiptext';
+            // tooltipText.textContent = `Your preference: "${valueText}" — Actual: ${isAccepted ? 'Allowed' : 'Not Allowed'}`;
+            tooltipText.innerHTML = `Your preference: "<strong>${valueText}</strong>"<br>Actual setting: <strong>${isAccepted ? 'Allowed' : 'Not Allowed'}</strong>`;
             
+            discrepancyMarker.appendChild(tooltipText);
             container.appendChild(discrepancyMarker);
             container.style.overflow = 'visible';
             container.style.marginTop = '15px';
