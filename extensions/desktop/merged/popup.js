@@ -2377,6 +2377,10 @@ function buildDomainConsentRecords(cookies) {
   document.getElementById('pricrumbs_websites_with_discripincies')?.addEventListener('click', () => {
     window.location.href = 'pricrumbs_websites_with_discripincies.html';
   });
+    document.getElementById('pricrumbs_websites_undecided')?.addEventListener('click', () => {
+    window.location.href = 'pricrumbs_websites_undecided.html';
+  });
+
 
 
 
