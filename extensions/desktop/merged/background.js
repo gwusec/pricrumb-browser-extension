@@ -868,8 +868,8 @@ ext.runtime.onMessage.addListener((request, sender, sendResponse) => {
       return true;
     }
 
-    // Remove ".html" to get elementId
-    let elementId = request.payload.html.slice(0, -5);
+    // Prefer explicit elementId from content script; fallback to html filename.
+    let elementId = request.payload.elementId || request.payload.html.slice(0, -5);
     let height = request.payload.height ? request.payload.height : "600px";
 
     if (height === "0px") {
@@ -1012,6 +1012,39 @@ ext.runtime.onMessage.addListener((request, sender, sendResponse) => {
       }
     })();
 
+    return true;
+  }
+
+  if (request.action === "resetStudyData" || request.payload?.action === "resetStudyData") {
+    (async () => {
+      try {
+        await ext.storage.local.remove([
+          "userCookiePreferences",
+          "selectedDomainsForHistory",
+          "consentDomainData",
+          "browsingHistoryData",
+          "cookieData",
+          "hasDiscrepancies",
+          "hasDiscrepanciesCheckedAt",
+          "participantId"
+        ]);
+
+        visitedDomainsCache.clear();
+        visitedDomainsCacheLastUpdated = 0;
+        domainHashCache.clear();
+        browsingHistoryDataCache = null;
+        browsingHistoryDataCacheLastUpdated = 0;
+
+        Object.keys(historyCache).forEach((key) => {
+          delete historyCache[key];
+        });
+
+        sendResponse({ ok: true });
+      } catch (error) {
+        console.error("Failed to reset study data:", error);
+        sendResponse({ ok: false, error: error.message });
+      }
+    })();
     return true;
   }
 

@@ -109,7 +109,9 @@
     /* Toggle container - Updated to center buttons */
     .toggle-container {
         display: flex;
-        justify-content: center; /* Center the buttons */
+        flex-direction: column;  /* Show buttons as a vertical list */
+        justify-content: center;
+        align-items: center;
         margin: 15px 0;
         gap: 10px;
     }
@@ -199,7 +201,7 @@
             <div class="domain-card">
 
                 <div class="question" style="text-align: center;">
-                <b>How willing are you to allow <u>performance</u> cookies for this website?</b>
+                <b>What is your preference for this website's use of <u>performance</u> cookies?</b>
                 </div>
                 
                 <div class="domain-name" id="currentDomainName" style="text-align: center; font-size: 1.3rem;"></div>

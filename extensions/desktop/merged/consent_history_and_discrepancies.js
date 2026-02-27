@@ -734,8 +734,10 @@ function displayWebsites(domains, tableId) {
         
         // Create a container for the favicon and domain text
         const domainContainer = document.createElement('div');
-        domainContainer.style.display = 'flex';
+        domainContainer.style.display = 'inline-flex';
         domainContainer.style.alignItems = 'center';
+        domainContainer.style.justifyContent = 'center';
+        domainContainer.style.margin = '0 auto';
         
         // Add favicon and domain text
         domainContainer.appendChild(favicon);
@@ -784,9 +786,11 @@ function getSelectionStatus(domain, category, userPref, hasDiscrepancy, showDisc
     
     const container = document.createElement('div');
     container.className = 'selection-container';
-    container.style.display = 'flex';
+    container.style.display = 'inline-flex';
     container.style.justifyContent = 'center';
+    container.style.alignItems = 'center';
     container.style.position = 'relative';
+    container.style.margin = '0 auto';
     
     // Determine if accepted or rejected in cookie history
     let isAccepted = false;
@@ -837,7 +841,7 @@ function getSelectionStatus(domain, category, userPref, hasDiscrepancy, showDisc
     // Check for discrepancy according to the 5-point scale logic
     if ( showDiscrepancies && userPref && typeof userPref[category] === 'number') {
         const userValue = userPref[category];
-        const valueText = getWillingnessText(userValue);
+        const valueText = getWillingnessText(userValue, category);
         
         // If cookie is accepted but user selected 1-2 (not willing/not really willing)
         // OR if cookie is rejected but user selected 4-5 (somewhat willing/willing)
@@ -850,13 +854,57 @@ function getSelectionStatus(domain, category, userPref, hasDiscrepancy, showDisc
             const discrepancyMarker = document.createElement('span');
             discrepancyMarker.textContent = '!';
             discrepancyMarker.className = 'discrepancy-marker';
+            discrepancyMarker.style.position = 'absolute';
+            discrepancyMarker.style.left = 'calc(100% + 8px)';
+            discrepancyMarker.style.top = '50%';
+            discrepancyMarker.style.transform = 'translateY(-50%)';
+            discrepancyMarker.style.display = 'inline-flex';
+            discrepancyMarker.style.alignItems = 'center';
+            discrepancyMarker.style.justifyContent = 'center';
+            discrepancyMarker.style.zIndex = '2';
             
             // Inner span is the tooltip bubble
             const tooltipText = document.createElement('span');
             tooltipText.className = 'discrepancy-tooltiptext';
             // tooltipText.textContent = `Your preference: "${valueText}" — Actual: ${isAccepted ? 'Allowed' : 'Not Allowed'}`;
             tooltipText.innerHTML = `Your preference: "<strong>${valueText}</strong>"<br>Actual setting: <strong>${isAccepted ? 'Allowed' : 'Not Allowed'}</strong>`;
+            tooltipText.style.position = 'absolute';
+            tooltipText.style.bottom = 'calc(100% + 8px)';
+            tooltipText.style.left = '50%';
+            tooltipText.style.transform = 'translateX(-50%)';
+            tooltipText.style.minWidth = '240px';
+            tooltipText.style.maxWidth = '300px';
+            tooltipText.style.padding = '8px 10px';
+            tooltipText.style.borderRadius = '6px';
+            tooltipText.style.backgroundColor = '#333';
+            tooltipText.style.color = '#fff';
+            tooltipText.style.fontSize = '12px';
+            tooltipText.style.lineHeight = '1.35';
+            tooltipText.style.textAlign = 'center';
+            tooltipText.style.whiteSpace = 'normal';
+            tooltipText.style.visibility = 'hidden';
+            tooltipText.style.opacity = '0';
+            tooltipText.style.transition = 'opacity 0.15s ease';
+            tooltipText.style.pointerEvents = 'none';
+            tooltipText.style.zIndex = '9999';
             
+            discrepancyMarker.addEventListener('mouseenter', () => {
+                tooltipText.style.visibility = 'visible';
+                tooltipText.style.opacity = '1';
+            });
+            discrepancyMarker.addEventListener('mouseleave', () => {
+                tooltipText.style.visibility = 'hidden';
+                tooltipText.style.opacity = '0';
+            });
+            discrepancyMarker.addEventListener('focus', () => {
+                tooltipText.style.visibility = 'visible';
+                tooltipText.style.opacity = '1';
+            });
+            discrepancyMarker.addEventListener('blur', () => {
+                tooltipText.style.visibility = 'hidden';
+                tooltipText.style.opacity = '0';
+            });
+
             discrepancyMarker.appendChild(tooltipText);
             container.appendChild(discrepancyMarker);
             container.style.overflow = 'visible';
@@ -868,7 +916,25 @@ function getSelectionStatus(domain, category, userPref, hasDiscrepancy, showDisc
 }
 
 // Helper function to get text for willingness level
-function getWillingnessText(value) {
+function getWillingnessText(value, category) {
+    const categoryLabel = {
+        functional: 'functional',
+        performance: 'performance',
+        advertising: 'advertising'
+    }[category];
+
+    if (categoryLabel) {
+        switch (value) {
+            case 1: return `Strongly prefer not to use ${categoryLabel} cookies`;
+            case 2: return `Prefer not to use ${categoryLabel} cookies`;
+            case 3: return "No preference";
+            case 4: return `Prefer to use ${categoryLabel} cookies`;
+            case 5: return `Strongly prefer to use ${categoryLabel} cookies`;
+            default: return "Unknown";
+        }
+    }
+
+    // Fallback wording for unexpected categories.
     switch (value) {
         case 1: return "Not willing";
         case 2: return "Not really willing";
@@ -950,8 +1016,10 @@ function displayWebsitesWithDiscrepanciesOnly(domains, tableId) {
         favicon.src = `https://www.google.com/s2/favicons?domain=${formattedDomain}&sz=32`;
         
         const domainContainer = document.createElement('div');
-        domainContainer.style.display = 'flex';
+        domainContainer.style.display = 'inline-flex';
         domainContainer.style.alignItems = 'center';
+        domainContainer.style.justifyContent = 'center';
+        domainContainer.style.margin = '0 auto';
         domainContainer.appendChild(favicon);
         domainContainer.appendChild(document.createTextNode(formattedDomain));
         domainCell.appendChild(domainContainer);

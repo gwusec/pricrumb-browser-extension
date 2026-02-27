@@ -109,11 +109,23 @@ window.addEventListener("message", (event) => {
   if (event.data.payload?.action === "getConsentDomainData") {
     (async () => {
       try {
-        const result = await ext.storage.local.get(["consentDomainData", "cookieData", "browsingHistoryData"]);
+        const result = await ext.storage.local.get([
+          "consentDomainData",
+          "cookieData",
+          "browsingHistoryData",
+          "hasDiscrepancies",
+          "hasDiscrepanciesCheckedAt"
+        ]);
         const consentDomainData = Array.isArray(result.consentDomainData) && result.consentDomainData.length > 0
           ? result.consentDomainData
           : buildDomainConsentRecords(result.cookieData || []);
         let browsingHistoryData = Array.isArray(result.browsingHistoryData) ? result.browsingHistoryData : [];
+        const hasDiscrepancies =
+          typeof result.hasDiscrepancies === "boolean" ? result.hasDiscrepancies : null;
+        const hasDiscrepanciesCheckedAt =
+          typeof result.hasDiscrepanciesCheckedAt === "string"
+            ? result.hasDiscrepanciesCheckedAt
+            : null;
 
         if (browsingHistoryData.length === 0) {
           try {
@@ -135,6 +147,8 @@ window.addEventListener("message", (event) => {
             consentDomainDataCount: consentDomainData.length,
             browsingHistoryData,
             browsingHistoryDataCount: browsingHistoryData.length,
+            hasDiscrepancies,
+            hasDiscrepanciesCheckedAt,
             count: consentDomainData.length,
             fetchedAt: new Date().toISOString()
           }
@@ -149,6 +163,8 @@ window.addEventListener("message", (event) => {
             consentDomainDataCount: 0,
             browsingHistoryData: [],
             browsingHistoryDataCount: 0,
+            hasDiscrepancies: null,
+            hasDiscrepanciesCheckedAt: null,
             count: 0,
             error: String(error)
           }
@@ -231,20 +247,19 @@ window.addEventListener("message", (event) => {
       const actionTakenCookies = cookieData.filter(cookie => 
         cookie.actionTaken && cookie.actionTaken.toLowerCase() === 'yes'
       );
-      
-      // Filter for default cookies
-      const defaultActionCookies = cookieData.filter(cookie => 
-        cookie.actionTaken && cookie.actionTaken.toLowerCase() === 'default'
+      // Filter for websites where action taken is "No"
+      const noActionCookies = cookieData.filter(cookie =>
+        cookie.actionTaken && cookie.actionTaken.toLowerCase() === 'no'
       );
       
       console.log('Cookies with action taken:', actionTakenCookies.length);
-      console.log('Cookies with default action:', defaultActionCookies.length);
+      console.log('Cookies with action taken = no:', noActionCookies.length);
       
       // Arrays to store categorized domains
       const category1 = []; // Accept all (functional=true, performance=true, advertising=true)
       const category2 = []; // Reject all (functional=false, performance=false, advertising=false)
       const category3 = []; // Mixed (functional=true, performance=true, advertising=false)
-      const category4 = defaultActionCookies.length > 0; // Has default action cookies
+      const category4 = noActionCookies.length > 0; // Has websites with action taken = no
       
       // Process each cookie with action taken
       for (const cookie of actionTakenCookies) {
@@ -495,6 +510,15 @@ window.addEventListener("message", (event) => {
         }
         
         console.log("Content script: Final discrepancy result:", hasDiscrepancies);
+
+        try {
+          await ext.storage.local.set({
+            hasDiscrepancies,
+            hasDiscrepanciesCheckedAt: new Date().toISOString()
+          });
+        } catch (storageError) {
+          console.warn("Content script: Failed to persist discrepancy result:", storageError);
+        }
         
         window.postMessage({
           type: "FROM_EXTENSION_DISCREPANCIES",
@@ -503,6 +527,14 @@ window.addEventListener("message", (event) => {
         
       } catch (error) {
         console.error("Content script: Error checking discrepancies:", error);
+        try {
+          await ext.storage.local.set({
+            hasDiscrepancies: false,
+            hasDiscrepanciesCheckedAt: new Date().toISOString()
+          });
+        } catch (storageError) {
+          console.warn("Content script: Failed to persist discrepancy error fallback:", storageError);
+        }
         window.postMessage({
           type: "FROM_EXTENSION_DISCREPANCIES",
           payload: { hasDiscrepancies: false }
@@ -510,6 +542,31 @@ window.addEventListener("message", (event) => {
       }
     })();
     
+    return;
+  }
+
+  if (event.data.payload?.action === "resetStudyData") {
+    (async () => {
+      try {
+        const response = await ext.runtime.sendMessage({ action: "resetStudyData" });
+        window.postMessage(
+          {
+            type: "FROM_EXTENSION_RESET",
+            payload: { ok: response?.ok === true }
+          },
+          "*"
+        );
+      } catch (error) {
+        console.error("Content script: Error resetting extension study data:", error);
+        window.postMessage(
+          {
+            type: "FROM_EXTENSION_RESET",
+            payload: { ok: false, error: String(error) }
+          },
+          "*"
+        );
+      }
+    })();
     return;
   }
 
@@ -600,14 +657,17 @@ function checkForSurveyElement() {
     "pricrumbs_website_all_cookies_rejected": { html: "pricrumbs_website_all_cookies_rejected.html", height: "150px" },
     "pricrumbs_website_advertising_cookies_rejected": { html: "pricrumbs_website_advertising_cookies_rejected.html", height: "150px" },
     "pricrumbs_website_all_cookies_default": { html: "pricrumbs_website_all_cookies_default.html", height: "150px" },
-    "pricrumbs_websites_with_discripincies": { html: "pricrumbs_websites_with_discripincies.html", height: "950px" },
+    "pricrumbs_websites_with_discrepancies": { html: "pricrumbs_websites_with_discripincies.html", height: "950px" },
   };
 
   function injectIfFound(id, opts) {
     const target = document.getElementById(id);
     if (target && !target.querySelector("iframe")) {
       // Post a message to the page so the page-origin script can also react if needed
-      window.postMessage({ type: "FROM_CONTENT", payload: { action: "injectHTML", ...opts } }, "*");
+      window.postMessage(
+        { type: "FROM_CONTENT", payload: { action: "injectHTML", elementId: id, ...opts } },
+        "*"
+      );
       return true;
     }
     return false;

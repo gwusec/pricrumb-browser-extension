@@ -143,18 +143,18 @@ function findMatchingWebsites(cookieData) {
         cookie.actionTaken && cookie.actionTaken.toLowerCase() === 'yes'
     );
 
-    // Filter for default cookies
-    const defaultActionCookies = cookieData.filter(cookie => 
-        cookie.actionTaken && cookie.actionTaken.toLowerCase() === 'default'
+    // Filter for websites where actionTaken = "No"
+    const noActionCookies = cookieData.filter(cookie => 
+        cookie.actionTaken && cookie.actionTaken.toLowerCase() === 'no'
     );
     
     console.log('Cookies with action taken:', actionTakenCookies.length);
-    console.log('Cookies with default action:', defaultActionCookies.length);
+    console.log('Cookies with action taken = no:', noActionCookies.length);
 
     
     // STEP 2: Create an array of all domains with their preferences
     const allDomains = [];
-    const defaultDomains = [];
+    const noActionDomains = [];
     
     // For each cookie with actionTaken = "Yes", extract its preferences
     for (const cookie of actionTakenCookies) {
@@ -204,31 +204,31 @@ function findMatchingWebsites(cookieData) {
         }
     }
 
-    // Process cookies where actionTaken = "Default"
-    for (const cookie of defaultActionCookies) {
+    // Process cookies where actionTaken = "No"
+    for (const cookie of noActionCookies) {
         if (!cookie.domain) continue;
         
         const formattedDomain = formatDomainForDisplay(cookie.domain);
         
-        defaultDomains.push({
+        noActionDomains.push({
             domain: formattedDomain,
             originalDomain: cookie.domain,
             favicon: `https://www.google.com/s2/favicons?domain=${formattedDomain}&sz=32`,
             cookie: cookie,
-            actionTaken: 'Default'
+            actionTaken: 'No'
         });
         
-        console.log(`Added ${formattedDomain} to defaultDomains`);
+        console.log(`Added ${formattedDomain} to noActionDomains`);
     }
     
     console.log('Total domains with preferences:', allDomains.length);
-    console.log('Total domains with default action:', defaultDomains.length);
+    console.log('Total domains with action taken = no:', noActionDomains.length);
         
     // STEP 3: Categorize domains based on preferences (ignoring 'necessary')
     const category1 = []; // Accept, Accept, Accept
     const category2 = []; // Reject, Reject, Reject
     const category3 = []; // Accept, Accept, Reject
-    const category4 = defaultDomains; // Default action taken
+    const category4 = noActionDomains; // Action taken = no
 
     
     for (const domain of allDomains) {

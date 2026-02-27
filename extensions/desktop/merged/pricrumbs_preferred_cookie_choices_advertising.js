@@ -411,17 +411,17 @@ function updateDomainDisplay() {
     
     // Define the 5-point willingness scale
     const scaleValues = [
-        { value: 1, text: 'Not willing' },
-        { value: 2, text: 'Not really willing' },
-        { value: 3, text: 'Undecided' },
-        { value: 4, text: 'Somewhat willing' },
-        { value: 5, text: 'Willing' }
+        { value: 1, text: 'Strongly prefer not to use advertising cookies' },
+        { value: 2, text: 'Prefer not to use advertising cookies' },
+        { value: 3, text: 'No preference' },
+        { value: 4, text: 'Prefer to use advertising cookies' },
+        { value: 5, text: 'Strongly prefer to use advertising cookies' }
     ];
     
     // Initial button styles to ensure they are visible
     const defaultButtonStyle = {
         padding: '10px 15px',
-        margin: '0 3px',
+        margin: '0',
         fontSize: '14px',
         fontWeight: 'bold',
         border: '1px solid #ddd',
@@ -430,7 +430,8 @@ function updateDomainDisplay() {
         backgroundColor: '#f0f0f0',
         color: '#333',
         textAlign: 'center',
-        minWidth: '70px'
+        width: '100%',
+        maxWidth: '460px'
     };
     
     // Check if there's a selection for this domain/category already made in the current session

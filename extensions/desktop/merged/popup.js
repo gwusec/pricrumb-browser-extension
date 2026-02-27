@@ -99,6 +99,29 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   let fetchedCookies = [];
 
+  function setInstallationWelcomeReady(isReady, loadingText) {
+    const loadingMessageEl = document.getElementById("historyLoadingMessage");
+    const readyMessageEl = document.getElementById("welcomeReadyMessage");
+
+    // No-op on popup pages that do not include the welcome state elements.
+    if (!loadingMessageEl && !readyMessageEl) {
+      return;
+    }
+
+    if (loadingMessageEl) {
+      if (loadingText) {
+        loadingMessageEl.innerHTML = `<p>${loadingText}</p>`;
+      }
+      loadingMessageEl.style.display = isReady ? "none" : "block";
+    }
+
+    if (readyMessageEl) {
+      readyMessageEl.style.display = isReady ? "block" : "none";
+    }
+  }
+
+  setInstallationWelcomeReady(false, "Please wait a few seconds while we load your browsing history data.");
+
   /**
   * Checks if a cookie name is a TCF cookie
   * @param {string} cookieName - The name of the cookie to check
@@ -1763,6 +1786,8 @@ document.addEventListener('DOMContentLoaded', async () => {
    * Fetches cookies and displays them in the popup.
    */
   async function fetchAndDisplayCookies() {
+    setInstallationWelcomeReady(false, "Please wait a few seconds while we load your browsing history data.");
+
     console.log("************IMMEDIATE CHECK***********:");
     console.log("cookieNames exists?", typeof cookieNames !== 'undefined');
     console.log("cookieNames length:", cookieNames?.length);
@@ -1854,12 +1879,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         fetchedCookies.map(c => `${c.domain}: ${c.totalVisitCount}`));
 
       // Store the cookies in ext.storage.local
-      storeCookiesInStorage(fetchedCookies);
+      await storeCookiesInStorage(fetchedCookies);
+      setInstallationWelcomeReady(true);
 
       displayCookies(fetchedCookies);
 
     } catch (err) {
       console.error("Message failed:", err);
+      setInstallationWelcomeReady(
+        false,
+        "We are still loading your browsing history data. Please keep this popup open for a few more seconds and try again."
+      );
     }
   }
 
