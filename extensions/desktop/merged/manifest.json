@@ -1,5 +1,5 @@
 {
-  "manifest_version": 2,
+  "manifest_version": 3,
   "name": "Cookie Checker3",
   "version": "1.1",
   "permissions": [
@@ -9,39 +9,44 @@
     "storage",
     "downloads",
     "tabs",
-    "management",
+    "scripting",
+    "management"
+  ],
+  "host_permissions": [
     "<all_urls>"
   ],
   "background": {
-    "scripts": ["ext-shim.js", "browser-polyfill.min.js", "background.js"],
-    "persistent": false
+    "service_worker": "background.js"
   },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["ext-shim.js", "browser-polyfill.min.js", "content.js", "tracking.js"],
-      "run_at": "document_start",
-      "all_frames": false
+      "js": ["ext-shim.js", "browser-polyfill.min.js", "content.js", "tracking.js"]
     }
   ],
   "web_accessible_resources": [
-    "pricrumbs_preferred_cookie_choices_functional.html",
-    "pricrumbs_preferred_cookie_choices_performance.html",
-    "pricrumbs_preferred_cookie_choices_advertising.html",
-    "pricrumbs_consent_history_top_websites.html",
-    "pricrumbs_consent_history_bottom_websites.html",
-    "pricrumbs_website_all_cookies_accepted.html",
-    "pricrumbs_website_all_cookies_rejected.html",
-    "pricrumbs_website_advertising_cookies_rejected.html",
-    "pricrumbs_website_all_cookies_default.html",
-    "popup.html",
-    "popup_welcome.html",
-    "tcf_strings.json",
-    "tcf_default_decoded_js.json",
-    "tcf_no_store_before_interaction.json",
-    "pricrumbs_websites_with_discripincies.html"
+    {
+      "resources": [
+        "pricrumbs_preferred_cookie_choices_functional.html",
+        "pricrumbs_preferred_cookie_choices_performance.html",
+        "pricrumbs_preferred_cookie_choices_advertising.html",
+        "pricrumbs_consent_history_top_websites.html",
+        "pricrumbs_consent_history_bottom_websites.html",
+        "pricrumbs_website_all_cookies_accepted.html",
+        "pricrumbs_website_all_cookies_rejected.html",
+        "pricrumbs_website_advertising_cookies_rejected.html",
+        "pricrumbs_website_all_cookies_default.html",
+        "popup.html",
+        "popup_welcome.html",
+        "tcf_strings.json",
+        "tcf_default_decoded_js.json",
+        "tcf_no_store_before_interaction.json",
+        "pricrumbs_websites_with_discripincies.html",  "undecided_websites.js"
+      ],
+      "matches": ["<all_urls>"]
+    }
   ],
-  "browser_action": {
+  "action": {
     "default_title": "Cookie Checker3"
   }
 }

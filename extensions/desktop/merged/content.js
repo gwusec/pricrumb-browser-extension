@@ -586,6 +586,26 @@ window.addEventListener("message", (event) => {
   });
 });
 
+const nonScrollableEmbedIds = new Set([
+  "pricrumbs_preferred_cookie_choices_functional",
+  "pricrumbs_preferred_cookie_choices_performance",
+  "pricrumbs_preferred_cookie_choices_advertising",
+  "pricrumbs_consent_history_top_websites",
+  "pricrumbs_websites_with_discrepancies",
+  "pricrumbs_website_all_cookies_accepted",
+  "pricrumbs_website_all_cookies_rejected",
+  "pricrumbs_website_advertising_cookies_rejected",
+  "pricrumbs_website_all_cookies_default",
+]);
+
+const autoResizeEmbedIds = new Set([
+  "pricrumbs_preferred_cookie_choices_functional",
+  "pricrumbs_preferred_cookie_choices_performance",
+  "pricrumbs_preferred_cookie_choices_advertising",
+  "pricrumbs_consent_history_top_websites",
+  "pricrumbs_websites_with_discrepancies",
+]);
+
 // Listen for messages from the background script
 ext.runtime.onMessage.addListener((request, sender, sendResponse) => {
   // Handle direct injection commands (background -> content -> DOM)
@@ -600,6 +620,10 @@ ext.runtime.onMessage.addListener((request, sender, sendResponse) => {
       iframe.style.width = "100%";
       iframe.style.height = height || "600px";
       iframe.style.border = "none";
+      if (nonScrollableEmbedIds.has(elementId)) {
+        iframe.style.overflow = "hidden";
+        iframe.setAttribute("scrolling", "no");
+      }
       targetElement.appendChild(iframe);
 
       console.log(`Injected iframe for ${htmlFile} into #${elementId}`);
@@ -636,6 +660,38 @@ ext.runtime.onMessage.addListener((request, sender, sendResponse) => {
   return false;
 });
 
+window.addEventListener("message", (event) => {
+  if (!event || event.data?.type !== "PRICRUMBS_EMBED_HEIGHT") return;
+
+  const origin = event.origin || "";
+  const isAllowedOrigin =
+    origin === "null" ||
+    origin === "" ||
+    origin.startsWith("chrome-extension://") ||
+    origin.startsWith("moz-extension://");
+  if (!isAllowedOrigin) return;
+
+  const payload = event.data?.payload || {};
+  const elementId = payload.elementId;
+  if (!autoResizeEmbedIds.has(elementId)) return;
+
+  const requestedHeight = Number(payload.height);
+  if (!Number.isFinite(requestedHeight)) return;
+
+  const hostElement = document.getElementById(elementId);
+  const iframe = hostElement?.querySelector("iframe");
+  if (!iframe) return;
+
+  const minHeight = (
+    elementId === "pricrumbs_consent_history_top_websites" ||
+    elementId === "pricrumbs_websites_with_discrepancies"
+  ) ? 180 : 360;
+  const clampedHeight = Math.max(minHeight, Math.min(3000, Math.ceil(requestedHeight) + 8));
+  iframe.style.height = `${clampedHeight}px`;
+  iframe.style.overflow = "hidden";
+  iframe.setAttribute("scrolling", "no");
+});
+
 // Looks for specific survey elements (found in elementMap)
 function checkForSurveyElement() {
   // Prevent creating multiple observers when called repeatedly
@@ -648,9 +704,9 @@ function checkForSurveyElement() {
   const elementMap = {
     "popup": { html: "popup.html", height: "600px" },
     "popup_invisible": { html: "popup.html", height: "0px" },
-    "pricrumbs_preferred_cookie_choices_functional": { html: "pricrumbs_preferred_cookie_choices_functional.html", height: "480px" },
-    "pricrumbs_preferred_cookie_choices_performance": { html: "pricrumbs_preferred_cookie_choices_performance.html", height: "480px" },
-    "pricrumbs_preferred_cookie_choices_advertising": { html: "pricrumbs_preferred_cookie_choices_advertising.html", height: "480px" },
+    "pricrumbs_preferred_cookie_choices_functional": { html: "pricrumbs_preferred_cookie_choices_functional.html", height: "560px" },
+    "pricrumbs_preferred_cookie_choices_performance": { html: "pricrumbs_preferred_cookie_choices_performance.html", height: "560px" },
+    "pricrumbs_preferred_cookie_choices_advertising": { html: "pricrumbs_preferred_cookie_choices_advertising.html", height: "560px" },
     "pricrumbs_consent_history_top_websites": { html: "pricrumbs_consent_history_top_websites.html", height: "1020px" },
     "pricrumbs_consent_history_bottom_websites": { html: "pricrumbs_consent_history_bottom_websites.html", height: "600px" },
     "pricrumbs_website_all_cookies_accepted": { html: "pricrumbs_website_all_cookies_accepted.html", height: "150px" },
@@ -804,3 +860,4 @@ function injectIframeAndRead(url) {
 
 // Run checker on initial load
 checkForSurveyElement();
+

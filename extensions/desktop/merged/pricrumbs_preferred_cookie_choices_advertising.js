@@ -1,5 +1,4 @@
 
-
 // Store user preferences and domain data
 let userPreferences = new Map();
 let allDomains = [];
@@ -7,7 +6,68 @@ let currentDomainIndex = 0;
 let currentCookieCategory = 'advertising'; // Set fixed category
 let domainSelections = {}; // Track current session selections that haven't been saved yet
 
+const EMBED_ELEMENT_ID = 'pricrumbs_preferred_cookie_choices_advertising';
+let lastEmbedHeight = 0;
+let embedHeightPostPending = false;
 
+function getEmbedContentHeight() {
+    const root = document.querySelector('.container') || document.body;
+    if (!root) return 0;
+
+    const rectHeight = root.getBoundingClientRect ? root.getBoundingClientRect().height : 0;
+    const scrollHeight = root.scrollHeight || 0;
+    const offsetHeight = root.offsetHeight || 0;
+
+    return Math.ceil(Math.max(rectHeight, scrollHeight, offsetHeight));
+}
+
+function postEmbedHeight() {
+    const nextHeight = getEmbedContentHeight();
+    if (!Number.isFinite(nextHeight) || nextHeight <= 0) return;
+    if (Math.abs(nextHeight - lastEmbedHeight) < 1) return;
+
+    lastEmbedHeight = nextHeight;
+    window.parent.postMessage(
+        {
+            type: 'PRICRUMBS_EMBED_HEIGHT',
+            payload: { elementId: EMBED_ELEMENT_ID, height: nextHeight }
+        },
+        '*'
+    );
+}
+
+function scheduleEmbedHeightPost() {
+    if (embedHeightPostPending) return;
+    embedHeightPostPending = true;
+
+    requestAnimationFrame(() => {
+        embedHeightPostPending = false;
+        postEmbedHeight();
+    });
+
+    setTimeout(postEmbedHeight, 150);
+}
+
+function setupEmbedAutoHeight() {
+    scheduleEmbedHeightPost();
+    window.addEventListener('load', scheduleEmbedHeightPost);
+
+    const root = document.querySelector('.container') || document.body;
+    if (!root) return;
+
+    if (typeof ResizeObserver !== 'undefined') {
+        const resizeObserver = new ResizeObserver(scheduleEmbedHeightPost);
+        resizeObserver.observe(root);
+    }
+
+    const mutationObserver = new MutationObserver(scheduleEmbedHeightPost);
+    mutationObserver.observe(root, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        characterData: true
+    });
+}
 // Remove the check for window.cookieCategory since we're hardcoding it
 document.addEventListener('DOMContentLoaded', () => {
     console.log("Advertising cookies page loaded with category:", currentCookieCategory);
@@ -20,6 +80,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (previousButton) {
         previousButton.addEventListener('click', showPreviousDomain);
     }
+
+    setupEmbedAutoHeight();
 });
 
 // Load saved user preferences
@@ -347,12 +409,14 @@ function updateDomainDisplay() {
     const faviconContainer = document.createElement('div');
     faviconContainer.style.display = 'inline-flex';
     faviconContainer.style.alignItems = 'center';
-    faviconContainer.style.gap = '8px';
+    faviconContainer.style.gap = '12px';
     
     // Favicon image
     const favicon = document.createElement('img');
     favicon.src = currentDomain.favicon || `https://www.google.com/s2/favicons?domain=${formatDomainForDisplay(currentDomain.domain)}&sz=32`;
     favicon.alt = '';
+    favicon.style.width = '24px';
+    favicon.style.height = '24px';
     
     // Handle favicon loading errors
     favicon.onerror = function() {
@@ -549,3 +613,5 @@ async function saveAllPreferences() {
         console.error("Error saving all preferences:", error);
     }
 }
+
+

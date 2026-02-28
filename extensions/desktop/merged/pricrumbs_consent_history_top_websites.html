@@ -33,7 +33,8 @@
         th, td {
             padding: 12px;
             border: 1px solid #ddd;
-            text-align: left;
+            text-align: center;
+            font-size: 18px;
         }
         button:not(.toggle-btn) {
             background-color: #4CAF50;
@@ -75,7 +76,7 @@
         
         /* Website cell styling with favicon */
         .website-cell {
-            text-align: left;
+            text-align: center;
             font-weight: bold;
         }
         
@@ -106,6 +107,8 @@
             border: 2px solid #919291;
             background-color: transparent;
             color: #666966;
+            font-size: 13px;
+            line-height: 1.1;
             margin: 5px;
             outline: none;
             display: flex;
@@ -181,7 +184,7 @@
                     <th>Functional Cookies</th>
                     <th>Performance Cookies</th>
                     <th>Advertising Cookies</th>
-                    <th>Cookie Settings Will Expires in:</th>
+                    <th>Cookie Settings Expire in:</th>
                 </tr>
             </thead>
             <tbody id="mostRecentWebsitesList">
@@ -198,8 +201,60 @@
             </tbody>
         </table>
     </div>
-</body>
     <script src="consent_history_and_discrepancies.js"></script>
     <script src="ext-shim.js"></script>
+    <script>
+      (function () {
+        const elementId = "pricrumbs_consent_history_top_websites";
+        let rafId = null;
+
+        function postHeight() {
+          const root = document.documentElement;
+          const body = document.body;
+          const height = Math.max(
+            root ? root.scrollHeight : 0,
+            body ? body.scrollHeight : 0
+          );
+
+          if (window.parent && height > 0) {
+            window.parent.postMessage(
+              {
+                type: "PRICRUMBS_EMBED_HEIGHT",
+                payload: { elementId, height }
+              },
+              "*"
+            );
+          }
+        }
+
+        function scheduleHeightPost() {
+          if (rafId !== null) {
+            cancelAnimationFrame(rafId);
+          }
+          rafId = requestAnimationFrame(() => {
+            rafId = null;
+            postHeight();
+          });
+        }
+
+        window.addEventListener("load", scheduleHeightPost);
+        window.addEventListener("resize", scheduleHeightPost);
+
+        const observer = new MutationObserver(scheduleHeightPost);
+        observer.observe(document.documentElement, {
+          childList: true,
+          subtree: true,
+          attributes: true,
+          characterData: true
+        });
+
+        setTimeout(scheduleHeightPost, 100);
+        setTimeout(scheduleHeightPost, 500);
+        setTimeout(scheduleHeightPost, 1200);
+
+        const intervalId = setInterval(scheduleHeightPost, 500);
+        setTimeout(() => clearInterval(intervalId), 10000);
+      })();
+    </script>
 </body>
 </html>

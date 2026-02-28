@@ -1048,10 +1048,17 @@ ext.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
 
-  if (request.payload?.action == "autoUninstallExtension") {
+  if (request.payload?.action === "autoUninstallExtension" || request.action === "autoUninstallExtension") {
     console.log("Background script automatic uninstallation triggered by event payload.");
 
-    if (ext.management && ext.management.uninstallSelf) {
+    if (!ext.management || !ext.management.uninstallSelf) {
+      console.warn("Uninstall not supported");
+      sendResponse({ success: false, fallback: true, error: "management.uninstallSelf unavailable" });
+      return false;
+    }
+
+    // Support both Chrome callback-style and Firefox Promise-style uninstallSelf.
+    try {
       ext.management.uninstallSelf({ showConfirmDialog: true }, () => {
         if (ext.runtime.lastError) {
           console.error("Error uninstalling:", ext.runtime.lastError);
@@ -1062,9 +1069,28 @@ ext.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }
       });
       return true;
-    } else if (typeof browser !== "undefined") {
-      console.warn("Uninstall not supported");
-      sendResponse({ success: false, fallback: true });
+    } catch (_callbackStyleError) {
+      try {
+        const maybePromise = ext.management.uninstallSelf({ showConfirmDialog: true });
+        if (maybePromise && typeof maybePromise.then === "function") {
+          maybePromise
+            .then(() => {
+              console.log("Extension uninstall request completed.");
+              sendResponse({ success: true });
+            })
+            .catch((error) => {
+              const message = error?.message || String(error);
+              console.error("Error uninstalling:", error);
+              sendResponse({ success: false, error: message });
+            });
+          return true;
+        }
+      } catch (promiseStyleError) {
+        const message = promiseStyleError?.message || String(promiseStyleError);
+        console.error("Error uninstalling:", promiseStyleError);
+        sendResponse({ success: false, error: message });
+        return false;
+      }
     }
   }
 

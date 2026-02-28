@@ -29,18 +29,12 @@
             width: 100%;
             border-collapse: collapse;
             /* margin: 20px 0; */
-            font-size: 18px;
         }
         th, td {
             padding: 12px;
             border: 1px solid #ddd;
             text-align: center;
-        }
-        th {
             font-size: 18px;
-        }
-        td {
-            font-size: 17px;
         }
         button:not(.toggle-btn) {
             background-color: #4CAF50;
@@ -121,6 +115,7 @@
             align-items: center;
             font-weight: bold;
             font-size: 13px; /* Keep Allowed/Not Allowed text size unchanged */
+            line-height: 1.1;
             cursor: default;
             pointer-events: none; /* Makes buttons non-clickable */
         }
@@ -287,9 +282,6 @@
             <tbody id="WebsitesWithDiscrepancies">
             </tbody>
         </table>
-             <div class="actions">
-            <!-- <button id="nextBtn2">Next</button> -->
-        </div>
         </div>
        
     </div>
@@ -301,5 +293,58 @@
     </script> -->
     <script src="consent_history_and_discrepancies.js"></script>
     <script src="ext-shim.js"></script>
+    <script>
+      (function () {
+        const elementId = "pricrumbs_websites_with_discrepancies";
+        let rafId = null;
+
+        function postHeight() {
+          const root = document.documentElement;
+          const body = document.body;
+          const height = Math.max(
+            root ? root.scrollHeight : 0,
+            body ? body.scrollHeight : 0
+          );
+
+          if (window.parent && height > 0) {
+            window.parent.postMessage(
+              {
+                type: "PRICRUMBS_EMBED_HEIGHT",
+                payload: { elementId, height }
+              },
+              "*"
+            );
+          }
+        }
+
+        function scheduleHeightPost() {
+          if (rafId !== null) {
+            cancelAnimationFrame(rafId);
+          }
+          rafId = requestAnimationFrame(() => {
+            rafId = null;
+            postHeight();
+          });
+        }
+
+        window.addEventListener("load", scheduleHeightPost);
+        window.addEventListener("resize", scheduleHeightPost);
+
+        const observer = new MutationObserver(scheduleHeightPost);
+        observer.observe(document.documentElement, {
+          childList: true,
+          subtree: true,
+          attributes: true,
+          characterData: true
+        });
+
+        setTimeout(scheduleHeightPost, 100);
+        setTimeout(scheduleHeightPost, 500);
+        setTimeout(scheduleHeightPost, 1200);
+
+        const intervalId = setInterval(scheduleHeightPost, 500);
+        setTimeout(() => clearInterval(intervalId), 10000);
+      })();
+    </script>
 </body>
 </html>
