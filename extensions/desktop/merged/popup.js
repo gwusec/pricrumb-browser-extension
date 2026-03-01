@@ -2239,12 +2239,15 @@ function normalizeConsentValue(value) {
 }
 
 function buildDomainConsentRecords(cookies) {
+  const DOMAIN_HASH_PATTERN = /^[0-9a-f]{64}$/i;
+  const normalizeDomainHash = (value) => (typeof value === "string" ? value.trim().toLowerCase() : "");
+  const isValidDomainHash = (value) => DOMAIN_HASH_PATTERN.test(normalizeDomainHash(value));
   const recordsByKey = new Map();
 
   cookies.forEach(cookie => {
-    const domainHash = cookie.domainHash || null;
-    const domainKey = domainHash || (cookie.domain || "").toLowerCase();
-    if (!domainKey) return;
+    const domainHash = normalizeDomainHash(cookie.domainHash);
+    if (!isValidDomainHash(domainHash)) return;
+    const domainKey = domainHash;
 
     const numberOfVisits = Number(cookie.totalVisitCount) || 0;
     const dates = Array.isArray(cookie.visitedDates) ? cookie.visitedDates : [];
@@ -2308,32 +2311,9 @@ function buildDomainConsentRecords(cookies) {
       });
       console.log(`Saved ${consentDomainRecords.length} consent domain records`);
       console.log(`Saved ${browsingHistoryData.length} browsing history domain records`);
-      const participantResult = await ext.storage.local.get("participantId");
-      const participantId = typeof participantResult.participantId === "string"
-        ? participantResult.participantId.trim()
-        : null;
-
-      ext.runtime.sendMessage({
-        action: "submitConsentData",
-        payload: {
-          records: consentDomainRecords,
-          consentDomainData: consentDomainRecords,
-          browsingHistoryData,
-          participantId
-        }
-      })
-        .then((response) => {
-          if (response?.ok) {
-            console.log("Consent data upload succeeded.");
-          } else if (response?.skipped) {
-            console.log("Consent data upload skipped (endpoint not configured).");
-          } else {
-            console.warn("Consent data upload failed.", response);
-          }
-        })
-        .catch(() => {
-          console.warn("Consent data upload failed (no response).");
-        });
+      // The survey page is responsible for pulling these records and persisting via PATCH /postsurvey.
+      // Do not upload directly from the extension to backend routes.
+      console.log("Consent data prepared locally. Waiting for survey page sync.");
       
       // Send completion message to consent history page (if it's listening)
       ext.runtime.sendMessage({ action: 'cookieProcessingComplete' }).catch(() => {

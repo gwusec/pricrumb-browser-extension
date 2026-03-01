@@ -15,9 +15,9 @@ let top1mDomainRankMapPromise = null;
 const domainHashCache = new Map();
 let browsingHistoryDataCache = null;
 let browsingHistoryDataCacheLastUpdated = 0;
-const DOMAIN_HASH_SERVICE_ENDPOINT = "http://localhost:8082/v1/hash-domains";
 const DOMAIN_HASH_REQUEST_TIMEOUT_MS = 10000;
-const SURVEY_APP_ENDPOINT = "http://localhost:8080/postsurvey/consent-data";
+const DEFAULT_SURVEY_API_BASE_URL = "http://localhost:8080";
+const DEFAULT_DOMAIN_HASH_SERVICE_PATH = "/postsurvey/hash-domains";
 
 // Parse top-1m-websites.csv once and cache the Map<domain, rank_range>
 async function getTop1mDomainRankMap() {
@@ -56,6 +56,56 @@ function canonicalizeDomain(domain) {
   return d;
 }
 
+function normalizeHttpUrl(value) {
+  if (typeof value !== "string") return "";
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return "";
+    }
+    parsed.hash = "";
+    return parsed.toString().replace(/\/+$/, "");
+  } catch (_error) {
+    return "";
+  }
+}
+
+function normalizeServicePath(value) {
+  if (typeof value !== "string") return DEFAULT_DOMAIN_HASH_SERVICE_PATH;
+  const trimmed = value.trim();
+  if (!trimmed) return DEFAULT_DOMAIN_HASH_SERVICE_PATH;
+  return trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+}
+
+function buildDomainHashServiceEndpoint(baseUrl) {
+  const normalizedBase = normalizeHttpUrl(baseUrl) || DEFAULT_SURVEY_API_BASE_URL;
+  const path = normalizeServicePath(DEFAULT_DOMAIN_HASH_SERVICE_PATH);
+  return `${normalizedBase}${path}`;
+}
+
+async function resolveDomainHashServiceEndpoint() {
+  try {
+    const stored = await ext.storage.local.get([
+      "domainHashServiceEndpoint",
+      "surveyApiBaseUrl"
+    ]);
+
+    const configuredEndpoint = normalizeHttpUrl(stored.domainHashServiceEndpoint);
+    if (configuredEndpoint) return configuredEndpoint;
+
+    const configuredBase = normalizeHttpUrl(stored.surveyApiBaseUrl);
+    if (configuredBase) {
+      return buildDomainHashServiceEndpoint(configuredBase);
+    }
+  } catch (error) {
+    console.warn("Failed to load service config from storage:", error);
+  }
+
+  return buildDomainHashServiceEndpoint(DEFAULT_SURVEY_API_BASE_URL);
+}
+
 function isHexDomainHash(value, lengths = [64]) {
   if (typeof value !== "string") return false;
   const normalized = value.trim().toLowerCase();
@@ -78,7 +128,8 @@ async function hashDomains(domains, { strict = false } = {}) {
 
   const uncachedDomains = canonicalDomains.filter((domain) => !domainHashCache.has(domain));
   if (uncachedDomains.length) {
-    if (!DOMAIN_HASH_SERVICE_ENDPOINT) {
+    const domainHashServiceEndpoint = await resolveDomainHashServiceEndpoint();
+    if (!domainHashServiceEndpoint) {
       throw new Error("Domain hash service endpoint is not configured.");
     }
 
@@ -87,7 +138,7 @@ async function hashDomains(domains, { strict = false } = {}) {
     let response = null;
 
     try {
-      response = await fetch(DOMAIN_HASH_SERVICE_ENDPOINT, {
+      response = await fetch(domainHashServiceEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ domains: uncachedDomains }),
@@ -139,108 +190,6 @@ async function hashDomains(domains, { strict = false } = {}) {
   }
 
   return result;
-}
-
-function getCanonicalDomainForRecord(record) {
-  if (!record || typeof record !== "object") return "";
-
-  const directCandidates = [
-    record.domain,
-    record.originalDomain,
-    record.canonicalDomain
-  ];
-  for (const candidate of directCandidates) {
-    const canonical = canonicalizeDomain(candidate);
-    if (canonical) return canonical;
-  }
-
-  const nestedCandidates = [
-    record.cookieDomain,
-    record.sourceDomain,
-    record.url
-  ];
-  for (const candidate of nestedCandidates) {
-    if (typeof candidate !== "string") continue;
-    try {
-      const parsedUrl = new URL(candidate);
-      const canonical = canonicalizeDomain(parsedUrl.hostname);
-      if (canonical) return canonical;
-    } catch (_error) {
-      const canonical = canonicalizeDomain(candidate);
-      if (canonical) return canonical;
-    }
-  }
-
-  return "";
-}
-
-function sanitizeDomainRecord(record, domainHash) {
-  const sanitized = {
-    ...record,
-    domainHash: domainHash || null
-  };
-  delete sanitized.domain;
-  delete sanitized.originalDomain;
-  delete sanitized.canonicalDomain;
-  delete sanitized.cookieDomain;
-  delete sanitized.sourceDomain;
-  delete sanitized.url;
-  return sanitized;
-}
-
-async function ensureHashedRecords(records, label) {
-  const source = Array.isArray(records) ? records : [];
-  const domainsToHash = [];
-  const hashedOrRawItems = source.map((record, index) => {
-    if (!record || typeof record !== "object") {
-      return null;
-    }
-
-    const canonicalDomain = getCanonicalDomainForRecord(record);
-    const existingHash = String(record.domainHash || "").trim().toLowerCase();
-    const hasFullHash = isHexDomainHash(existingHash, [64]);
-    const hasLegacyHash = isHexDomainHash(existingHash, [32]);
-
-    if (canonicalDomain) {
-      domainsToHash.push(canonicalDomain);
-      return {
-        index,
-        canonicalDomain,
-        existingHash: hasFullHash ? existingHash : (hasLegacyHash ? existingHash : null)
-      };
-    }
-
-    if (hasFullHash || hasLegacyHash) {
-      return {
-        index,
-        canonicalDomain: "",
-        existingHash
-      };
-    }
-
-    throw new Error(`${label}[${index}] is missing both a hash and a raw domain.`);
-  });
-
-  const hashMap = await hashDomains(domainsToHash, { strict: true });
-  return hashedOrRawItems
-    .map((item) => {
-      if (!item) return null;
-      const originalRecord = source[item.index];
-      const resolvedHash = item.canonicalDomain
-        ? hashMap.get(item.canonicalDomain)
-        : item.existingHash;
-
-      if (!resolvedHash) {
-        throw new Error(`${label}[${item.index}] could not be hashed.`);
-      }
-
-      if (!isHexDomainHash(resolvedHash, [64, 32])) {
-        throw new Error(`${label}[${item.index}] has invalid hash format.`);
-      }
-
-      return sanitizeDomainRecord(originalRecord, resolvedHash);
-    })
-    .filter(Boolean);
 }
 
 // Opens the popup.html when the extension icon is clicked
@@ -904,50 +853,6 @@ ext.runtime.onMessage.addListener((request, sender, sendResponse) => {
         console.error("Failed to build browsingHistoryData:", error);
         sendResponse({ browsingHistoryData: [] });
       });
-    return true;
-  }
-
-  if (request.action === "submitConsentData") {
-    console.log("submitConsentData received");
-    const records = request.payload?.records || request.payload?.consentDomainData || [];
-    const consentDomainData = request.payload?.consentDomainData || records;
-    const browsingHistoryData = request.payload?.browsingHistoryData || [];
-    const participantId = request.payload?.participantId || null;
-
-    if (!SURVEY_APP_ENDPOINT) {
-      console.warn("SURVEY_APP_ENDPOINT is not set. Skipping consent data upload.");
-      sendResponse({ ok: false, skipped: true });
-      return false;
-    }
-
-    (async () => {
-      try {
-        const hashedConsentDomainData = await ensureHashedRecords(consentDomainData, "consentDomainData");
-        const hashedBrowsingHistoryData = await ensureHashedRecords(browsingHistoryData, "browsingHistoryData");
-        const hashedRecords = await ensureHashedRecords(records, "records");
-
-        const res = await fetch(SURVEY_APP_ENDPOINT, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            timestamp: Date.now(),
-            records: hashedRecords,
-            consentDomainData: hashedConsentDomainData,
-            browsingHistoryData: hashedBrowsingHistoryData,
-            participantId
-          })
-        });
-
-        const text = await res.text();
-        if (!res.ok) {
-          throw new Error(`Survey app responded ${res.status}: ${text}`);
-        }
-        sendResponse({ ok: true });
-      } catch (error) {
-        console.error("Failed to submit consent data:", error);
-        sendResponse({ ok: false, error: error.message });
-      }
-    })();
     return true;
   }
 

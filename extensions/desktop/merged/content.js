@@ -1,4 +1,5 @@
 // Content script
+const DOMAIN_HASH_PATTERN = /^[0-9a-f]{64}$/i;
 
 function normalizeConsentValue(value) {
   if (value === true || value === "yes" || value === "Yes") return "yes";
@@ -6,21 +7,79 @@ function normalizeConsentValue(value) {
   return "unknown";
 }
 
+function normalizeDomainHash(value) {
+  return typeof value === "string" ? value.trim().toLowerCase() : "";
+}
+
+function isValidDomainHash(value) {
+  return DOMAIN_HASH_PATTERN.test(normalizeDomainHash(value));
+}
+
+function sanitizeDomainRecord(record) {
+  if (!record || typeof record !== "object") return null;
+
+  const domainHash = normalizeDomainHash(record.domainHash);
+  if (!isValidDomainHash(domainHash)) return null;
+
+  const sanitized = {
+    ...record,
+    domainHash
+  };
+  delete sanitized.domain;
+  delete sanitized.originalDomain;
+  delete sanitized.canonicalDomain;
+  delete sanitized.cookieDomain;
+  delete sanitized.sourceDomain;
+  delete sanitized.url;
+  return sanitized;
+}
+
+function sanitizeDomainRecordList(records) {
+  if (!Array.isArray(records)) return [];
+
+  const deduped = new Map();
+  records
+    .map((record) => sanitizeDomainRecord(record))
+    .filter(Boolean)
+    .forEach((record) => {
+      if (!deduped.has(record.domainHash)) {
+        deduped.set(record.domainHash, record);
+      }
+    });
+  return Array.from(deduped.values());
+}
+
+function normalizeHttpUrl(value) {
+  if (typeof value !== "string") return "";
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return "";
+    }
+    parsed.hash = "";
+    return parsed.toString().replace(/\/+$/, "");
+  } catch (_error) {
+    return "";
+  }
+}
+
 function buildDomainConsentRecords(cookieData) {
   if (!Array.isArray(cookieData)) return [];
 
-  const recordsByKey = new Map();
+  const recordsByHash = new Map();
 
   cookieData.forEach((cookie) => {
-    const domainHash = cookie?.domainHash || null;
-    const domainKey = domainHash || (cookie?.domain || "").toLowerCase();
-    if (!domainKey) return;
+    const domainHash = normalizeDomainHash(cookie?.domainHash);
+    if (!isValidDomainHash(domainHash)) return;
 
     const numberOfVisits = Number(cookie?.totalVisitCount) || 0;
     const dates = Array.isArray(cookie?.visitedDates) ? cookie.visitedDates : [];
 
-    if (!recordsByKey.has(domainKey)) {
-      recordsByKey.set(domainKey, {
+    if (!recordsByHash.has(domainHash)) {
+      recordsByHash.set(domainHash, {
         domainHash,
         domainRankRange: cookie?.domainRankRange || null,
         numberOfVisits,
@@ -35,12 +94,12 @@ function buildDomainConsentRecords(cookieData) {
       return;
     }
 
-    const existing = recordsByKey.get(domainKey);
+    const existing = recordsByHash.get(domainHash);
     existing.numberOfVisits = Math.max(existing.numberOfVisits || 0, numberOfVisits);
     existing.dates = Array.from(new Set([...(existing.dates || []), ...dates])).sort();
   });
 
-  return Array.from(recordsByKey.values());
+  return Array.from(recordsByHash.values());
 }
 
 // Listens for messages from the webpage
@@ -66,10 +125,28 @@ window.addEventListener("message", (event) => {
     const participantId = typeof event.data.payload?.participantId === "string"
       ? event.data.payload.participantId.trim()
       : "";
+    const pageOrigin = normalizeHttpUrl(window.location.origin);
+    const surveyApiBaseUrl = normalizeHttpUrl(event.data.payload?.surveyApiBaseUrl);
+    const domainHashServiceEndpoint = normalizeHttpUrl(event.data.payload?.domainHashServiceEndpoint);
+    const updates = {};
 
     if (participantId) {
-      ext.storage.local.set({ participantId }).catch((error) => {
-        console.warn("Content script: Failed to persist participant ID:", error);
+      updates.participantId = participantId;
+    }
+    if (surveyApiBaseUrl && surveyApiBaseUrl === pageOrigin) {
+      updates.surveyApiBaseUrl = surveyApiBaseUrl;
+    }
+    if (
+      domainHashServiceEndpoint &&
+      pageOrigin &&
+      domainHashServiceEndpoint.startsWith(`${pageOrigin}/`)
+    ) {
+      updates.domainHashServiceEndpoint = domainHashServiceEndpoint;
+    }
+
+    if (Object.keys(updates).length > 0) {
+      ext.storage.local.set(updates).catch((error) => {
+        console.warn("Content script: Failed to persist survey service config:", error);
       });
     }
     return;
@@ -133,24 +210,35 @@ window.addEventListener("message", (event) => {
             browsingHistoryData = Array.isArray(historyResponse?.browsingHistoryData)
               ? historyResponse.browsingHistoryData
               : [];
-            await ext.storage.local.set({ browsingHistoryData });
+            await ext.storage.local.set({
+              browsingHistoryData: sanitizeDomainRecordList(browsingHistoryData)
+            });
           } catch (historyError) {
             console.error("Content script: Error fetching browsing history data:", historyError);
           }
         }
 
+        const sanitizedConsentDomainData = sanitizeDomainRecordList(consentDomainData);
+        const sanitizedBrowsingHistoryData = sanitizeDomainRecordList(browsingHistoryData);
+        const droppedConsentRecords = Math.max(0, consentDomainData.length - sanitizedConsentDomainData.length);
+        const droppedBrowsingRecords = Math.max(0, browsingHistoryData.length - sanitizedBrowsingHistoryData.length);
+        const hashIntegrityError = (droppedConsentRecords > 0 || droppedBrowsingRecords > 0)
+          ? `Dropped unhashed or invalid records (consent=${droppedConsentRecords}, browsing=${droppedBrowsingRecords}).`
+          : null;
+
         window.postMessage({
           type: "FROM_EXTENSION_CONSENT_DOMAIN_DATA",
           payload: {
-            records: consentDomainData,
-            consentDomainData,
-            consentDomainDataCount: consentDomainData.length,
-            browsingHistoryData,
-            browsingHistoryDataCount: browsingHistoryData.length,
+            records: sanitizedConsentDomainData,
+            consentDomainData: sanitizedConsentDomainData,
+            consentDomainDataCount: sanitizedConsentDomainData.length,
+            browsingHistoryData: sanitizedBrowsingHistoryData,
+            browsingHistoryDataCount: sanitizedBrowsingHistoryData.length,
             hasDiscrepancies,
             hasDiscrepanciesCheckedAt,
-            count: consentDomainData.length,
-            fetchedAt: new Date().toISOString()
+            count: sanitizedConsentDomainData.length,
+            fetchedAt: new Date().toISOString(),
+            hashIntegrityError
           }
         }, "*");
       } catch (error) {
@@ -178,12 +266,16 @@ window.addEventListener("message", (event) => {
     (async () => {
       try {
         const result = await ext.storage.local.get(["browsingHistoryData"]);
-        let records = Array.isArray(result.browsingHistoryData) ? result.browsingHistoryData : [];
+        let records = sanitizeDomainRecordList(
+          Array.isArray(result.browsingHistoryData) ? result.browsingHistoryData : []
+        );
 
         if (records.length === 0) {
           try {
             const response = await ext.runtime.sendMessage({ action: "getBrowsingHistoryData" });
-            records = Array.isArray(response?.browsingHistoryData) ? response.browsingHistoryData : [];
+            records = sanitizeDomainRecordList(
+              Array.isArray(response?.browsingHistoryData) ? response.browsingHistoryData : []
+            );
             await ext.storage.local.set({ browsingHistoryData: records });
           } catch (backgroundError) {
             console.error("Content script: Error fetching browsing history from background:", backgroundError);
@@ -212,6 +304,9 @@ window.addEventListener("message", (event) => {
   //this part is for eligibility check (if users have 10 or more unique websites where action taken = yes):
   if(event.data.payload?.action === "checkEligibility") {
     console.log("Content script: Received eligibility check request");
+
+    const isActionTakenYes = (value) =>
+      typeof value === "string" && value.trim().toLowerCase() === "yes";
     
     // Helper function to extract main domain name (e.g., "zoom" from "zoom.com" or "zoom.us")
     function extractMainDomainName(domain) {
@@ -314,10 +409,7 @@ window.addEventListener("message", (event) => {
     // Wrap in async function to use await
     (async () => {
       try {
-        // Convert chrome.storage.local.get to promise
-        const result = await new Promise((resolve) => {
-          chrome.storage.local.get(null, (result) => resolve(result));
-        });
+        const result = await ext.storage.local.get(null);
         
         console.log("Content script: All storage keys:", Object.keys(result));
         
@@ -334,10 +426,8 @@ window.addEventListener("message", (event) => {
           console.log("Content script: First cookie sample:", cookieData[0]);
         }
         
-        // Filter websites where actionTaken is "Yes" 
-        const eligibleSites = cookieData.filter(site => {
-          return site.actionTaken === "Yes";
-        });
+        // Filter websites where actionTaken is "Yes" (case-insensitive, exact value).
+        const eligibleSites = cookieData.filter((site) => isActionTakenYes(site?.actionTaken));
         
         console.log("Content script: Sites with action taken = Yes:", eligibleSites.length);
         
@@ -361,13 +451,17 @@ window.addEventListener("message", (event) => {
         const websiteTypes = categorizeWebsites(cookieData);
         console.log("Content script: Website types available:", websiteTypes);
 
+        const eligibilityPending = cookieData.length === 0;
+
         // Create payload (WITHOUT hasDiscrepancies - that will be checked later)
         const payload = {
           eligibleSitesCount: uniqueDomainsArray.length,
           isEligible: uniqueDomainsArray.length >= 10,
           totalSites: cookieData.length,
           uniqueDomains: uniqueDomainsArray,
-          websiteTypes: websiteTypes
+          websiteTypes: websiteTypes,
+          eligibilityPending,
+          eligibilityReason: eligibilityPending ? "cookieDataNotReady" : null
         };
         
         console.log("Content script: Sending eligibility response:", payload);
@@ -392,14 +486,10 @@ window.addEventListener("message", (event) => {
     (async () => {
       try {
         // Get user preferences
-        const prefsResult = await new Promise((resolve) => {
-          chrome.storage.local.get('userCookiePreferences', (result) => resolve(result));
-        });
+        const prefsResult = await ext.storage.local.get("userCookiePreferences");
         
         // Get cookie data and selected domains
-        const cookieResult = await new Promise((resolve) => {
-          chrome.storage.local.get(['cookieData', 'selectedDomainsForHistory'], (result) => resolve(result));
-        });
+        const cookieResult = await ext.storage.local.get(["cookieData", "selectedDomainsForHistory"]);
         
         const userPreferences = prefsResult.userCookiePreferences;
         const cookieData = cookieResult.cookieData || [];
