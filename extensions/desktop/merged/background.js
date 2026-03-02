@@ -16,7 +16,7 @@ const domainHashCache = new Map();
 let browsingHistoryDataCache = null;
 let browsingHistoryDataCacheLastUpdated = 0;
 const DOMAIN_HASH_REQUEST_TIMEOUT_MS = 10000;
-const DEFAULT_SURVEY_API_BASE_URL = "http://localhost:8080";
+const DEFAULT_SURVEY_API_BASE_URL = "https://nets.gwusec.seas.gwu.edu";
 const DEFAULT_DOMAIN_HASH_SERVICE_PATH = "/postsurvey/hash-domains";
 
 // Parse top-1m-websites.csv once and cache the Map<domain, rank_range>
