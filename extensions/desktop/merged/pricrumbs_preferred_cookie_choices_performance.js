@@ -475,18 +475,18 @@ function updateDomainDisplay() {
     
     // Define the 5-point willingness scale
     const scaleValues = [
-        { value: 1, text: 'Strongly prefer not to use performance cookies' },
-        { value: 2, text: 'Prefer not to use performance cookies' },
-        { value: 3, text: 'No preference' },
-        { value: 4, text: 'Prefer to use performance cookies' },
-        { value: 5, text: 'Strongly prefer to use performance cookies' }
+        { value: 1, text: 'I strongly prefer this website NOT use/nPerformance Cookies' },
+        { value: 2, text: 'I prefer this website NOT use Performance Cookies' },
+        { value: 3, text: 'I have no preference' },
+        { value: 4, text: 'I prefer this website TO use Performance Cookies' },
+        { value: 5, text: 'I strongly prefer this website TO use Performance Cookies' }
     ];
     
     // Initial button styles to ensure they are visible
     const defaultButtonStyle = {
         padding: '10px 15px',
         margin: '0',
-        fontSize: '14px',
+        fontSize: '18px',
         fontWeight: 'bold',
         border: '1px solid #ddd',
         borderRadius: '4px',
@@ -495,7 +495,7 @@ function updateDomainDisplay() {
         color: '#333',
         textAlign: 'center',
         width: '100%',
-        maxWidth: '460px'
+        maxWidth: '500px'
     };
     
     // Check if there's a selection for this domain/category already made in the current session

@@ -10,7 +10,8 @@
     "downloads",
     "tabs",
     "scripting",
-    "management"
+    "management",
+    "favicon"
   ],
   "host_permissions": [
     "<all_urls>"
@@ -21,7 +22,7 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["ext-shim.js", "browser-polyfill.min.js", "content.js", "tracking.js"]
+      "js": ["ext-shim.js", "browser-polyfill.min.js", "content.js", "tracking.js", "helper.js"]
     }
   ],
   "web_accessible_resources": [

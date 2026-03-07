@@ -582,11 +582,12 @@ function formatDomainForDisplay(domain) {
     }
     
     // If domain doesn't have a subdomain (no dots except the TLD), add www.
-    const parts = domain.split('.');
-    if (parts.length === 2) {
-        domain = 'www.' + domain;
-    }
-    
+    // const parts = domain.split('.');
+    // if (parts.length === 2) {
+    //     domain = 'www.' + domain;
+    // }
+    domain = domain.replace(/^www\./, '');
+
     return domain;
 }
 
@@ -631,7 +632,7 @@ function calculateDaysRemaining(expirationDate) {
         } else if (diffDays === 1) {
             return "1 day";
         } else {
-            return `${diffDays} days`;
+            return `${diffDays} more days`;
         }
     } catch (error) {
         console.error('Error parsing expiration date:', error);
@@ -723,6 +724,7 @@ function displayWebsites(domains, tableId) {
         favicon.alt = '';
         favicon.style.marginRight = '8px';
         favicon.style.verticalAlign = 'middle';
+        favicon.style.height = '32px';
         
         // Handle favicon loading errors (set before src to suppress console errors)
         favicon.onerror = function() {
@@ -767,7 +769,6 @@ function displayWebsites(domains, tableId) {
 
         // Expiration date cell - calculate days remaining
         const expirationCell = document.createElement('td');
-        expirationCell.style.fontWeight = 'bold';
         if (domain.expiration && domain.expiration !== "Session cookie") {
             const daysRemaining = calculateDaysRemaining(domain.expiration);
             expirationCell.textContent = daysRemaining;
@@ -925,11 +926,11 @@ function getWillingnessText(value, category) {
 
     if (categoryLabel) {
         switch (value) {
-            case 1: return `Strongly prefer not to use ${categoryLabel} cookies`;
-            case 2: return `Prefer not to use ${categoryLabel} cookies`;
-            case 3: return "No preference";
-            case 4: return `Prefer to use ${categoryLabel} cookies`;
-            case 5: return `Strongly prefer to use ${categoryLabel} cookies`;
+            case 1: return `1 - I strongly prefer this website NOT use ${categoryLabel} cookies`;
+            case 2: return `2 - I prefer this website NOT use ${categoryLabel} cookies`;
+            case 3: return "3 - No preference";
+            case 4: return `4 - I prefer this website TO use ${categoryLabel} cookies`;
+            case 5: return `5 - I strongly prefer this website TO use ${categoryLabel} cookies`;
             default: return "Unknown";
         }
     }
@@ -1002,27 +1003,55 @@ function displayWebsitesWithDiscrepanciesOnly(domains, tableId) {
     // Display each domain with discrepancies
     domainsWithDiscrepancies.forEach(domain => {
         const row = document.createElement('tr');
-        
+
         // Website cell
         const domainCell = document.createElement('td');
         domainCell.className = 'website-cell';
+
         const formattedDomain = formatDomainForDisplay(domain.domain);
-        
+
+        // Outer container
+        const container = document.createElement('div');
+        container.style.display = 'flex';
+        container.style.alignItems = 'center';
+        container.style.width = '100%';
+
+        // Left div (32px)
+        const leftDiv = document.createElement('div');
+        leftDiv.style.width = '32px';
+        leftDiv.style.minWidth = '32px';
+
+        // Favicon
         const favicon = document.createElement('img');
         favicon.alt = '';
-        favicon.style.marginRight = '8px';
-        favicon.style.verticalAlign = 'middle';
-        favicon.onerror = function() { this.style.display = 'none'; };
-        favicon.src = `https://www.google.com/s2/favicons?domain=${formattedDomain}&sz=32`;
-        
-        const domainContainer = document.createElement('div');
-        domainContainer.style.display = 'inline-flex';
-        domainContainer.style.alignItems = 'center';
-        domainContainer.style.justifyContent = 'center';
-        domainContainer.style.margin = '0 auto';
-        domainContainer.appendChild(favicon);
-        domainContainer.appendChild(document.createTextNode(formattedDomain));
-        domainCell.appendChild(domainContainer);
+        favicon.width = 32;
+        favicon.height = 32;
+
+        // Try browser favicon first
+        if (typeof browser !== "undefined") {
+            favicon.src = `moz-anno:favicon:https://${formattedDomain}`;
+        } else {
+            favicon.src = `chrome-extension://${chrome.runtime.id}/_favicon/?pageUrl=https://${formattedDomain}&size=32`;
+        }
+
+        // Fallback to Google if browser favicon fails
+        favicon.onerror = function () {
+            this.onerror = null; // prevent infinite loop
+            this.src = `https://www.google.com/s2/favicons?domain=${formattedDomain}&sz=32`;
+        };
+
+        leftDiv.appendChild(favicon);
+
+        // Right div (text)
+        const rightDiv = document.createElement('div');
+        rightDiv.style.flex = '1';
+        rightDiv.style.paddingLeft = '8px';
+        rightDiv.textContent = formattedDomain;
+
+        // Assemble
+        container.appendChild(leftDiv);
+        container.appendChild(rightDiv);
+        domainCell.appendChild(container);
         row.appendChild(domainCell);
         
         // Get discrepancy info
@@ -1043,7 +1072,6 @@ function displayWebsitesWithDiscrepanciesOnly(domains, tableId) {
         
         // Expiration cell
         const expirationCell = document.createElement('td');
-        expirationCell.style.fontWeight = 'bold';
         if (domain.expiration && domain.expiration !== "Session cookie") {
             expirationCell.textContent = calculateDaysRemaining(domain.expiration);
         } else {

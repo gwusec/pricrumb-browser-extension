@@ -1,7 +1,6 @@
 // Undecided Websites JS
 // Shows websites where the user chose "Undecided" (value=3) for a category
 // but the browser has a stored consent decision (Allowed or Not Allowed)
-
 let userPreferences = new Map();
 let websitesUndecided = [];
 
@@ -256,7 +255,6 @@ function displayUndecidedWebsites(domains) {
 
         // Expiration cell
         const expirationCell = document.createElement('td');
-        expirationCell.style.fontWeight = 'bold';
         if (domain.expiration && domain.expiration !== 'Session cookie') {
             expirationCell.textContent = calculateDaysRemaining(domain.expiration);
         } else {
@@ -325,7 +323,8 @@ function formatDomainForDisplay(domain) {
     if (!domain) return 'Unknown';
     if (domain.startsWith('.')) domain = domain.substring(1);
     const parts = domain.split('.');
-    if (parts.length === 2) domain = 'www.' + domain;
+    // if (parts.length === 2) domain = 'www.' + domain;
+    domain = domain.replace(/^www\./, '');
     return domain;
 }
 
@@ -337,7 +336,7 @@ function calculateDaysRemaining(expirationDate) {
         if (diffDays < 0) return 'Expired';
         if (diffDays === 0) return 'Expires today';
         if (diffDays === 1) return '1 day';
-        return `${diffDays} days`;
+        return `${diffDays} more days`;
     } catch {
         return expirationDate;
     }

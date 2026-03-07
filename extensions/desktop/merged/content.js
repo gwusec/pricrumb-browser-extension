@@ -797,7 +797,7 @@ function checkForSurveyElement() {
     "pricrumbs_preferred_cookie_choices_functional": { html: "pricrumbs_preferred_cookie_choices_functional.html", height: "560px" },
     "pricrumbs_preferred_cookie_choices_performance": { html: "pricrumbs_preferred_cookie_choices_performance.html", height: "560px" },
     "pricrumbs_preferred_cookie_choices_advertising": { html: "pricrumbs_preferred_cookie_choices_advertising.html", height: "560px" },
-    "pricrumbs_consent_history_top_websites": { html: "pricrumbs_consent_history_top_websites.html", height: "1020px" },
+    "pricrumbs_consent_history_top_websites": { html: "pricrumbs_consent_history_top_websites.html", height: "500px" },
     "pricrumbs_consent_history_bottom_websites": { html: "pricrumbs_consent_history_bottom_websites.html", height: "600px" },
     "pricrumbs_website_all_cookies_accepted": { html: "pricrumbs_website_all_cookies_accepted.html", height: "150px" },
     "pricrumbs_website_all_cookies_rejected": { html: "pricrumbs_website_all_cookies_rejected.html", height: "150px" },

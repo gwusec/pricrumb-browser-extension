@@ -1,6 +1,7 @@
 // Cross-compatible message listener (both chrome and firefox)
 ext.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "checkCookies") {
+    console.log("Event received: checkCookies");
     ext.cookies.getAll({}, (cookies) => {
       if (ext.runtime.lastError) {
         console.error("Error retrieving cookies:", ext.runtime.lastError);
@@ -16,6 +17,7 @@ ext.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.action === "downloadCookies") {
+    console.log("Event received: downloadCookies");
     try {
       const data = JSON.stringify(message.cookies, null, 2);
       const blob = new Blob([data], { type: "application/json" });

@@ -101,16 +101,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function setInstallationWelcomeReady(isReady, loadingText) {
     const loadingMessageEl = document.getElementById("historyLoadingMessage");
+    const loadingMessageTextEl = document.getElementById("historyLoadingMessageText");
     const readyMessageEl = document.getElementById("welcomeReadyMessage");
 
     // No-op on popup pages that do not include the welcome state elements.
-    if (!loadingMessageEl && !readyMessageEl) {
+    if (!loadingMessageEl && !loadingMessageTextEl && !readyMessageEl) {
       return;
     }
 
-    if (loadingMessageEl) {
+    if (loadingMessageTextEl) {
       if (loadingText) {
-        loadingMessageEl.innerHTML = `<p>${loadingText}</p>`;
+        loadingMessageTextEl.innerHTML = `<p>${loadingText}</p>`;
       }
       loadingMessageEl.style.display = isReady ? "none" : "block";
     }
@@ -120,7 +121,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  setInstallationWelcomeReady(false, "Please wait a few seconds while we load your browsing history data.");
+  //setInstallationWelcomeReady(false, "Please wait a few seconds while we load your browsing history data.");
 
   /**
   * Checks if a cookie name is a TCF cookie
@@ -1786,7 +1787,19 @@ document.addEventListener('DOMContentLoaded', async () => {
    * Fetches cookies and displays them in the popup.
    */
   async function fetchAndDisplayCookies() {
-    setInstallationWelcomeReady(false, "Please wait a few seconds while we load your browsing history data.");
+    setInstallationWelcomeReady(false, "Please wait while the extension checks the websites you have previously visited with this browser.");
+
+    ext.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      if (message.type === 'visitedDomainsCount') {
+        console.log(`Visited domains count: ${message.count}`);
+
+        setInstallationWelcomeReady(false, `Found ${message.count} websites visited in the last 365 days.`);
+      } else if (message.type === 'supportedVisitedDomainsCount') {
+        console.log(`Supported visited domains count: ${message.count}`);
+
+        setInstallationWelcomeReady(false, `Found ${message.count} potentially supported websites.`);
+      }
+    });
 
     console.log("************IMMEDIATE CHECK***********:");
     console.log("cookieNames exists?", typeof cookieNames !== 'undefined');
@@ -1801,6 +1814,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     ];
 
     try {
+
+
       const response = await ext.runtime.sendMessage({
         action: "checkCookies",
         cookieNames,

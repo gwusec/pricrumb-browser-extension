@@ -70,11 +70,11 @@ function setupEmbedAutoHeight() {
 }
 // Remove the check for window.cookieCategory since we're hardcoding it
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("Advertising cookies page loaded with category:", currentCookieCategory);
-    
+    console.log("Personalized Advertising Cookies page loaded with category:", currentCookieCategory);
+
     loadCookies();
     loadSavedPreferences();
-    
+
     // Set up navigation listeners
     const previousButton = document.getElementById('previousButton');
     if (previousButton) {
@@ -102,26 +102,26 @@ async function loadSavedPreferences() {
 function shuffleArray(array) {
     // Create a copy of the array to avoid modifying the original
     const shuffled = [...array];
-    
+
     // Fisher-Yates shuffle algorithm
     for (let i = shuffled.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]; // Swap elements
     }
-    
+
     return shuffled;
 }
 //new function to avoid dupliacate websites
 // Extract the main domain name for comparison (e.g., "zoom" from "www.zoom.com" or "www.zoom.us")
 function extractMainDomainName(domain) {
     if (!domain) return '';
-    
+
     // Remove www. prefix
     let cleaned = domain.replace(/^www\./, '');
-    
+
     // Split by dots and get the main part (before TLD)
     const parts = cleaned.split('.');
-    
+
     // Return the main domain name (second-to-last part before TLD)
     // For "zoom.com" or "zoom.us", this returns "zoom"
     // For "stackoverflow.com", this returns "stackoverflow"
@@ -132,7 +132,7 @@ function extractMainDomainName(domain) {
 async function loadCookies() {
     try {
         const result = await ext.storage.local.get("cookieData");
-        const cookies = (result && result.cookieData) ? result.cookieData:[];   // ensure we always get an array
+        const cookies = (result && result.cookieData) ? result.cookieData : [];   // ensure we always get an array
         console.log("Retrieved cookie data:", cookies);
 
         if (cookies.length > 0) {
@@ -161,9 +161,9 @@ async function loadCookies() {
             // Check if domains were already selected in another preference page
             const existingDomainsResult = await ext.storage.local.get('selectedDomainsForHistory');
 
-            if (!existingDomainsResult || !existingDomainsResult.selectedDomainsForHistory || 
+            if (!existingDomainsResult || !existingDomainsResult.selectedDomainsForHistory ||
                 existingDomainsResult.selectedDomainsForHistory.length === 0) {
-                
+
                 // Only save if not already saved (first preference page visited)
                 const domainsForHistory = allDomains.map(d => ({
                     domain: d.domain,
@@ -174,7 +174,7 @@ async function loadCookies() {
                     expiration: d.expiration,
                     actionTaken: d.actionTaken
                 }));
-                
+
                 await ext.storage.local.set({
                     selectedDomainsForHistory: domainsForHistory
                 });
@@ -215,7 +215,7 @@ async function loadCookies() {
 function initializeSelectionTracking() {
     // Create an object to track selections for each domain and cookie type
     domainSelections = {};
-    
+
     allDomains.forEach(domain => {
         const domainKey = domain.domain;
         domainSelections[domainKey] = {
@@ -228,31 +228,31 @@ function initializeSelectionTracking() {
 function formatDomainForDisplay(domain) {
     // If domain is empty or undefined, return "Unknown"
     if (!domain) return "Unknown";
-    
+
     // Remove leading dot if present
     if (domain.startsWith('.')) {
         domain = domain.substring(1);
     }
-    
+
     // If domain doesn't have a subdomain (no dots except the TLD), add www.
     const parts = domain.split('.');
     if (parts.length === 2) {
         domain = 'www.' + domain;
     }
-    
+
     return domain;
 }
 
 // Get 5 most recent and 5 least recent domains
 function getRecentActionDomains(cookies) {
     // Filter for cookies where the user has taken action
-    const actionTakenCookies = cookies.filter(cookie => 
+    const actionTakenCookies = cookies.filter(cookie =>
         cookie.actionTaken && cookie.actionTaken.toLowerCase() === 'yes'
     );
-    
+
     // If we have fewer than 6 domains with action taken, use all cookies
     const cookiesToProcess = actionTakenCookies.length >= 6 ? actionTakenCookies : cookies;
-    
+
     // Sort by totalVisitCount (most frequent first)
     const sortedByFrequency = [...cookiesToProcess].sort((a, b) => {
         // Parse integers from totalVisitCount, defaulting to 0 if invalid
@@ -260,17 +260,17 @@ function getRecentActionDomains(cookies) {
         const visitsB = parseInt(b.totalVisitCount) || 0;
         return visitsB - visitsA;  // Most frequent first (highest count)
     });
-    
 
-        // Track seen main domain names to ensure uniqueness
+
+    // Track seen main domain names to ensure uniqueness
     const seenMainDomains = new Set();
-    
+
     // Get EXACTLY 5 unique most frequently visited domains
     const mostFrequentDomains = [];
     for (const cookie of sortedByFrequency) {
         const formattedDomain = formatDomainForDisplay(cookie.domain);
         const mainName = extractMainDomainName(formattedDomain);
-        
+
         if (!seenMainDomains.has(mainName)) {
             seenMainDomains.add(mainName);
             mostFrequentDomains.push({
@@ -282,27 +282,27 @@ function getRecentActionDomains(cookies) {
                 expiration: cookie.expiration,
                 actionTaken: cookie.actionTaken || "Yes"  // Include for discrepancy detection
             });
-            
+
             if (mostFrequentDomains.length === 5) break;
         }
     }
-    
+
     // Get EXACTLY 5 unique least frequently visited domains
-    const domainsWithVisits = cookiesToProcess.filter(cookie => 
+    const domainsWithVisits = cookiesToProcess.filter(cookie =>
         parseInt(cookie.totalVisitCount) > 0
     );
-    
+
     const sortedAscending = [...domainsWithVisits].sort((a, b) => {
         const visitsA = parseInt(a.totalVisitCount) || 0;
         const visitsB = parseInt(b.totalVisitCount) || 0;
         return visitsA - visitsB;
     });
-    
+
     const leastFrequentDomains = [];
     for (const cookie of sortedAscending) {
         const formattedDomain = formatDomainForDisplay(cookie.domain);
         const mainName = extractMainDomainName(formattedDomain);
-        
+
         if (!seenMainDomains.has(mainName)) {
             seenMainDomains.add(mainName);
             leastFrequentDomains.push({
@@ -314,17 +314,17 @@ function getRecentActionDomains(cookies) {
                 expiration: cookie.expiration,
                 actionTaken: cookie.actionTaken || "Yes"  // Include for discrepancy detection
             });
-            
+
             if (leastFrequentDomains.length === 5) break;
         }
     }
-    
+
     console.log(`Selected ${mostFrequentDomains.length} unique most frequent domains`);
     console.log(`Selected ${leastFrequentDomains.length} unique least frequent domains`);
-    
-    return { 
-        mostRecentDomains: mostFrequentDomains, 
-        leastRecentDomains: leastFrequentDomains 
+
+    return {
+        mostRecentDomains: mostFrequentDomains,
+        leastRecentDomains: leastFrequentDomains
     };
 
 }
@@ -401,36 +401,36 @@ function updateDomainDisplay() {
         alert("No domains found. Please try again later.");
         return;
     }
-    
+
     const currentDomain = allDomains[currentDomainIndex];
     console.log("Displaying domain:", currentDomain.domain, "at index", currentDomainIndex);
-    
+
     // Create favicon element
     const faviconContainer = document.createElement('div');
     faviconContainer.style.display = 'inline-flex';
     faviconContainer.style.alignItems = 'center';
     faviconContainer.style.gap = '12px';
-    
+
     // Favicon image
     const favicon = document.createElement('img');
     favicon.src = currentDomain.favicon || `https://www.google.com/s2/favicons?domain=${formatDomainForDisplay(currentDomain.domain)}&sz=32`;
     favicon.alt = '';
     favicon.style.width = '24px';
     favicon.style.height = '24px';
-    
+
     // Handle favicon loading errors
-    favicon.onerror = function() {
+    favicon.onerror = function () {
         this.style.display = 'none'; // Hide if favicon fails to load
     };
-    
+
     // Domain name container
     const domainNameSpan = document.createElement('span');
     domainNameSpan.textContent = currentDomain.domain;
-    
+
     // Combine favicon and domain name
     faviconContainer.appendChild(favicon);
     faviconContainer.appendChild(domainNameSpan);
-    
+
     // Update domain name with favicon
     const currentDomainElement = document.getElementById('currentDomainName');
     if (currentDomainElement) {
@@ -439,54 +439,54 @@ function updateDomainDisplay() {
     } else {
         console.error("Element with ID 'currentDomainName' not found");
     }
-    
+
     // Update cookie type text if element exists
     const currentCookieTypeElement = document.getElementById('currentCookieType');
     if (currentCookieTypeElement) {
         currentCookieTypeElement.textContent = currentCookieCategory;
     }
-    
+
     // Update progress indicator
     const currentDomainEl = document.getElementById('currentDomain');
     if (currentDomainEl) {
         currentDomainEl.textContent = currentDomainIndex + 1;
     }
-    
+
     const progressFill = document.querySelector('.progress-fill');
     if (progressFill) {
         const progressPercentage = ((currentDomainIndex + 1) / allDomains.length) * 100;
         progressFill.style.width = `${progressPercentage}%`;
     }
-    
+
     // Update navigation buttons
     const previousButton = document.getElementById('previousButton');
     if (previousButton) {
         previousButton.disabled = currentDomainIndex === 0;
     }
-    
+
     // Update toggle buttons
     const toggleContainer = document.querySelector('#questionView .toggle-container');
     if (!toggleContainer) {
         console.error("Toggle container not found");
         return;
     }
-    
+
     toggleContainer.innerHTML = '';
-    
+
     // Define the 5-point willingness scale
     const scaleValues = [
-        { value: 1, text: 'Strongly prefer not to use advertising cookies' },
-        { value: 2, text: 'Prefer not to use advertising cookies' },
-        { value: 3, text: 'No preference' },
-        { value: 4, text: 'Prefer to use advertising cookies' },
-        { value: 5, text: 'Strongly prefer to use advertising cookies' }
+        { value: 1, text: 'I strongly prefer this website NOT use/nPersonalized Advertising Cookies' },
+        { value: 2, text: 'I prefer this website NOT use Personalized Advertising Cookies' },
+        { value: 3, text: 'I have no preference' },
+        { value: 4, text: 'I prefer this website TO use Personalized Advertising Cookies' },
+        { value: 5, text: 'I strongly prefer this website TO use Personalized Advertising Cookies' }
     ];
-    
+
     // Initial button styles to ensure they are visible
     const defaultButtonStyle = {
         padding: '10px 15px',
         margin: '0',
-        fontSize: '14px',
+        fontSize: '18px',
         fontWeight: 'bold',
         border: '1px solid #ddd',
         borderRadius: '4px',
@@ -495,19 +495,19 @@ function updateDomainDisplay() {
         color: '#333',
         textAlign: 'center',
         width: '100%',
-        maxWidth: '460px'
+        maxWidth: '500px'
     };
-    
+
     // Check if there's a selection for this domain/category already made in the current session
     let currentSelection = null;
-    
+
     // First check if domainSelections has been initialized for this domain
-    if (domainSelections[currentDomain.domain] && 
+    if (domainSelections[currentDomain.domain] &&
         typeof domainSelections[currentDomain.domain][currentCookieCategory] !== 'undefined') {
         currentSelection = domainSelections[currentDomain.domain][currentCookieCategory];
         console.log(`Found selection for ${currentDomain.domain}/${currentCookieCategory}:`, currentSelection);
     }
-    
+
     // Function to handle domain selection (scale)
     const handleSelection = (value) => {
         console.log(`User selected ${value} for ${currentDomain.domain} in category ${currentCookieCategory}`);
@@ -517,10 +517,10 @@ function updateDomainDisplay() {
         buttons.forEach(btn => {
             btn.disabled = true;
         });
-        
+
         // Save the preference (passing the numeric value)
         savePreference(currentDomain.domain, currentCookieCategory, value);
-        
+
         // Highlight the selected button
         buttons.forEach(btn => {
             if (parseInt(btn.dataset.value) === value) {
@@ -532,7 +532,7 @@ function updateDomainDisplay() {
                 btn.style.color = '#333';
             }
         });
-        
+
         // Delayed move to next domain
         setTimeout(() => {
             if (currentDomainIndex < allDomains.length - 1) {
@@ -544,33 +544,33 @@ function updateDomainDisplay() {
             }
         }, 500);  // 500ms delay to show the selection
     };
-    
+
     // Create buttons for each scale point
     scaleValues.forEach(item => {
         const button = document.createElement('button');
         button.textContent = item.text;
         button.className = 'scale-btn';
         button.dataset.value = item.value;
-        
+
         // Apply styles
         Object.assign(button.style, defaultButtonStyle);
-        
+
         // Apply selection styling if a choice was previously made
         if (currentSelection === item.value) {
             button.style.backgroundColor = '#4c7aaf';
             button.style.color = 'white';
             button.style.borderColor = '#4c7aaf';
         }
-        
+
         // Add click event
         button.addEventListener('click', () => {
             handleSelection(item.value);
         });
-        
+
         // Add to container
         toggleContainer.appendChild(button);
     });
-    
+
     console.log("Scale buttons added to container:", toggleContainer);
 }
 // Show the previous domain
@@ -588,15 +588,15 @@ function completeCategory() {
     if (questionView) {
         questionView.style.display = 'none';
     }
-    
+
     // Show completion view
     const completionView = document.getElementById('completionView');
     if (completionView) {
         completionView.style.display = 'block';
     }
-    
+
     console.log(`Completed category: ${currentCookieCategory}`);
-    
+
     // Save preferences
     saveAllPreferences();
 }

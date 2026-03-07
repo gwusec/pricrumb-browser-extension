@@ -218,62 +218,129 @@ async function executeScriptWrapper(tabId, details) {
 
 
 // Fetch all domains the user has directly visited
+// async function getVisitedDomains() {
+//   // Check if we have a recent cache (less than 1 hour old)
+//   const cacheAge = Date.now() - visitedDomainsCacheLastUpdated;
+//   if (visitedDomainsCacheLastUpdated > 0 && cacheAge < 3600000 && visitedDomainsCache.size > 0) {
+//     console.log(`Using cached visited domains (${visitedDomainsCache.size} domains, cache age: ${Math.round(cacheAge / 60000)} minutes)`);
+//     return Array.from(visitedDomainsCache);
+//   }
+
+//   return new Promise((resolve) => {
+//     // Get history for past year (or adjust as needed)
+//     const oneYearAgo = Date.now() - (365 * 24 * 60 * 60 * 1000);
+
+//     ext.history.search({
+//       text: '',
+//       startTime: oneYearAgo,
+//       maxResults: 10000  // Get a large number of history entries
+//     }, (historyItems) => {
+//       // Clear and rebuild the cache
+//       visitedDomainsCache.clear();
+
+//       historyItems.forEach(item => {
+//         try {
+//           const url = new URL(item.url);
+//           // Store domain in various formats for better matching
+//           const domain = url.hostname.toLowerCase();
+//           visitedDomainsCache.add(domain);
+
+//           // Also add domain without 'www.' if it exists
+//           if (domain.startsWith('www.')) {
+//             visitedDomainsCache.add(domain.substring(4));
+//           } else {
+//             // Also add with 'www.' prefix
+//             visitedDomainsCache.add(`www.${domain}`);
+//           }
+
+//           // Add with leading dot for subdomain matching
+//           visitedDomainsCache.add(`.${domain}`);
+
+//           // Add root domain
+//           const parts = domain.split('.');
+//           if (parts.length >= 2) {
+//             const rootDomain = parts.slice(-2).join('.');
+//             visitedDomainsCache.add(rootDomain);
+//             visitedDomainsCache.add(`.${rootDomain}`);
+//           }
+//         } catch (e) {
+//           // Skip invalid URLs
+//         }
+//       });
+
+//       // Update cache timestamp
+//       visitedDomainsCacheLastUpdated = Date.now();
+//       console.log(`Built visited domains cache with ${visitedDomainsCache.size} entries`);
+//       resolve(Array.from(visitedDomainsCache));
+//     });
+//   });
+// }
+
+// Fetch all domains the user has directly visited (handles >10k entries)
 async function getVisitedDomains() {
-  // Check if we have a recent cache (less than 1 hour old)
+  // Use cache if it's less than 1 hour old
   const cacheAge = Date.now() - visitedDomainsCacheLastUpdated;
   if (visitedDomainsCacheLastUpdated > 0 && cacheAge < 3600000 && visitedDomainsCache.size > 0) {
     console.log(`Using cached visited domains (${visitedDomainsCache.size} domains, cache age: ${Math.round(cacheAge / 60000)} minutes)`);
     return Array.from(visitedDomainsCache);
   }
 
-  return new Promise((resolve) => {
-    // Get history for past year (or adjust as needed)
-    const oneYearAgo = Date.now() - (365 * 24 * 60 * 60 * 1000);
+  visitedDomainsCache.clear();
+  const oneYearAgo = Date.now() - (365 * 24 * 60 * 60 * 1000);
+  let endTime = Date.now();
+  const windowMs = 30 * 24 * 60 * 60 * 1000; // 30-day windows
 
-    ext.history.search({
-      text: '',
-      startTime: oneYearAgo,
-      maxResults: 10000  // Get a large number of history entries
-    }, (historyItems) => {
-      // Clear and rebuild the cache
-      visitedDomainsCache.clear();
+  while (endTime > oneYearAgo) {
+    const startTime = Math.max(oneYearAgo, endTime - windowMs);
 
-      historyItems.forEach(item => {
-        try {
-          const url = new URL(item.url);
-          // Store domain in various formats for better matching
-          const domain = url.hostname.toLowerCase();
-          visitedDomainsCache.add(domain);
-
-          // Also add domain without 'www.' if it exists
-          if (domain.startsWith('www.')) {
-            visitedDomainsCache.add(domain.substring(4));
-          } else {
-            // Also add with 'www.' prefix
-            visitedDomainsCache.add(`www.${domain}`);
-          }
-
-          // Add with leading dot for subdomain matching
-          visitedDomainsCache.add(`.${domain}`);
-
-          // Add root domain
-          const parts = domain.split('.');
-          if (parts.length >= 2) {
-            const rootDomain = parts.slice(-2).join('.');
-            visitedDomainsCache.add(rootDomain);
-            visitedDomainsCache.add(`.${rootDomain}`);
-          }
-        } catch (e) {
-          // Skip invalid URLs
-        }
-      });
-
-      // Update cache timestamp
-      visitedDomainsCacheLastUpdated = Date.now();
-      console.log(`Built visited domains cache with ${visitedDomainsCache.size} entries`);
-      resolve(Array.from(visitedDomainsCache));
+    const historyItems = await new Promise((resolve) => {
+      ext.history.search({
+        text: '',
+        startTime,
+        endTime,
+        maxResults: 10000
+      }, resolve);
     });
+
+    historyItems.forEach(item => {
+      try {
+        const url = new URL(item.url);
+        const domain = url.hostname.toLowerCase();
+
+        visitedDomainsCache.add(domain);
+
+        if (domain.startsWith('www.')) {
+          visitedDomainsCache.add(domain.substring(4));
+        } else {
+          visitedDomainsCache.add(`www.${domain}`);
+        }
+
+        visitedDomainsCache.add(`.${domain}`);
+
+        const parts = domain.split('.');
+        if (parts.length >= 2) {
+          const rootDomain = parts.slice(-2).join('.');
+          visitedDomainsCache.add(rootDomain);
+          visitedDomainsCache.add(`.${rootDomain}`);
+        }
+      } catch (e) {
+        // Skip invalid URLs
+      }
+    });
+
+    endTime = startTime - 1; // move to previous window
+  }
+
+  visitedDomainsCacheLastUpdated = Date.now();
+  console.log(`Built visited domains cache with ${visitedDomainsCache.size} entries`);
+  let visitedDomainsCacheArr = Array.from(visitedDomainsCache);
+
+  ext.runtime.sendMessage({
+    type: 'visitedDomainsCount',
+    count: visitedDomainsCacheArr.length,
   });
+
+  return visitedDomainsCacheArr;
 }
 
 // Check if a cookie domain matches any visited domain
@@ -672,7 +739,7 @@ ext.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 // Listen for messages from the popup.js or content.js
 ext.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'checkCookies') {
-    console.log("Received request to check cookies.");
+    console.log(`[${new Date().toISOString()}] Action received: checkCookies`);
 
     const cookieNames = request.cookieNames;
     // Get patterns from request or default to empty array
@@ -684,7 +751,7 @@ ext.runtime.onMessage.addListener((request, sender, sendResponse) => {
     getVisitedDomains()
       .then((visitedDomains) => {
         console.log(`Found ${visitedDomains.length} visited domains in history`);
-
+        debugger
         // Use promise API for cookies.getAll
         return ext.cookies.getAll({}).then((cookies) => ({ cookies, visitedDomains }));
       })
@@ -707,6 +774,12 @@ ext.runtime.onMessage.addListener((request, sender, sendResponse) => {
         });
 
         console.log(`Filtered to ${filteredCookies.length} cookies from visited domains`);
+        
+        ext.runtime.sendMessage({
+          type: 'supportedVisitedDomainsCount',
+          count: filteredCookies.length,
+        });
+
 
         // Add domain history to cookies
         const domainPromises = filteredCookies.map(cookie => {

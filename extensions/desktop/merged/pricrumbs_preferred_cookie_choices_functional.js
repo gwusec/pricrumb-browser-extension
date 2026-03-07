@@ -70,7 +70,7 @@ function setupEmbedAutoHeight() {
 }
 // Remove the check for window.cookieCategory since we're hardcoding it
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("Functional cookies page loaded with category:", currentCookieCategory);
+    console.log("Extra Functionality Cookies page loaded with category:", currentCookieCategory);
     
     loadCookies();
     loadSavedPreferences();
@@ -477,18 +477,18 @@ function updateDomainDisplay() {
     
     // Define the 5-point willingness scale
     const scaleValues = [
-        { value: 1, text: 'Strongly prefer not to use functional cookies' },
-        { value: 2, text: 'Prefer not to use functional cookies' },
-        { value: 3, text: 'No preference' },
-        { value: 4, text: 'Prefer to use functional cookies' },
-        { value: 5, text: 'Strongly prefer to use functional cookies' }
+        { value: 1, text: '1 - I strongly prefer this website NOT use Extra Functionality Cookies' },
+        { value: 2, text: '2 - I prefer this website NOT use Extra Functionality Cookies' },
+        { value: 3, text: '3 - I have no preference' },
+        { value: 4, text: '4 - I prefer this website TO use Extra Functionality Cookies' },
+        { value: 5, text: '5 - I strongly prefer this website TO use Extra Functionality Cookies' }
     ];
     
     // Initial button styles to ensure they are visible
     const defaultButtonStyle = {
         padding: '10px 15px',
         margin: '0',
-        fontSize: '14px',
+        fontSize: '18px',
         fontWeight: 'bold',
         border: '1px solid #ddd',
         borderRadius: '4px',
@@ -497,7 +497,7 @@ function updateDomainDisplay() {
         color: '#333',
         textAlign: 'center',
         width: '100%',
-        maxWidth: '460px'
+        maxWidth: '500px'
     };
     
     // Check if there's a selection for this domain/category already made in the current session
