@@ -148,10 +148,10 @@ async function loadCookies() {
 
             // Add favicons
             mostRecentDomains.forEach(d => {
-                d.favicon = `https://www.google.com/s2/favicons?domain=${formatDomainForDisplay(d.domain)}&sz=32`;
+                d.favicon = `https://icons.duckduckgo.com/ip3/${formatDomainForDisplay(d.domain)}.ico`;
             });
             leastRecentDomains.forEach(d => {
-                d.favicon = `https://www.google.com/s2/favicons?domain=${formatDomainForDisplay(d.domain)}&sz=32`;
+                d.favicon = `https://icons.duckduckgo.com/ip3/${formatDomainForDisplay(d.domain)}.ico`;
             });
 
             // Combine and randomize
@@ -413,7 +413,7 @@ function updateDomainDisplay() {
 
     // Favicon image
     const favicon = document.createElement('img');
-    favicon.src = currentDomain.favicon || `https://www.google.com/s2/favicons?domain=${formatDomainForDisplay(currentDomain.domain)}&sz=32`;
+    favicon.src = currentDomain.favicon || `https://icons.duckduckgo.com/ip3/${formatDomainForDisplay(currentDomain.domain)}.ico`;
     favicon.alt = '';
     favicon.style.width = '24px';
     favicon.style.height = '24px';

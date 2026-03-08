@@ -233,7 +233,7 @@ function displayUndecidedWebsites(domains) {
         favicon.style.marginRight = '8px';
         favicon.style.verticalAlign = 'middle';
         favicon.onerror = function() { this.style.display = 'none'; };
-        favicon.src = `https://www.google.com/s2/favicons?domain=${formattedDomain}&sz=32`;
+        favicon.src = `https://icons.duckduckgo.com/ip3/${formattedDomain}.ico`;
 
         const domainContainer = document.createElement('div');
         domainContainer.style.display = 'flex';

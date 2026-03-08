@@ -13,15 +13,25 @@
     "<all_urls>"
   ],
   "background": {
-    "scripts": ["ext-shim.js", "browser-polyfill.min.js", "background.js"],
+    "scripts": [
+      "ext-shim.js",
+      "browser-polyfill.min.js",
+      "background.js"
+    ],
     "persistent": false
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "js": ["ext-shim.js", "browser-polyfill.min.js", "content.js", "tracking.js"],
-      "run_at": "document_start",
-      "all_frames": false
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "ext-shim.js",
+        "browser-polyfill.min.js",
+        "content.js",
+        "tracking.js"
+      ],
+      "run_at": "document_start"
     }
   ],
   "web_accessible_resources": [

@@ -19,6 +19,24 @@ const DOMAIN_HASH_REQUEST_TIMEOUT_MS = 10000;
 const DEFAULT_SURVEY_API_BASE_URL = "https://nets.gwusec.seas.gwu.edu";
 const DEFAULT_DOMAIN_HASH_SERVICE_PATH = "/postsurvey/hash-domains";
 
+/*
+ * Extension lifecycle: installation / update phase
+ *
+ * This handler runs when the browser installs or updates the extension.
+ * Use it for one-time setup, migrations, or default configuration.
+ *
+ * Runs in the background context (service worker), not in content scripts.
+ */
+ext.runtime.onInstalled.addListener((details) => {
+  if (details.reason === "install") {
+    console.log("Extension installed");
+  }
+
+  if (details.reason === "update") {
+    console.log("Extension updated");
+  }
+});
+
 // Parse top-1m-websites.csv once and cache the Map<domain, rank_range>
 async function getTop1mDomainRankMap() {
   if (top1mDomainRankMapPromise) {
@@ -298,7 +316,7 @@ async function getVisitedDomains() {
         text: '',
         startTime,
         endTime,
-        maxResults: 10000
+        maxResults: 60000
       }, resolve);
     });
 
@@ -367,30 +385,24 @@ function getAllHistoryForDomain(cookieDomain, callback) {
 
 // Recursive function to fetch paginated history for a domain
 function fetchPaginatedHistory(cookieDomain, callback) {
-  // Check if we already have cached data
   if (historyCache[cookieDomain]) {
-    console.log(`Cache hit for ${cookieDomain}, returning cached history.`);
-    callback(historyCache[cookieDomain]); // Return cached result immediately
+    callback(historyCache[cookieDomain]);
     return;
   }
 
-  let allVisits = [];
   let totalVisitCount = 0;
   let dailyVisitMap = new Map();
+  let uniqueDates = new Set();
+  let allVisits = [];
+  let processedVisitIds = new Set();
+
   let lastEndTime = Date.now();
   let previousEndTime = null;
-  let fetchAttempts = 0; // Track the number of fetch attempts
-  const MAX_FETCH_ATTEMPTS = 5; // Limit fetch attempts prevent infinite loops
+  let fetchAttempts = 0;
+  const MAX_FETCH_ATTEMPTS = 5;
 
-  // Add a Set to track unique visit IDs to prevent duplicate counting
-  const processedVisitIds = new Set();
-
-  // Fetch history data in batches until all history is found, max attempts reached,
-  // or no new data is found (to avoid infinite loops)
   function fetchNextBatch() {
-    // Return if max fetch attempts have been reached for this cookie domain
     if (fetchAttempts >= MAX_FETCH_ATTEMPTS) {
-      console.warn(`Max fetch attempts reached for ${cookieDomain}.`);
       finalizeHistory();
       return;
     }
@@ -400,129 +412,83 @@ function fetchPaginatedHistory(cookieDomain, callback) {
       { text: '', startTime: 0, endTime: lastEndTime, maxResults: 5000 },
       (results) => {
         if (ext.runtime.lastError) {
-          console.error("History API error:", ext.runtime.lastError);
           finalizeHistory();
           return;
         }
 
-        // Stop fetching if no new results were found or the last fetched timestamp
-        // hasn't changed (to prevent infinite loops).
         if (results.length === 0 || lastEndTime === previousEndTime) {
           finalizeHistory();
           return;
         }
 
-        // Update to track timestamps (ensuring new data is found every loop)
         previousEndTime = lastEndTime;
 
-        let meaningfulVisits = [];
-        results.forEach(item => {
+        // Filter relevant URLs for the domain
+        let meaningfulVisits = results.filter(item => {
           try {
             const url = new URL(item.url);
-            if (domainMatch(url.hostname, cookieDomain)) {
-              // Debug log to see which URLs are being counted
-              console.log(`Found matching URL for ${cookieDomain}: ${item.url}`);
-              meaningfulVisits.push({ url: item.url, lastVisitTime: item.lastVisitTime });
-            }
-          } catch (error) {
-            console.error(`Error processing URL: ${error.message}`);
+            return domainMatch(url.hostname, cookieDomain);
+          } catch {
+            return false;
           }
-        });
+        }).map(item => ({ url: item.url, lastVisitTime: item.lastVisitTime }));
 
-        // If no meaningful visits were found, stop early
         if (meaningfulVisits.length === 0) {
           finalizeHistory();
           return;
         }
 
-        // Process each meaningful visit
+        // Process visits in parallel
         Promise.all(
           meaningfulVisits.map(item =>
             new Promise(resolve => {
               ext.history.getVisits({ url: item.url }, visits => {
                 if (ext.runtime.lastError) {
-                  console.error("Error fetching visit details:", ext.runtime.lastError);
                   resolve();
                   return;
                 }
 
-                // Filter valid transitions (ignore redirects & reloads)
-                const validVisits = visits.filter(visit =>
-                  !['auto_redirect', 'auto_subframe', 'reload'].includes(visit.transition)
-                );
+                visits
+                  .filter(v => !['auto_redirect', 'auto_subframe', 'reload'].includes(v.transition))
+                  .forEach(v => {
+                    if (!processedVisitIds.has(v.visitId)) {
+                      processedVisitIds.add(v.visitId);
+                      allVisits.push(v.visitTime);
+                      totalVisitCount++;
 
-                validVisits.forEach(visit => {
-                  // Only process each visit once using the visit ID
-                  if (!processedVisitIds.has(visit.visitId)) {
-                    processedVisitIds.add(visit.visitId);
-
-                    allVisits.push(visit.visitTime);
-                    totalVisitCount++;
-
-                    const visitDate = new Date(visit.visitTime);
-                    const dateKey = `${visitDate.getFullYear()}-${visitDate.getMonth() + 1}-${visitDate.getDate()}`;
-                    dailyVisitMap.set(dateKey, (dailyVisitMap.get(dateKey) || 0) + 1);
-
-                    // Debug logging
-                    console.log(`Counting visit ID ${visit.visitId} for ${item.url} (total: ${totalVisitCount})`);
-                  } else {
-                    console.log(`Skipping already counted visit ID ${visit.visitId} for ${item.url}`);
-                  }
-                });
+                      const dateKey = new Date(v.visitTime).toISOString().slice(0, 10);
+                      dailyVisitMap.set(dateKey, (dailyVisitMap.get(dateKey) || 0) + 1);
+                      uniqueDates.add(dateKey);
+                    }
+                  });
 
                 resolve();
               });
             })
           )
         ).then(() => {
-          // Update `lastEndTime` and continue fetching if necessary
-          if (meaningfulVisits.length > 0) {
-            lastEndTime = Math.min(...meaningfulVisits.map(v => v.lastVisitTime)) - 1;
-            fetchNextBatch();
-          } else {
-            finalizeHistory();
-          }
-        }).catch(error => {
-          console.error("Error processing visits:", error);
-          finalizeHistory();
-        });
+          lastEndTime = Math.min(...meaningfulVisits.map(v => v.lastVisitTime)) - 1;
+          fetchNextBatch();
+        }).catch(() => finalizeHistory());
       }
     );
   }
 
-  // Get finalized history data and cache it, preventing infinite recursion
   function finalizeHistory() {
-    let dailyVisitCounts = Array.from(dailyVisitMap.values());
-    let avgDailyVisits = dailyVisitCounts.length > 0
-      ? Math.round((dailyVisitCounts.reduce((sum, count) => sum + count, 0) / dailyVisitCounts.length) * 10) / 10
+    const avgDailyVisits = dailyVisitMap.size
+      ? Math.round((totalVisitCount / dailyVisitMap.size) * 10) / 10
       : 0;
-    const uniqueVisitedDates = Array.from(
-      new Set(
-        allVisits.map((visitTime) => {
-          const date = new Date(visitTime);
-          const month = String(date.getMonth() + 1).padStart(2, "0");
-          const day = String(date.getDate()).padStart(2, "0");
-          return `${date.getFullYear()}-${month}-${day}`;
-        })
-      )
-    ).sort();
 
-    console.log(`Domain ${cookieDomain} final counts: ${totalVisitCount} visits across ${dailyVisitMap.size} days`);
-    console.log(`Processed ${processedVisitIds.size} unique visit IDs`);
-
-    // Use more descriptive values for domains with no history
     const historyData = {
       firstVisited: allVisits.length > 0 ? Math.min(...allVisits) : null,
       lastVisited: allVisits.length > 0 ? Math.max(...allVisits) : null,
-      totalVisitCount: totalVisitCount,
-      avgDailyVisits: avgDailyVisits,
+      totalVisitCount,
+      avgDailyVisits,
       daysVisited: dailyVisitMap.size,
-      visitedDates: uniqueVisitedDates,
+      visitedDates: Array.from(uniqueDates).sort(),
     };
 
-    // Store in cache
     historyCache[cookieDomain] = historyData;
-
     callback(historyData);
   }
 
@@ -736,131 +702,139 @@ ext.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   }
 });
 
+async function getCookieData() {
+  const result = await ext.storage.local.get("cookieData");
+  return result.cookieData || [];
+}
+
 // Listen for messages from the popup.js or content.js
 ext.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === 'checkCookies') {
-    console.log(`[${new Date().toISOString()}] Action received: checkCookies`);
+  if (request.action === "getCookieData") {
+    getCookieData().then(sendResponse);
+    return true;
+  } else if (request.action === 'checkCookies') {
+    console.log(`[pricrumbs] checkCookies`);
 
-    const cookieNames = request.cookieNames;
-    // Get patterns from request or default to empty array
+    const cookieNames = request.cookieNames || [];
+    const cookieNameSet = new Set(cookieNames);
     const cookiePatterns = request.cookiePatterns || [];
-    // Convert string patterns to regex objects
     const compiledPatterns = cookiePatterns.map(p => new RegExp(p));
 
-    // First get all domains the user has visited directly
+    // Step 1: get visited domains
     getVisitedDomains()
-      .then((visitedDomains) => {
+      .then(visitedDomains => {
         console.log(`Found ${visitedDomains.length} visited domains in history`);
-        debugger
-        // Use promise API for cookies.getAll
-        return ext.cookies.getAll({}).then((cookies) => ({ cookies, visitedDomains }));
+        return ext.cookies.getAll({}).then(cookies => ({ cookies, visitedDomains }));
       })
       .then(({ cookies, visitedDomains }) => {
-
         console.log(`Total cookies retrieved: ${cookies.length}`);
 
-        // Filter cookies by both name AND visited domains
+        // Step 2: filter cookies by name and visited domains
         const filteredCookies = cookies.filter(cookie => {
-          // First check if it's a consent cookie we're interested in
-          // via exact names or patterns
-          const nameMatch = cookieNames.includes(cookie.name) || compiledPatterns.some(regex => regex.test(cookie.name));
-
-          if (!nameMatch) {
-            return false;
-          }
-
-          // Then check if it's from a domain the user has actually visited
-          return isVisitedDomain(cookie.domain, visitedDomains);
+          const nameMatch =
+            cookieNameSet.has(cookie.name) ||
+            compiledPatterns.some(regex => regex.test(cookie.name));
+          return nameMatch && isVisitedDomain(cookie.domain, visitedDomains);
         });
-
         console.log(`Filtered to ${filteredCookies.length} cookies from visited domains`);
-        
+
         ext.runtime.sendMessage({
           type: 'supportedVisitedDomainsCount',
-          count: filteredCookies.length,
+          count: filteredCookies.length
         });
 
+        // Step 3: extract unique domains
+        const uniqueDomains = [...new Set(filteredCookies.map(c => c.domain))];
 
-        // Add domain history to cookies
-        const domainPromises = filteredCookies.map(cookie => {
-          return new Promise((resolve) => {
-            // If cache already contains history for domain, use that data instead of fetching it again
-            if (historyCache[cookie.domain]) {
-              resolve({
-                ...cookie,
-                ...historyCache[cookie.domain] // Merge cached history data
-              });
+        // Step 4: fetch domain histories
+        const domainHistoryPromises = uniqueDomains.map(domain =>
+          new Promise(resolve => {
+            if (historyCache[domain]) {
+              resolve(historyCache[domain]);
               return;
             }
 
             let resolved = false;
-
-            getAllHistoryForDomain(cookie.domain, (historyData) => {
+            getAllHistoryForDomain(domain, historyData => {
               if (!resolved) {
                 resolved = true;
-                historyCache[cookie.domain] = historyData; // Store in cache
-                resolve({
-                  ...cookie,
+                const safeData = {
                   firstVisited: historyData.firstVisited ?? null,
                   lastVisited: historyData.lastVisited ?? null,
                   totalVisitCount: historyData.totalVisitCount ?? 0,
                   avgDailyVisits: historyData.avgDailyVisits ?? 0,
                   visitedDates: Array.isArray(historyData.visitedDates) ? historyData.visitedDates : []
-                });
+                };
+                historyCache[domain] = safeData;
+                resolve(safeData);
               }
             });
 
-            // Timeout if no response received in 10 seconds
             setTimeout(() => {
               if (!resolved) {
                 resolved = true;
-                console.warn(`Timeout fetching history for ${cookie.domain}, resolving with defaults.`);
-                resolve({
-                  ...cookie, // Retain original cookie data in case of timeout
+                console.warn(`Timeout fetching history for ${domain}, using defaults.`);
+                const defaultData = {
                   firstVisited: null,
                   lastVisited: null,
                   totalVisitCount: 0,
                   avgDailyVisits: 0,
                   visitedDates: []
-                });
+                };
+                historyCache[domain] = defaultData;
+                resolve(defaultData);
               }
-            }, 10000);
-          });
+            }, 60000);
+          })
+        );
+
+        return Promise.all(domainHistoryPromises).then(histories => ({ filteredCookies, uniqueDomains, histories }));
+      })
+      .then(({ filteredCookies, uniqueDomains, histories }) => {
+        // Step 5: build history map
+        const historyMap = {};
+        uniqueDomains.forEach((domain, i) => {
+          historyMap[domain] = histories[i];
         });
 
-        return Promise.all(domainPromises);
+        // Step 6: merge history into cookies
+        const cookiesWithHistory = filteredCookies.map(cookie => ({
+          ...cookie,
+          ...historyMap[cookie.domain]
+        }));
+
+        return cookiesWithHistory;
       })
-      .then(async (cookiesWithHistory) => {
-        const rankMap = await getTop1mDomainRankMap();
-        const domains = Array.from(
-          new Set(
-            cookiesWithHistory
-              .map((cookie) => canonicalizeDomain(cookie.domain))
-              .filter(Boolean)
-          )
-        );
-        const hashMap = await hashDomains(domains, { strict: true });
-        const cookiesWithMetadata = cookiesWithHistory.map((cookie) => {
+      .then(cookiesWithHistory => {
+        // Step 7: get rank and hash maps
+        return Promise.all([getTop1mDomainRankMap(), hashDomains(
+          Array.from(new Set(
+            cookiesWithHistory.map(c => canonicalizeDomain(c.domain)).filter(Boolean)
+          )),
+          { strict: true }
+        )]).then(([rankMap, hashMap]) => ({ cookiesWithHistory, rankMap, hashMap }));
+      })
+      .then(({ cookiesWithHistory, rankMap, hashMap }) => {
+        // Step 8: merge metadata
+        const cookiesWithMetadata = cookiesWithHistory.map(cookie => {
           const canonicalDomain = canonicalizeDomain(cookie.domain);
-          const domainRankRange = canonicalDomain ? (rankMap.get(canonicalDomain) || "100000+") : null;
-          const domainHash = canonicalDomain ? (hashMap.get(canonicalDomain) || null) : null;
           return {
             ...cookie,
-            domainRankRange,
-            domainHash
+            domainRankRange: canonicalDomain ? (rankMap.get(canonicalDomain) || "100000+") : null,
+            domainHash: canonicalDomain ? (hashMap.get(canonicalDomain) || null) : null
           };
         });
 
-        console.log("Promises resolved! Sending response with cookies...");
+        console.log("Cookies with history and metadata ready, sending response...");
         sendResponse({ cookies: cookiesWithMetadata });
       })
-      .catch((err) => {
+      .catch(err => {
         console.error("Error in checkCookies flow:", err);
         sendResponse({ cookies: [] });
       });
-    return true; // Keep the message channel open
-  }
 
+    return true; // keep the message channel open
+  }
 
   if (request.payload?.action === "fetchAllCookies" || request.action === 'fetchAllCookies') {
     // Fetch all cookies
@@ -895,7 +869,7 @@ ext.runtime.onMessage.addListener((request, sender, sendResponse) => {
     let height = request.payload.height ? request.payload.height : "600px";
 
     if (height === "0px") {
-      elementId = "popup_invisible";
+      elementId = "pricrumbs_popup_hidden";
     }
 
     // Send message to content script to inject the iframe
@@ -1099,3 +1073,43 @@ function storeCookiesInStorage(cookies) {
     }
   });
 }
+
+ext.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    if (msg.type !== "GET_FAVICON") return;
+
+    const domain = msg.domain;
+
+    // 1. Try open tabs
+    ext.tabs.query({}, async (tabs) => {
+        const tab = tabs.find(t => t.url && t.url.includes(domain));
+        if (tab?.favIconUrl) {
+            sendResponse({ favicon: tab.favIconUrl });
+            return;
+        }
+
+        // 2. Fetch HTML and parse <link rel="icon">
+        try {
+            const response = await fetch(`https://${domain}`);
+            const html = await response.text();
+            const match = html.match(/<link[^>]+rel=["'](?:shortcut )?icon["'][^>]*>/i);
+            if (match) {
+                const hrefMatch = match[0].match(/href=["']([^"']+)["']/i);
+                if (hrefMatch) {
+                    let url = hrefMatch[1];
+                    if (!url.startsWith('http')) {
+                        url = `https://${domain}${url.startsWith('/') ? '' : '/'}${url}`;
+                    }
+                    sendResponse({ favicon: url });
+                    return;
+                }
+            }
+        } catch (e) {
+            // Ignore fetch errors
+        }
+
+        // 3. Fallback to standard /favicon.ico
+        sendResponse({ favicon: `https://${domain}/favicon.ico` });
+    });
+
+    return true; // Indicates async response
+});

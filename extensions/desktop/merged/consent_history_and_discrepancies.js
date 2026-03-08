@@ -456,7 +456,7 @@ function findDiscrepancyWebsites(cookieData, userPreferences) {
             discrepancies.push({
                 domain: formattedDomain,
                 originalDomain: originalDomain,
-                favicon: `https://www.google.com/s2/favicons?domain=${formattedDomain}&sz=32`,
+                favicon: `https://icons.duckduckgo.com/ip3/${formattedDomain}.ico`,
                 statedPreferences: statedPreferences,
                 actualPreferences: actualPreferences,
                 cookie: cookie,
@@ -691,7 +691,15 @@ function getDiscrepancyInfo(domain) {
     return discrepancy;
 }
 
-function displayWebsites(domains, tableId) {
+async function getFavicon(domain) {
+    return new Promise((resolve) => {
+        ext.runtime.sendMessage({ type: "GET_FAVICON", domain }, (response) => {
+            resolve(response?.favicon || `https://${domain}/favicon.ico`);
+        });
+    });
+}
+
+async function displayWebsites(domains, tableId) {
     const websitesList = document.getElementById(tableId);
     const table = document.getElementById('leastRecentTable');
     const noDiscrepanciesMessage = document.getElementById('noDiscrepanciesMessage');
@@ -703,11 +711,10 @@ function displayWebsites(domains, tableId) {
     
     websitesList.innerHTML = '';
 
-    // NO FILTERING - just display all domains passed to this function
     console.log(`Displaying ${domains.length} domains in table ${tableId}`);
     
-    // Display all domains without filtering
-    domains.forEach((domain, index) => {
+    // Use for...of so we can await getFavicon
+    for (const domain of domains) {
         console.log(`Displaying domain in table: ${domain.domain}`);
         
         const row = document.createElement('tr');
@@ -716,69 +723,57 @@ function displayWebsites(domains, tableId) {
         const domainCell = document.createElement('td');
         domainCell.className = 'website-cell';
         
-        // Format the domain for display
         const formattedDomain = formatDomainForDisplay(domain.domain);
         
-        // Create favicon image element
         const favicon = document.createElement('img');
         favicon.alt = '';
         favicon.style.marginRight = '8px';
         favicon.style.verticalAlign = 'middle';
         favicon.style.height = '32px';
+        favicon.onerror = function() { this.style.display = 'none'; };
+
+        // Await the favicon from your extension
+        favicon.src = await getFavicon(formattedDomain);
         
-        // Handle favicon loading errors (set before src to suppress console errors)
-        favicon.onerror = function() {
-            this.style.display = 'none';
-        };
-        
-        // Set src after error handler is attached
-        favicon.src = `https://www.google.com/s2/favicons?domain=${formattedDomain}&sz=32`;
-        
-        // Create a container for the favicon and domain text
         const domainContainer = document.createElement('div');
         domainContainer.style.display = 'inline-flex';
         domainContainer.style.alignItems = 'center';
         domainContainer.style.justifyContent = 'center';
         domainContainer.style.margin = '0 auto';
         
-        // Add favicon and domain text
         domainContainer.appendChild(favicon);
         domainContainer.appendChild(document.createTextNode(formattedDomain));
         domainCell.appendChild(domainContainer);
         
         row.appendChild(domainCell);
 
-        // Check if this domain has any discrepancies
-        let discrepancyInfo = getDiscrepancyInfo(domain.domain);
+        const discrepancyInfo = getDiscrepancyInfo(domain.domain);
         console.log(`Domain ${formattedDomain} discrepancy info:`, discrepancyInfo);
 
-        // Create cells for each category showing only the selected option
         const categories = ['functional', 'performance', 'advertising'];
-        categories.forEach(category => {
+        for (const category of categories) {
             const cell = document.createElement('td');
-            // Create the selection status with discrepancy markers if needed
             const selectionStatus = getSelectionStatus(
                 domain, 
                 category, 
                 discrepancyInfo ? discrepancyInfo.statedPreferences : null,
-                discrepancyInfo ? discrepancyInfo.categories[category] : false, false // Don't show discrepancies on top websites page
+                discrepancyInfo ? discrepancyInfo.categories[category] : false,
+                false
             );
             cell.appendChild(selectionStatus);
             row.appendChild(cell);
-        });
+        }
 
-        // Expiration date cell - calculate days remaining
         const expirationCell = document.createElement('td');
         if (domain.expiration && domain.expiration !== "Session cookie") {
-            const daysRemaining = calculateDaysRemaining(domain.expiration);
-            expirationCell.textContent = daysRemaining;
+            expirationCell.textContent = calculateDaysRemaining(domain.expiration);
         } else {
             expirationCell.textContent = "Session cookie";
         }
         row.appendChild(expirationCell);
 
         websitesList.appendChild(row);
-    });
+    }
 }
 
 // Helper function to get a single button showing the selection status (Updated to work with the scale)
@@ -1026,19 +1021,11 @@ function displayWebsitesWithDiscrepanciesOnly(domains, tableId) {
         favicon.alt = '';
         favicon.width = 32;
         favicon.height = 32;
-
-        // Try browser favicon first
-        if (typeof browser !== "undefined") {
-            favicon.src = `moz-anno:favicon:https://${formattedDomain}`;
-        } else {
-            favicon.src = `chrome-extension://${chrome.runtime.id}/_favicon/?pageUrl=https://${formattedDomain}&size=32`;
-        }
-
-        // Fallback to Google if browser favicon fails
-        favicon.onerror = function () {
-            this.onerror = null; // prevent infinite loop
-            this.src = `https://www.google.com/s2/favicons?domain=${formattedDomain}&sz=32`;
+        // Handle favicon loading errors (set before src to suppress console errors)
+        favicon.onerror = function() {
+            this.style.display = 'none';
         };
+        this.src = `https://icons.duckduckgo.com/ip3/${formattedDomain}.ico`;
 
         leftDiv.appendChild(favicon);
 

@@ -23,7 +23,7 @@ sequenceDiagram
 
     %% Initial extension check in survey
     website->>content: Post "checkExtension" request
-    content->>website: Post "FROM_EXTENSION_CONFIRMATION"
+    content->>website: Post "pricrumbs_extension_ready"
 
     %% Injection workflow (surveys/pages with extension elements)
     background->>display: Detects tab is updated
@@ -158,7 +158,7 @@ Survey “Extension Check” Flow:
 	* The survey posts ```{ type: "FROM_SURVEY", payload: { action: "checkExtension" } }```.
 	* The content script detects this and replies:
 		```window.postMessage({
-		  type: "FROM_EXTENSION_CONFIRMATION",
+		  type: "pricrumbs_extension_ready",
 		  payload: { extensionInstalled: true }
 		}, "*");```
 

@@ -7,21 +7,10 @@
 </head>
 <body>
     <div class="container">
-        <!-- <h1>Your Cookie Preferences</h1> -->
-        <!-- <p class="description">
-            Below are the cookie preferences that have been saved in your browser. These settings show whether you've 
-            accepted or rejected cookies for different websites you've visited and the cookie's expiration date.
-        </p> -->
-
         <div id="loading">Loading your cookie preference data...</div>
 
         <!-- Combined Table with Both Most and Least Visited Websites -->
         <div id="page1">
-            <!-- <div style="padding: 10px; margin-bottom: 15px; text-align: center;">
-                <span style="font-size: 16px;">The </span>
-                <span style="color: #ff9800; font-weight: bold; font-size: 25px;">!</span>
-                <span style="font-size: 16px;"> next to a choice indicates there was a difference between the choice you made earlier and the actual cookies consent preference in your history.</span>
-            </div> -->
             <table id="mostRecentTable" style="display: none;">
             <thead>
                 <tr>
@@ -35,12 +24,6 @@
             <tbody id="mostRecentWebsitesList">
                 <!-- Most frequently visited websites will be inserted here by JS -->
             </tbody>
-            <!-- Section divider row -->
-            <!-- <tbody>
-                <tr>
-                    <td colspan="5" class="section-divider">Least Frequently Visited Websites</td>
-                </tr>
-            </tbody> -->
             <tbody id="leastRecentWebsitesList">
                 <!-- Least frequently visited websites will be inserted here by JS -->
             </tbody>
@@ -48,7 +31,7 @@
     </div>
     <script src="consent_history_and_discrepancies.js"></script>
     <script src="ext-shim.js"></script>
-    <script>
+    <!-- <script>
       (function () {
         const elementId = "pricrumbs_consent_history_top_websites";
         let rafId = null;
@@ -100,6 +83,6 @@
         const intervalId = setInterval(scheduleHeightPost, 500);
         setTimeout(() => clearInterval(intervalId), 10000);
       })();
-    </script>
+    </script> -->
 </body>
 </html>
