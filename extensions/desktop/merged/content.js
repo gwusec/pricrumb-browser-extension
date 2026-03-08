@@ -895,7 +895,7 @@ if (window.location.hostname === "localhost" || window.location.hostname === "ww
       if (!target) return false;
 
       // Avoid duplicate injection
-      if (target.querySelector(".ext-injected")) return true;
+      if (target.querySelector(".ext-injected") || target.shadowRoot) return true;
 
       const mapEntry = elementMap[id];
       if (!mapEntry) return false;
@@ -903,33 +903,43 @@ if (window.location.hostname === "localhost" || window.location.hostname === "ww
       let htmlContent;
 
       if (mapEntry.html) {
-        // Load HTML file from extension
-        // const response = await fetch(chrome.runtime.getURL(mapEntry.html));
-        // htmlContent = await response.text();
+
+        // Special case → inject via Shadow DOM
+        if (id === "pricrumbs_consent_history_top_websites") {
+          const module = await import(browser.runtime.getURL('pricrumbs_consent_history.js'));
+          await module.injectTopAndBottomFiveTable(target);
+          return true;
+        }
+
+        // Default behaviour (existing system)
         if (target && !target.querySelector("iframe")) {
-          // Post a message to the page so the page-origin script can also react if needed
           window.postMessage(
-            { type: "FROM_CONTENT", payload: { action: "injectHTML", elementId: id, ...opts } },
+            {
+              type: "FROM_CONTENT",
+              payload: { action: "injectHTML", elementId: id, ...opts }
+            },
             "*"
           );
           return true;
         }
+
       } else if (mapEntry.js && typeof mapEntry.js === "function") {
-        // Call the function defined in the same content script
-        mapEntry.js().then(htmlContent => {
-          const container = document.createElement("div");
-          container.className = "ext-injected";
-          container.innerHTML = htmlContent;
-          container.style.width = "100%";
-          container.style.height = "auto";
-          target.appendChild(container);
-        });
+
+        const htmlContent = await mapEntry.js();
+
+        const container = document.createElement("div");
+        container.className = "ext-injected";
+        container.innerHTML = htmlContent;
+        container.style.width = "100%";
+        container.style.height = "auto";
+
+        target.appendChild(container);
+
       } else {
         console.error("No html or js function defined for", id);
         return false;
       }
 
-      console.log(`Injected content for ${id}`);
       return true;
     }
 
@@ -1330,16 +1340,23 @@ if (window.location.hostname === "localhost" || window.location.hostname === "ww
     return await loadCookieDataAndSelectWebsites("accept-all");
   }
 
-  window.addEventListener('message', (event) => {
+  window.addEventListener("message", (event) => {
+
     if (event.source !== window) return;
-    if (event.data?.type !== 'FAVICON_REQUEST') return;
+    if (event.data?.type !== "EXTENSION_MESSAGE") return;
 
-    const domain = event.data.domain;
+    const { id, payload } = event.data;
 
-    chrome.runtime.sendMessage({ type: 'GET_FAVICON', domain }, (response) => {
-      // Send response back to page/Shadow DOM
-      window.postMessage({ type: 'FAVICON_RESPONSE', domain, favicon: response?.favicon }, '*');
+    ext.runtime.sendMessage(payload, (response) => {
+
+      window.postMessage({
+        type: "EXTENSION_MESSAGE_RESPONSE",
+        id,
+        response
+      }, "*");
+
     });
+
   });
 
   // Run checker on initial load

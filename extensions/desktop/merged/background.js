@@ -1075,41 +1075,87 @@ function storeCookiesInStorage(cookies) {
 }
 
 ext.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-    if (msg.type !== "GET_FAVICON") return;
+
+  if (msg.type === "GET_FAVICON") {
 
     const domain = msg.domain;
 
     // 1. Try open tabs
     ext.tabs.query({}, async (tabs) => {
-        const tab = tabs.find(t => t.url && t.url.includes(domain));
-        if (tab?.favIconUrl) {
-            sendResponse({ favicon: tab.favIconUrl });
-            return;
-        }
+      const tab = tabs.find(t => t.url && t.url.includes(domain));
+      if (tab?.favIconUrl) {
+        sendResponse({ favicon: tab.favIconUrl });
+        return;
+      }
 
-        // 2. Fetch HTML and parse <link rel="icon">
-        try {
-            const response = await fetch(`https://${domain}`);
-            const html = await response.text();
-            const match = html.match(/<link[^>]+rel=["'](?:shortcut )?icon["'][^>]*>/i);
-            if (match) {
-                const hrefMatch = match[0].match(/href=["']([^"']+)["']/i);
-                if (hrefMatch) {
-                    let url = hrefMatch[1];
-                    if (!url.startsWith('http')) {
-                        url = `https://${domain}${url.startsWith('/') ? '' : '/'}${url}`;
-                    }
-                    sendResponse({ favicon: url });
-                    return;
-                }
+      // 2. Fetch HTML and parse <link rel="icon">
+      try {
+        const response = await fetch(`https://${domain}`);
+        const html = await response.text();
+        const match = html.match(/<link[^>]+rel=["'](?:shortcut )?icon["'][^>]*>/i);
+        if (match) {
+          const hrefMatch = match[0].match(/href=["']([^"']+)["']/i);
+          if (hrefMatch) {
+            let url = hrefMatch[1];
+            if (!url.startsWith('http')) {
+              url = `https://${domain}${url.startsWith('/') ? '' : '/'}${url}`;
             }
-        } catch (e) {
-            // Ignore fetch errors
+            sendResponse({ favicon: url });
+            return;
+          }
         }
+      } catch (e) {
+        // Ignore fetch errors
+      }
 
-        // 3. Fallback to standard /favicon.ico
-        sendResponse({ favicon: `https://${domain}/favicon.ico` });
+      // 3. Fallback to standard /favicon.ico
+      sendResponse({ favicon: `https://${domain}/favicon.ico` });
     });
 
     return true; // Indicates async response
+  }
+
+  if (msg.type === "STORAGE_GET") {
+
+    ext.storage.local.get(msg.key).then(data => {
+      sendResponse(data);
+    });
+
+    return true;
+  }
+
+  if (msg.type === "STORAGE_SET") {
+
+    ext.storage.local.set(msg.data).then(() => {
+      sendResponse(true);
+    });
+
+    return true;
+  }
+
+  if (msg.type === "OPEN_TAB") {
+
+    ext.tabs.create(msg.options).then(tab => {
+      sendResponse(tab);
+    });
+
+    return true;
+  }
+
+  if (msg.type === "CLOSE_TAB") {
+
+    ext.tabs.remove(msg.tabId).then(() => {
+      sendResponse(true);
+    });
+
+    return true;
+  }
+
+});
+
+
+ext.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg.type !== "GET_FAVICON") return;
+
+
 });
