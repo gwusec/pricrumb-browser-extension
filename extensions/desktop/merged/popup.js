@@ -2242,6 +2242,22 @@ function buildDomainConsentRecords(cookies) {
   const DOMAIN_HASH_PATTERN = /^[0-9a-f]{64}$/i;
   const normalizeDomainHash = (value) => (typeof value === "string" ? value.trim().toLowerCase() : "");
   const isValidDomainHash = (value) => DOMAIN_HASH_PATTERN.test(normalizeDomainHash(value));
+  const normalizeActionTakenValue = (value) => {
+    if (value === true) return "yes";
+    if (value === false) return "no";
+    if (typeof value === "number") {
+      if (value === 1) return "yes";
+      if (value === 0) return "no";
+    }
+    if (typeof value === "string") {
+      const normalized = value.trim().toLowerCase();
+      if (normalized === "yes" || normalized === "true" || normalized === "1") return "yes";
+      if (normalized === "no" || normalized === "false" || normalized === "0") return "no";
+      if (normalized.startsWith("yes")) return "yes";
+      if (normalized.startsWith("no")) return "no";
+    }
+    return "unknown";
+  };
   const recordsByKey = new Map();
 
   cookies.forEach(cookie => {
@@ -2251,6 +2267,7 @@ function buildDomainConsentRecords(cookies) {
 
     const numberOfVisits = Number(cookie.totalVisitCount) || 0;
     const dates = Array.isArray(cookie.visitedDates) ? cookie.visitedDates : [];
+    const actionTaken = normalizeActionTakenValue(cookie.actionTaken);
 
     if (!recordsByKey.has(domainKey)) {
       recordsByKey.set(domainKey, {
@@ -2258,6 +2275,7 @@ function buildDomainConsentRecords(cookies) {
         domainRankRange: cookie.domainRankRange || null,
         numberOfVisits,
         dates: Array.from(new Set(dates)).sort(),
+        actionTaken,
         consent: {
           necessary: normalizeConsentValue(cookie.categories?.necessary),
           functional: normalizeConsentValue(cookie.categories?.functional),
@@ -2271,6 +2289,11 @@ function buildDomainConsentRecords(cookies) {
     const existing = recordsByKey.get(domainKey);
     existing.numberOfVisits = Math.max(existing.numberOfVisits || 0, numberOfVisits);
     existing.dates = Array.from(new Set([...(existing.dates || []), ...dates])).sort();
+    if (existing.actionTaken !== "yes" && actionTaken === "yes") {
+      existing.actionTaken = "yes";
+    } else if (existing.actionTaken === "unknown" && actionTaken !== "unknown") {
+      existing.actionTaken = actionTaken;
+    }
   });
 
   return Array.from(recordsByKey.values());

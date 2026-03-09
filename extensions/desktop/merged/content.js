@@ -7,6 +7,23 @@ function normalizeConsentValue(value) {
   return "unknown";
 }
 
+function normalizeActionTakenValue(value) {
+  if (value === true) return "yes";
+  if (value === false) return "no";
+  if (typeof value === "number") {
+    if (value === 1) return "yes";
+    if (value === 0) return "no";
+  }
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "yes" || normalized === "true" || normalized === "1") return "yes";
+    if (normalized === "no" || normalized === "false" || normalized === "0") return "no";
+    if (normalized.startsWith("yes")) return "yes";
+    if (normalized.startsWith("no")) return "no";
+  }
+  return "unknown";
+}
+
 function normalizeDomainHash(value) {
   return typeof value === "string" ? value.trim().toLowerCase() : "";
 }
@@ -77,6 +94,7 @@ function buildDomainConsentRecords(cookieData) {
 
     const numberOfVisits = Number(cookie?.totalVisitCount) || 0;
     const dates = Array.isArray(cookie?.visitedDates) ? cookie.visitedDates : [];
+    const actionTaken = normalizeActionTakenValue(cookie?.actionTaken);
 
     if (!recordsByHash.has(domainHash)) {
       recordsByHash.set(domainHash, {
@@ -84,6 +102,7 @@ function buildDomainConsentRecords(cookieData) {
         domainRankRange: cookie?.domainRankRange || null,
         numberOfVisits,
         dates: Array.from(new Set(dates)).sort(),
+        actionTaken,
         consent: {
           necessary: normalizeConsentValue(cookie?.categories?.necessary),
           functional: normalizeConsentValue(cookie?.categories?.functional),
@@ -97,6 +116,11 @@ function buildDomainConsentRecords(cookieData) {
     const existing = recordsByHash.get(domainHash);
     existing.numberOfVisits = Math.max(existing.numberOfVisits || 0, numberOfVisits);
     existing.dates = Array.from(new Set([...(existing.dates || []), ...dates])).sort();
+    if (existing.actionTaken !== "yes" && actionTaken === "yes") {
+      existing.actionTaken = "yes";
+    } else if (existing.actionTaken === "unknown" && actionTaken !== "unknown") {
+      existing.actionTaken = actionTaken;
+    }
   });
 
   return Array.from(recordsByHash.values());
@@ -193,9 +217,48 @@ window.addEventListener("message", (event) => {
           "hasDiscrepancies",
           "hasDiscrepanciesCheckedAt"
         ]);
-        const consentDomainData = Array.isArray(result.consentDomainData) && result.consentDomainData.length > 0
+        const cookieData = Array.isArray(result.cookieData) ? result.cookieData : [];
+        const consentDomainDataFromStorage = Array.isArray(result.consentDomainData)
           ? result.consentDomainData
-          : buildDomainConsentRecords(result.cookieData || []);
+          : [];
+        const consentDomainDataFromCookies = buildDomainConsentRecords(cookieData);
+        let consentDomainData = consentDomainDataFromStorage.length > 0
+          ? consentDomainDataFromStorage
+          : consentDomainDataFromCookies;
+
+        // Backfill actionTaken for older consentDomainData entries that were stored before
+        // this field was included in the per-domain record schema.
+        if (consentDomainData.length > 0 && consentDomainDataFromCookies.length > 0) {
+          const actionTakenByHash = new Map();
+          consentDomainDataFromCookies.forEach((record) => {
+            const hash = normalizeDomainHash(record?.domainHash);
+            if (!hash) return;
+            actionTakenByHash.set(hash, normalizeActionTakenValue(record?.actionTaken));
+          });
+
+          let updatedActionTakenCount = 0;
+          consentDomainData = consentDomainData.map((record) => {
+            if (!record || typeof record !== "object") return record;
+            const currentActionTaken = normalizeActionTakenValue(record.actionTaken);
+            if (currentActionTaken !== "unknown") return record;
+
+            const hash = normalizeDomainHash(record.domainHash);
+            const fallbackActionTaken = actionTakenByHash.get(hash);
+            if (!fallbackActionTaken || fallbackActionTaken === "unknown") return record;
+
+            updatedActionTakenCount += 1;
+            return {
+              ...record,
+              actionTaken: fallbackActionTaken
+            };
+          });
+
+          if (updatedActionTakenCount > 0) {
+            await ext.storage.local.set({
+              consentDomainData: sanitizeDomainRecordList(consentDomainData)
+            });
+          }
+        }
         let browsingHistoryData = Array.isArray(result.browsingHistoryData) ? result.browsingHistoryData : [];
         const hasDiscrepancies =
           typeof result.hasDiscrepancies === "boolean" ? result.hasDiscrepancies : null;
