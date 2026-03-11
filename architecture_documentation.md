@@ -65,5 +65,5 @@ Uses standard browser `runtime.sendMessage` and `tabs.sendMessage`.
 ## Data Management
 The extension uses `chrome.storage.local` to persist:
 - `cookieData`: All processed cookies with their decoded categories and history metrics.
-- `userCookiePreferences`: The user's 5-point scale ratings for specific domains.
+- `participantCookiesPreferences`: The user's 5-point scale ratings for specific domains.
 - `selected_domains`: The specific subset of domains currently being analyzed in the survey flow.

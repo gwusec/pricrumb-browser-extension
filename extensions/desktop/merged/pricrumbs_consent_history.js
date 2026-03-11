@@ -1,6 +1,5 @@
 import {
-    generateDiscrepancyWebsiteRows,
-    generateGeneralWebsiteRows,
+    generateWebsiteRows,
     formatDomainForDisplay,
     calculateDaysRemaining,
     sendExtensionMessage,
@@ -9,44 +8,44 @@ import {
     getFavicon,
     getWebsitesWithDiscrepancies,
     setWebsitesWithDiscrepancies,
-    getUserPreferences,
+    getParticipantCookiesPreferences,
     setUserPreferences,
     getSelectionStatus
-} from './generic.js';
+} from './helper_functions.js';
 
-export async function injectTopAndBottomFiveTable(target) {
-    // Check if a container already exists
+/**
+ * Injects the Top and Bottom Five Websites table into a target DOM element.
+ *
+ * This function:
+ * 1. Creates a container with a Shadow DOM inside the target element to isolate styles.
+ * 2. Loads the extension CSS for the table.
+ * 3. Renders a temporary "Loading..." table while the full table is generated.
+ * 4. Retrieves the table HTML from storage or generates it if needed, first without favicons,
+ *    then updates it with favicons.
+ * 5. Inserts the final table HTML into the Shadow DOM.
+ *
+ * @param {HTMLElement} target - The DOM element where the table will be injected.
+ */
+export async function injectTopAndBottomFiveTable(target = null, tutorial = false, showDiscrepancies = false) {
+
+    // Find or create the container element for the shadow DOM
     let container = target.querySelector('.ext-injected-container');
     if (!container) {
         container = document.createElement('div');
         container.className = 'ext-injected-container';
+
+        // Clear any existing content in the target and append the container
+        target.innerHTML = "";
         target.appendChild(container);
     }
 
-    // Reuse existing shadow root if present
+    // Create a shadow root if it does not already exist
     let shadow = container.shadowRoot;
     if (!shadow) {
         shadow = container.attachShadow({ mode: 'open' });
     }
 
-    // Get table HTML including CSS
-    const tableHTML = await getTopAndBottomFiveTableHTML();
-
-    // Inject HTML into shadow root
-    shadow.innerHTML = tableHTML;
-}
-
-export async function getTopAndBottomFiveTableHTML() {
-    const { selectedDomains, cookieData } = await fetchDomainsAndCookies();
-    const domainsToRender = selectedDomains.length > 0 ? selectedDomains : cookieData;
-    const { mostRecentDomains, leastRecentDomains } = processStoredCookieData(domainsToRender);
-
-    const topFiveRows = await generateGeneralWebsiteRows(mostRecentDomains, getFavicon, getSelectionStatus);
-    const bottomFiveRows = await generateGeneralWebsiteRows(leastRecentDomains, getFavicon, getSelectionStatus);
-
-    const allRowsHTML = [...topFiveRows, ...bottomFiveRows].map(row => row.outerHTML).join("");
-
-    // Load CSS file from extension
+    // Load the CSS file for the table from the extension
     let cssContent = "";
     try {
         const cssURL = browser.runtime.getURL("css/button-toggle.css");
@@ -56,6 +55,96 @@ export async function getTopAndBottomFiveTableHTML() {
         console.warn("Failed to load table CSS:", err);
     }
 
+    // Render a temporary "Loading..." table to show immediately
+    shadow.innerHTML = `
+        <style>${cssContent}</style>
+        <table class="ext-injected-table ext-loading">
+            <thead>
+                <tr>
+                    <th class="website-cell">Website</th>
+                    <th>Extra Functionality Cookies</th>
+                    <th>Performance Cookies</th>
+                    <th>Personalized Advertising Cookies</th>
+                    <th>Cookie Settings Will Be Stored For:</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td colspan="5">Loading...</td></tr>
+                <tr><td colspan="5">Loading...</td></tr>
+                <tr><td colspan="5">Loading...</td></tr>
+                <tr><td colspan="5">Loading...</td></tr>
+                <tr><td colspan="5">Loading...</td></tr>
+                <tr><td colspan="5">Loading...</td></tr>
+                <tr><td colspan="5">Loading...</td></tr>
+                <tr><td colspan="5">Loading...</td></tr>
+                <tr><td colspan="5">Loading...</td></tr>
+                <tr><td colspan="5">Loading...</td></tr>
+            </tbody>
+        </table>
+    `;
+
+    // Because favicons take long to render, we first get the table HTML without favicons from storage or generate it
+    shadow.innerHTML = await getTopAndBottomFiveTableHTML(false, showDiscrepancies);
+
+    if(tutorial){
+        startTableTutorial(shadow);
+    }
+
+    // Then, retrieve or generate the table HTML with favicons and update the shadow DOM
+    const tableHTML = await getTopAndBottomFiveTableHTML(true, showDiscrepancies);
+    shadow.innerHTML = tableHTML;
+}
+
+/**
+ * Generates the HTML for the Top and Bottom Five Websites table.
+ *
+ * @param {boolean} includeFavIcons - Whether to include website favicons in the table.
+ * @returns {Promise<string>} The full HTML string for the table, ready to inject into the page.
+ */
+export async function createTopAndBottomFiveTableHTML(includeFavIcons, showDiscrepancies) {
+    // Fetch selected domains and stored cookie data
+    const { selectedDomains, cookieData } = await fetchDomainsAndCookies();
+
+    // Use selected domains if available, otherwise use all cookie data
+    const domainsToRender = selectedDomains.length > 0 ? selectedDomains : cookieData;
+
+    // Split domains into most recent (top five) and least recent (bottom five)
+    const { mostRecentDomains, leastRecentDomains } = processStoredCookieData(domainsToRender);
+
+    if (showDiscrepancies) {
+        findDiscrepanciesAndRender();
+    }
+
+    // Generate HTML rows for top five and bottom five domains
+    const topFiveRows = await generateWebsiteRows(
+        mostRecentDomains,
+        includeFavIcons ? getFavicon : null,
+        showDiscrepancies ? getDiscrepancyInfo : null,
+        getSelectionStatus
+    );
+    const bottomFiveRows = await generateWebsiteRows(
+        leastRecentDomains,
+        includeFavIcons ? getFavicon : null,
+        showDiscrepancies ? getDiscrepancyInfo : null,
+        getSelectionStatus
+    );
+
+    // Combine all rows into a single HTML string
+    const allRowsHTML = [...topFiveRows, ...bottomFiveRows]
+        .map(row => row.outerHTML)
+        .join("");
+
+    // Load the table CSS from the extension
+    let cssContent = "";
+    try {
+        const cssURL = browser.runtime.getURL("css/button-toggle.css");
+        const response = await fetch(cssURL);
+        cssContent = await response.text();
+    } catch (err) {
+        console.warn("Failed to load table CSS:", err);
+    }
+
+    // Return the full HTML for the table, including CSS and all rows
     return `
     <style>${cssContent}</style>
     <table class="ext-injected-table">
@@ -73,6 +162,79 @@ export async function getTopAndBottomFiveTableHTML() {
       </tbody>
     </table>
   `;
+}
+
+// Setter: save table HTML and its configuration to storage
+export async function setTopAndBottomFiveTableHTML(html, includeFavIcons, showDiscrepancies) {
+    return sendExtensionMessage({
+        type: "STORAGE_SET",
+        key: "topAndBottomFiveTableHTML",
+        value: {
+            html,
+            includeFavIcons,
+            showDiscrepancies
+        }
+    });
+}
+
+/**
+ * Retrieves the HTML for the Top and Bottom Five Websites table.
+ *
+ * This function first checks extension storage for a cached table HTML.
+ * If a cached version exists and favicons are not requested, it returns the cached table.
+ * Otherwise, it generates a new table HTML, optionally including favicons, and stores it in cache.
+ * Handles storage errors by regenerating the table if necessary.
+ *
+ * @param {boolean} includeFavIcons - Whether to include website favicons in the table.
+ * @returns {Promise<string>} The HTML string for the table.
+ */
+export async function getTopAndBottomFiveTableHTML(includeFavIcons, showDiscrepancies) {
+    try {
+        const response = await sendExtensionMessage({
+            type: "STORAGE_GET",
+            key: "topAndBottomFiveTableHTML"
+        });
+
+        const cached = response?.topAndBottomFiveTableHTML;
+
+        const needsNewTable =
+            !cached ||
+            cached.includeFavIcons !== includeFavIcons ||
+            cached.showDiscrepancies !== showDiscrepancies;
+
+        let html;
+
+        if (needsNewTable) {
+            console.log("[TableHTML] Creating table", { includeFavIcons, showDiscrepancies });
+
+            html = await createTopAndBottomFiveTableHTML(includeFavIcons, showDiscrepancies);
+
+            await setTopAndBottomFiveTableHTML(
+                html,
+                includeFavIcons,
+                showDiscrepancies
+            );
+
+        } else {
+            console.log("[TableHTML] Loading table from cache");
+            html = cached.html;
+        }
+
+        return html;
+
+    } catch (error) {
+        console.warn("Failed to get table HTML from storage:", error);
+
+        const html = await createTopAndBottomFiveTableHTML(includeFavIcons, showDiscrepancies);
+
+        await setTopAndBottomFiveTableHTML(
+            html,
+            includeFavIcons,
+            showDiscrepancies
+        );
+
+        return html;
+    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -143,7 +305,7 @@ async function automaticRefreshOnLoad() {
 // Load user preferences and render tables
 async function loadUserPreferences() {
     try {
-        const prefs = await getUserPreferences();
+        const prefs = await getParticipantCookiesPreferences();
         console.log("Loaded user preferences:", prefs);
         await renderTopAndBottomFive(prefs);
     } catch (error) {
@@ -179,7 +341,7 @@ async function fetchDomainsAndCookies() {
  */
 async function findDiscrepanciesAndRender() {
     // Fetch user preferences from storage
-    const userPreferences = await getUserPreferences();
+    const userPreferences = await getParticipantCookiesPreferences();
     const { selectedDomains, cookieData } = await fetchDomainsAndCookies();
 
     let domainsToCheck = selectedDomains.length > 0 ? selectedDomains : cookieData;
@@ -230,9 +392,10 @@ async function renderTopAndBottomFive() {
     const hasBottomFive = document.getElementById("leastRecentWebsitesList") !== null;
 
     if (hasTopFive) {
-        const rowsTopFive = await generateGeneralWebsiteRows(
+        const rowsTopFive = await generateWebsiteRows(
             mostRecentDomains,
             getFavicon,          // favicon function
+            null,
             getSelectionStatus   // selection status function
         );
 
@@ -243,9 +406,10 @@ async function renderTopAndBottomFive() {
     }
 
     if (hasBottomFive) {
-        const rowsTopFive = await generateGeneralWebsiteRows(
+        const rowsTopFive = await generateWebsiteRows(
             leastRecentDomains,
             getFavicon,          // favicon function
+            null,
             getSelectionStatus   // selection status function
         );
 
@@ -701,4 +865,155 @@ async function displayWebsitesWithDiscrepanciesOnly(domains, tableId) {
         row.appendChild(expirationCell);
         websitesList.appendChild(row);
     }
+}
+
+function startTableTutorial(shadow) {
+    // Create overlay, box, and controls if they don't exist
+    if (!document.getElementById('table-tutorial-overlay')) {
+        const overlay = document.createElement('div');
+        overlay.id = 'table-tutorial-overlay';
+        overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background-color:rgba(0,0,0,0.6);z-index:9999;display:none;';
+        document.body.appendChild(overlay);
+
+        const box = document.createElement('div');
+        box.id = 'table-tutorial-box';
+        box.style.cssText = 'position:absolute;background:white;padding:20px;border-radius:8px;max-width:400px;z-index:10000;display:none;box-shadow:0 4px 12px rgba(0,0,0,0.3);';
+        document.body.appendChild(box);
+    }
+
+    // First step highlights the whole table
+    const tutorialSteps = [
+        { type: 'table', content: "This table shows the cookie consent choices you have made for websites you’ve visited. These choices are stored in your browser." },
+        { columnIndex: 0, content: "Here you see the websites you've visited." },
+        { columnIndex: 1, content: "Here you see whether the website is currently allowed to use Extra Functionality Cookies." },
+        { columnIndex: 2, content: "Here you see whether the website is currently allowed to use Performance Cookies." },
+        { columnIndex: 3, content: "Here you see whether the website is currently allowed to use Personalized Advertising Cookies." },
+        { columnIndex: 4, content: "Here you see how long your choices for this website will be saved in your browser. Until then, the website will use cookies based on the current cookie consent settings stored in your browser." },
+        { type: 'table', content: "Please take a moment to review your past cookie choices before continuing." },
+    ];
+
+    let currentStep = 0;
+
+    function highlightStep(shadow, step) {
+        // Remove previous highlights and reset cell styles
+        document.querySelectorAll('.tutorial-column-highlight').forEach(el => el.remove());
+        shadow.querySelectorAll('tr').forEach(row => {
+            Array.from(row.children).forEach(cell => {
+                cell.style.position = '';
+                cell.style.zIndex = '';
+            });
+        });
+
+        let top, left, right, bottom;
+
+        if (step.type === 'table') {
+            const table = shadow.querySelector('table');
+            if (!table) return;
+            const rect = table.getBoundingClientRect();
+            top = rect.top;
+            left = rect.left;
+            right = rect.right;
+            bottom = rect.bottom;
+        } else if ('columnIndex' in step) {
+            const rows = shadow.querySelectorAll('tr');
+            if (!rows.length) return;
+
+            left = Infinity; right = -Infinity; top = Infinity; bottom = -Infinity;
+
+            rows.forEach(row => {
+                const cell = row.children[step.columnIndex];
+                if (!cell) return;
+                const rect = cell.getBoundingClientRect();
+                left = Math.min(left, rect.left);
+                right = Math.max(right, rect.right);
+                top = Math.min(top, rect.top);
+                bottom = Math.max(bottom, rect.bottom);
+
+                // Bring the column visually on top
+                cell.style.position = 'relative';
+                cell.style.zIndex = '10001';
+            });
+        } else return;
+
+        const overlay = document.createElement('div');
+        overlay.className = 'tutorial-column-highlight';
+        overlay.style.position = 'absolute';
+        overlay.style.top = `${top + window.scrollY}px`;
+        overlay.style.left = `${left + window.scrollX}px`;
+        overlay.style.width = `${right - left}px`;
+        overlay.style.height = `${bottom - top}px`;
+        overlay.style.backgroundColor = 'rgba(255, 152, 0, 0.2)';
+        overlay.style.pointerEvents = 'none';
+        overlay.style.zIndex = '9999';
+        document.body.appendChild(overlay);
+    }
+
+    function showStep(index) {
+        const step = tutorialSteps[index];
+        highlightStep(shadow, step);
+
+        const box = document.getElementById('table-tutorial-box');
+        const overlay = document.getElementById('table-tutorial-overlay');
+        overlay.style.display = 'block';
+        box.style.display = 'block';
+
+        let targetRect;
+        if (step.type === 'table') {
+            const table = shadow.querySelector('table');
+            if (!table) return;
+            targetRect = table.getBoundingClientRect();
+            box.style.top = `${targetRect.top + window.scrollY + targetRect.height / 2 - box.offsetHeight / 2}px`;
+            box.style.left = `${targetRect.left + window.scrollX + targetRect.width / 2 - box.offsetWidth / 2}px`;
+        } else if ('columnIndex' in step) {
+            targetRect = shadow.querySelector(`tr th:nth-child(${step.columnIndex + 1})`)?.getBoundingClientRect();
+            if (!targetRect) return;
+            const margin = 10;
+            box.style.top = `${targetRect.bottom + margin + window.scrollY}px`;
+            let left = targetRect.right + margin + window.scrollX;
+            if (left + box.offsetWidth > window.innerWidth) {
+                left = targetRect.left - box.offsetWidth - margin + window.scrollX;
+                if (left < 0) left = margin + window.scrollX;
+            }
+            box.style.left = `${left}px`;
+        }
+
+        // Render content and buttons
+        box.innerHTML = `
+        <div>${step.content}</div>
+        <div style="margin-top:10px;text-align:right;">
+            ${index > 0 ? '<button id="tutorial-prev">Prev</button>' : ''}
+            ${index < tutorialSteps.length - 1 ? '<button id="tutorial-next">Next</button>' : ''}
+            ${index == tutorialSteps.length - 1 ? '<button id="tutorial-close">Close</button>' : ''}
+        </div>`;
+
+        // Apply styling to buttons
+        box.querySelectorAll('button').forEach(btn => {
+            btn.style.backgroundColor = '#1976d2';   // blue
+            btn.style.color = '#fff';                // white text
+            btn.style.border = 'none';
+            btn.style.padding = '6px 12px';
+            btn.style.marginLeft = '6px';
+            btn.style.borderRadius = '4px';
+            btn.style.cursor = 'pointer';
+            btn.style.fontSize = '14px';
+            btn.onmouseover = () => btn.style.backgroundColor = '#1565c0';
+            btn.onmouseout = () => btn.style.backgroundColor = '#1976d2';
+        });
+
+        // Attach button handlers **after innerHTML**
+        const nextBtn = document.getElementById('tutorial-next');
+        const prevBtn = document.getElementById('tutorial-prev');
+        const closeBtn = document.getElementById('tutorial-close');
+
+        if (nextBtn) nextBtn.onclick = () => { currentStep++; showStep(currentStep); };
+        if (prevBtn) prevBtn.onclick = () => { currentStep--; showStep(currentStep); };
+        if (closeBtn) closeBtn.onclick = () => {
+            document.querySelectorAll('.tutorial-column-highlight').forEach(el => el.remove());
+            overlay.style.display = 'none';
+            box.style.display = 'none';
+        };
+    }
+
+    // Start tutorial
+    showStep(currentStep);
 }

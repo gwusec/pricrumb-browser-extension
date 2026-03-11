@@ -8,6 +8,26 @@ try {
   console.warn("Could not import shims, may already be included.");
 }
 
+async function listAllStorageKeys() {
+  try {
+    // Get everything in storage
+    const allItems = await browser.storage.local.get();
+
+    // Extract keys
+    const keys = Object.keys(allItems);
+
+    console.log("All keys in storage:", keys);
+    console.log("Full storage contents:", allItems);
+  } catch (err) {
+    console.error("Failed to list storage keys:", err);
+  }
+}
+
+// Run it
+listAllStorageKeys();
+
+
+
 const historyCache = {}; // Cache to store history data per domain
 const visitedDomainsCache = new Set(); // Cache to store domains the user has visited
 let visitedDomainsCacheLastUpdated = 0; // Timestamp of last update to visitedDomainsCache
@@ -27,15 +47,33 @@ const DEFAULT_DOMAIN_HASH_SERVICE_PATH = "/postsurvey/hash-domains";
  *
  * Runs in the background context (service worker), not in content scripts.
  */
-ext.runtime.onInstalled.addListener((details) => {
-  if (details.reason === "install") {
-    console.log("Extension installed");
-  }
+browser.runtime.onInstalled.addListener(async () => {
 
-  if (details.reason === "update") {
-    console.log("Extension updated");
+  const tabs = await browser.tabs.query({
+    url: [
+      "http://localhost*/*",
+      "*://gwuaddressatsomepoint/*"
+    ]
+  });
+
+  //browser.tabs.query({ url: "*://*.mozilla.org/*" })
+
+  const surveyTab = tabs.find(tab =>
+    tab.url && tab.url.includes("/survey")
+  );
+
+  if (surveyTab) {
+    await browser.tabs.update(surveyTab.id, { active: true });
+    await browser.windows.update(surveyTab.windowId, { focused: true });
+  } else {
+    // await browser.tabs.create({
+    //     url: "http://localhost:5173/survey",
+    //     active: true
+    // });
   }
 });
+
+
 
 // Parse top-1m-websites.csv once and cache the Map<domain, rank_range>
 async function getTop1mDomainRankMap() {
@@ -909,15 +947,15 @@ ext.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const category = request.category || request.payload?.category || null;
         const result = await ext.storage.local.get([
           "selectedDomainsForHistory",
-          "userCookiePreferences",
+          "participantCookiesPreferences",
           "cookieData"
         ]);
 
         const selectedDomains = Array.isArray(result.selectedDomainsForHistory)
           ? result.selectedDomainsForHistory
           : [];
-        const userPreferences = Array.isArray(result.userCookiePreferences)
-          ? result.userCookiePreferences
+        const userPreferences = Array.isArray(result.participantCookiesPreferences)
+          ? result.participantCookiesPreferences
           : [];
         const cookieData = Array.isArray(result.cookieData) ? result.cookieData : [];
         const rankMap = await getTop1mDomainRankMap();
@@ -971,7 +1009,7 @@ ext.runtime.onMessage.addListener((request, sender, sendResponse) => {
     (async () => {
       try {
         await ext.storage.local.remove([
-          "userCookiePreferences",
+          "participantCookiesPreferences",
           "selectedDomainsForHistory",
           "consentDomainData",
           "browsingHistoryData",
@@ -1048,32 +1086,6 @@ ext.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 });
 
-// Store cookies in ext.storage.local when they're fetched
-function storeCookiesInStorage(cookies) {
-  // Log visit counts before saving to storage
-  console.log('Saving cookies to storage with visit counts:',
-    cookies.map(c => `${c.domain}: ${c.totalVisitCount}`));
-
-  // Only call ext.storage.local.set once
-  ext.storage.local.set({ 'cookieData': cookies }, function () {
-    if (ext.runtime.lastError) {
-      console.error('Error saving cookies:', ext.runtime.lastError);
-    } else {
-      console.log('Cookies saved to storage successfully');
-
-      // Verify storage by retrieving it
-      ext.storage.local.get('cookieData', function (result) {
-        if (ext.runtime.lastError) {
-          console.error('Error verifying storage:', ext.runtime.lastError);
-        } else if (result.cookieData) {
-          console.log('Verified storage - visit counts:',
-            result.cookieData.map(c => `${c.domain}: ${c.totalVisitCount}`));
-        }
-      });
-    }
-  });
-}
-
 ext.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
   if (msg.type === "GET_FAVICON") {
@@ -1126,9 +1138,20 @@ ext.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
   if (msg.type === "STORAGE_SET") {
 
-    ext.storage.local.set(msg.data).then(() => {
-      sendResponse(true);
-    });
+    ext.storage.local.set({ [msg.key]: msg.value })
+      .then(async () => {
+
+        const stored = await ext.storage.local.get(msg.key);
+
+        console.log("Stored key:", msg.key);
+        console.log("Stored value:", stored[msg.key]);
+
+        sendResponse(true);
+      })
+      .catch((err) => {
+        console.error("STORAGE_SET failed:", err);
+        sendResponse(false);
+      });
 
     return true;
   }

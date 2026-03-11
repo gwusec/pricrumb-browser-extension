@@ -45,13 +45,13 @@ async function automaticRefreshOnLoad() {
 
 async function loadSavedPreferences() {
     try {
-        const result = await ext.storage.local.get('userCookiePreferences');
-        if (result && result.userCookiePreferences) {
-            if (Array.isArray(result.userCookiePreferences)) {
-                userPreferences = new Map(result.userCookiePreferences);
-            } else if (typeof result.userCookiePreferences === 'object') {
+        const result = await ext.storage.local.get('participantCookiesPreferences');
+        if (result && result.participantCookiesPreferences) {
+            if (Array.isArray(result.participantCookiesPreferences)) {
+                userPreferences = new Map(result.participantCookiesPreferences);
+            } else if (typeof result.participantCookiesPreferences === 'object') {
                 userPreferences = new Map();
-                result.userCookiePreferences.forEach(item => {
+                result.participantCookiesPreferences.forEach(item => {
                     if (item.domain && item.preferences) {
                         userPreferences.set(item.domain, item.preferences);
                     }

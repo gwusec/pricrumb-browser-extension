@@ -43,6 +43,24 @@ td {
     font-size: 18px;
 }
 
+td.domain-name {
+    border: 1px solid #ddd;
+    text-align: left;
+    font-size: 18px;
+    padding-left: 5px;
+    padding-right: 5px;
+
+    /* Keep favicon and domain together on one line */
+    white-space: nowrap;
+}
+
+/* Optional: if you want spacing between favicon and domain text */
+td.domain-name img {
+    vertical-align: middle;
+    margin-right: 8px;
+    height: 32px; /* same as in JS */
+}
+
 button:not(.toggle-btn) {
     background-color: #4CAF50;
     color: white;

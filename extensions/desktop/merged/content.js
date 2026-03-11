@@ -351,7 +351,6 @@ if (window.location.hostname === "localhost" || window.location.hostname === "ww
         return;
       }
 
-
       // Helper function to categorize websites based on preferences
       function categorizeWebsites(cookieData) {
         console.log('Categorizing websites, total cookies:', cookieData.length);
@@ -504,12 +503,12 @@ if (window.location.hostname === "localhost" || window.location.hostname === "ww
       (async () => {
         try {
           // Get user preferences
-          const prefsResult = await ext.storage.local.get("userCookiePreferences");
+          const prefsResult = await ext.storage.local.get("participantCookiesPreferences");
 
           // Get cookie data and selected domains
           const cookieResult = await ext.storage.local.get(["cookieData", "selectedDomainsForHistory"]);
 
-          const userPreferences = prefsResult.userCookiePreferences;
+          const userPreferences = prefsResult.participantCookiesPreferences;
           const cookieData = cookieResult.cookieData || [];
           const selectedDomains = cookieResult.selectedDomainsForHistory || [];
 
@@ -867,7 +866,7 @@ if (window.location.hostname === "localhost" || window.location.hostname === "ww
 
   // Looks for specific survey elements (found in elementMap)
   function checkForSurveyElement() {
-    // Prevent creating multiple observers when called repeatedly
+
     if (window.__pricrumbs_checker_installed) {
       console.log("pricrumbs checker already installed - skipping re-install.");
       return;
@@ -876,7 +875,7 @@ if (window.location.hostname === "localhost" || window.location.hostname === "ww
 
     const elementMap = {
       "popup": { html: "popup.html", height: "600px" },
-      "pricrumbs_popup_hidden": { html: "popup.html", height: "0px" },
+      "pricrumbs_popup_hidden": { html: "popup.html", height: "100px" },
       "pricrumbs_popup_welcome": { html: "popup_welcome.html", height: "400px" },
       "pricrumbs_preferred_cookie_choices_functional": { html: "pricrumbs_preferred_cookie_choices_functional.html", height: "560px" },
       "pricrumbs_preferred_cookie_choices_performance": { html: "pricrumbs_preferred_cookie_choices_performance.html", height: "560px" },
@@ -891,28 +890,45 @@ if (window.location.hostname === "localhost" || window.location.hostname === "ww
     };
 
     async function injectIfFound(id, opts = {}) {
+
       const target = document.getElementById(id);
       if (!target) return false;
 
-      // Avoid duplicate injection
-      if (target.querySelector(".ext-injected") || target.shadowRoot) return true;
+      // prevent duplicate injection
+      if (
+        target.querySelector(".ext-injected") ||
+        target.querySelector(".ext-injected-container")
+      ) {
+        return true;
+      }
 
       const mapEntry = elementMap[id];
       if (!mapEntry) return false;
 
-      let htmlContent;
+      try {
 
-      if (mapEntry.html) {
+        if (mapEntry.html) {
 
-        // Special case → inject via Shadow DOM
-        if (id === "pricrumbs_consent_history_top_websites") {
-          const module = await import(browser.runtime.getURL('pricrumbs_consent_history.js'));
-          await module.injectTopAndBottomFiveTable(target);
-          return true;
-        }
+          if (id === "pricrumbs_consent_history_top_websites") {
+            const module = await import(browser.runtime.getURL("pricrumbs_consent_history.js"));
 
-        // Default behaviour (existing system)
-        if (target && !target.querySelector("iframe")) {
+            if (target?.getAttribute('tutorial') === 'true') {
+              await module.injectTopAndBottomFiveTable(target, true);
+            } else {
+              await module.injectTopAndBottomFiveTable(target, false);
+            }
+            return true;
+          } else if (id === "pricrumbs_websites_with_discrepancies") {
+            const module = await import(browser.runtime.getURL("pricrumbs_consent_history.js"));
+
+            if (target?.getAttribute('tutorial') === 'true') {
+              await module.injectTopAndBottomFiveTable(target, true, true);
+            } else {
+              await module.injectTopAndBottomFiveTable(target, false, true);
+            }
+            return true;
+          }
+
           window.postMessage(
             {
               type: "FROM_CONTENT",
@@ -920,54 +936,56 @@ if (window.location.hostname === "localhost" || window.location.hostname === "ww
             },
             "*"
           );
+
+          return true;
+
+        } else if (mapEntry.js && typeof mapEntry.js === "function") {
+
+          const htmlContent = await mapEntry.js();
+
+          const container = document.createElement("div");
+          container.className = "ext-injected";
+          container.innerHTML = htmlContent;
+          container.style.width = "100%";
+          container.style.height = "auto";
+
+          target.appendChild(container);
           return true;
         }
 
-      } else if (mapEntry.js && typeof mapEntry.js === "function") {
-
-        const htmlContent = await mapEntry.js();
-
-        const container = document.createElement("div");
-        container.className = "ext-injected";
-        container.innerHTML = htmlContent;
-        container.style.width = "100%";
-        container.style.height = "auto";
-
-        target.appendChild(container);
-
-      } else {
-        console.error("No html or js function defined for", id);
-        return false;
+      } catch (err) {
+        console.error("Injection failed for", id, err);
       }
 
-      return true;
+      return false;
     }
 
-    // function injectIfFound(id, opts) {
-    //   const target = document.getElementById(id);
-    //   if (target && !target.querySelector("iframe")) {
-    //     // Post a message to the page so the page-origin script can also react if needed
-    //     window.postMessage(
-    //       { type: "FROM_CONTENT", payload: { action: "injectHTML", elementId: id, ...opts } },
-    //       "*"
-    //     );
-    //     window.postMessage(
+    // initial scan
+    Object.keys(elementMap).forEach(id => injectIfFound(id, elementMap[id]));
 
-    //     );
-    //     return true;
-    //   }
-    //   return false;
-    // }
+    const observer = new MutationObserver((mutations) => {
 
-    // Initial check (covers the case where the element is already present)
-    Object.entries(elementMap).forEach(([id, opts]) => injectIfFound(id, opts));
+      for (const mutation of mutations) {
 
-    // Keep watching dynamically
-    const observer = new MutationObserver(() => {
-      Object.entries(elementMap).forEach(([id, opts]) => injectIfFound(id, opts));
+        for (const node of mutation.addedNodes) {
+
+          if (!(node instanceof HTMLElement)) continue;
+
+          if (elementMap[node.id]) {
+            injectIfFound(node.id, elementMap[node.id]);
+          }
+
+          for (const id in elementMap) {
+            const found = node.querySelector(`#${id}`);
+            if (found) injectIfFound(id, elementMap[id]);
+          }
+
+        }
+
+      }
+
     });
 
-    // If document.body doesn't exist yet, wait for DOMContentLoaded
     if (document.body) {
       observer.observe(document.body, { childList: true, subtree: true });
     } else {
@@ -976,7 +994,6 @@ if (window.location.hostname === "localhost" || window.location.hostname === "ww
       });
     }
 
-    // Expose the observer in case something else wants to disconnect it later
     window.__pricrumbs_checker_observer = observer;
   }
 
@@ -1016,8 +1033,8 @@ if (window.location.hostname === "localhost" || window.location.hostname === "ww
       }
 
       // Get user preferences
-      const prefsResult = await ext.storage.local.get('userCookiePreferences');
-      const userPreferences = prefsResult.userCookiePreferences || [];
+      const prefsResult = await ext.storage.local.get('participantCookiesPreferences');
+      const userPreferences = prefsResult.participantCookiesPreferences || [];
       const prefsMap = new Map(userPreferences);
 
       console.log(`Checking ${selectedDomains.length} domains for ${category} preferences`);

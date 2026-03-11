@@ -1,4 +1,7 @@
 // popup.js
+import {
+  sendExtensionMessage
+} from './helper_functions.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
 
@@ -2326,51 +2329,124 @@ document.addEventListener('DOMContentLoaded', async () => {
     return Array.from(recordsByKey.values());
   }
 
-  // Store cookies array as JSON in localStorage
-  async function storeCookiesAndDomainsInStorage(cookiesAndDomains) {
-    try {
-      const json = JSON.stringify(cookiesAndDomains);
-      localStorage.setItem("cookiesAndDomains", json);
-    } catch (error) {
-      console.error("Failed to store cookiesAndDomains:", error);
-    }
+  // Store cookies and domains using extension storage
+async function storeCookiesAndDomainsInStorage(cookiesAndDomains) {
+  try {
+    await sendExtensionMessage({
+      type: "STORAGE_SET",
+      key: "cookiesAndDomains",
+      value: JSON.stringify(cookiesAndDomains) // serialize before storing
+    });
+    console.log("cookiesAndDomains successfully saved via STORAGE_SET");
+  } catch (error) {
+    console.error("Failed to store cookiesAndDomains via extension message:", error);
   }
+}
 
-  // Retrieve cookies array from localStorage
-  async function getCookiesAndDomainsFromStorage() {
-    try {
-      const json = localStorage.getItem("cookiesAndDomains");
-      if (!json) throw new Error("No JSON returned for cookiesAndDomains in localstorage");
-      ; // no cookies stored
-      return JSON.parse(json);
-    } catch (error) {
-      console.error("Failed to retrieve cookiesAndDomains:", error);
+// Retrieve cookies and domains from extension storage
+async function getCookiesAndDomainsFromStorage() {
+  try {
+    const result = await sendExtensionMessage({
+      type: "STORAGE_GET",
+      key: "cookiesAndDomains"
+    });
+
+    if (!result || !result.cookiesAndDomains) {
+      console.log("No cookiesAndDomains found in storage");
       return null;
     }
-  }
 
+    return JSON.parse(result.cookiesAndDomains); // deserialize back to original structure
+  } catch (error) {
+    console.error("Failed to retrieve cookiesAndDomains via extension message:", error);
+    return null;
+  }
+}
+
+  // Cookies
+async function getCookieData() {
+    const result = await sendExtensionMessage({
+        type: "STORAGE_GET",
+        key: "cookieData"
+    });
+    return result?.cookieData || [];
+}
+
+async function setCookieData(cookies) {
+    await sendExtensionMessage({
+        type: "STORAGE_SET",
+        key: "cookieData",
+        value: cookies
+    });
+}
+
+// Consent records
+async function getConsentRecords() {
+    const result = await sendExtensionMessage({
+        type: "STORAGE_GET",
+        key: "consentDomainData"
+    });
+    return result?.consentDomainData || [];
+}
+
+async function setConsentRecords(records) {
+    await sendExtensionMessage({
+        type: "STORAGE_SET",
+        key: "consentDomainData",
+        value: records
+    });
+}
+
+// Browsing history
+async function getBrowsingHistory() {
+    const result = await sendExtensionMessage({
+        type: "STORAGE_GET",
+        key: "browsingHistoryData"
+    });
+    return result?.browsingHistoryData || [];
+}
+
+async function setBrowsingHistory(historyData) {
+    await sendExtensionMessage({
+        type: "STORAGE_SET",
+        key: "browsingHistoryData",
+        value: historyData
+    });
+}
+
+  // Store cookies and derived data via extension messaging
   async function storeCookiesInStorage(cookies) {
-    // Log visit counts before saving to storage
-    console.log('Saving cookies to storage with visit counts:',
-      cookies.map(c => `${c.domain}: ${c.totalVisitCount}`));
+    console.log(
+      'Saving cookies to storage with visit counts:',
+      cookies.map(c => `${c.domain}: ${c.totalVisitCount}`)
+    );
 
     try {
-      // Only call ext.storage.local.set once
-      await ext.storage.local.set({ cookieData: cookies });
+      // Store raw cookies
+      await setCookieData(cookies);
       console.log("Cookies saved to storage successfully");
 
       // Verify storage by retrieving it
-      const result = await ext.storage.local.get("cookieData");
-      if (result.cookieData) {
-        console.log("Verified storage - visit counts:",
-          result.cookieData.map(c => `${c.domain}: ${c.totalVisitCount}`));
+      const savedCookies = await getCookieData();
+      if (savedCookies) {
+        console.log(
+          "Verified storage - visit counts:",
+          savedCookies.map(c => `${c.domain}: ${c.totalVisitCount}`)
+        );
       }
 
+      // Build consent-domain records
       const consentDomainRecords = buildDomainConsentRecords(cookies);
+      await setConsentRecords(consentDomainRecords);
       console.log("Consent payload preview:", consentDomainRecords.slice(0, 5));
+
+      // Fetch browsing history from background script
       let browsingHistoryData = [];
       try {
-        const historyResponse = await ext.runtime.sendMessage({ action: "getBrowsingHistoryData" });
+        const historyResponse = await sendExtensionMessage({
+          type: "RUNTIME_MESSAGE",
+          action: "getBrowsingHistoryData"
+        });
         browsingHistoryData = Array.isArray(historyResponse?.browsingHistoryData)
           ? historyResponse.browsingHistoryData
           : [];
@@ -2378,20 +2454,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.warn("Failed to fetch browsingHistoryData:", historyError);
       }
 
-      await ext.storage.local.set({
-        consentDomainData: consentDomainRecords,
-        browsingHistoryData
-      });
+      await setBrowsingHistory(browsingHistoryData);
+
       console.log(`[pricrumbs] Saved ${consentDomainRecords.length} consent domain records`);
       console.log(`[pricrumbs] Saved ${browsingHistoryData.length} browsing history domain records`);
-      // The survey page is responsible for pulling these records and persisting via PATCH /postsurvey.
-      // Do not upload directly from the extension to backend routes.
       console.log("Consent data prepared locally. Waiting for survey page sync.");
 
-      // Send completion message to consent history page (if it's listening)
-      ext.runtime.sendMessage({ action: 'cookieProcessingComplete' }).catch(() => {
-        // Ignore errors if no listener (consent history page not open)
-      });
+      // Notify that cookie processing is complete
+      sendExtensionMessage({ type: "RUNTIME_MESSAGE", action: 'cookieProcessingComplete' }).catch(() => { });
       console.log("Sent cookie processing completion signal");
 
     } catch (err) {
