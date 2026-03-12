@@ -84,11 +84,12 @@ async function loadCookiesAndFindUndecided() {
             // Refresh with fresh cookie categories
             const cookieDataResult = await ext.storage.local.get('cookieData');
             if (cookieDataResult && cookieDataResult.cookieData) {
+                const module = await import(browser.runtime.getURL("helper_functions.js"));
                 domains = domains.map(domain => {
                     const freshCookie = cookieDataResult.cookieData.find(c =>
                         c.domain === domain.domain ||
                         c.domain === domain.originalDomain ||
-                        formatDomainForDisplay(c.domain) === domain.domain
+                        module.extractMainDomainName(c.domain) === domain.domain
                     );
                     if (freshCookie && freshCookie.categories) {
                         return { ...domain, categories: freshCookie.categories };
@@ -124,7 +125,7 @@ async function loadCookiesAndFindUndecided() {
 }
 
 // Find websites where user chose Undecided (value=3) but browser has a stored decision
-function findUndecidedWebsites(domains, userPreferences) {
+async function findUndecidedWebsites(domains, userPreferences) {
     const undecided = [];
 
     if (!userPreferences || userPreferences.size === 0) return undecided;
@@ -132,7 +133,8 @@ function findUndecidedWebsites(domains, userPreferences) {
     for (const domain of domains) {
         if (!domain.domain) continue;
 
-        const formattedDomain = formatDomainForDisplay(domain.domain);
+        const module = await import(browser.runtime.getURL("helper_functions.js"));
+        const formattedDomain = module.extractMainDomainName(domain.domain);
 
         // Try to find matching user preference using domain variations
         const possibleFormats = [
@@ -191,8 +193,10 @@ function findUndecidedWebsites(domains, userPreferences) {
     return undecided;
 }
 
-function getUndecidedInfo(domain) {
-    const formattedDomain = formatDomainForDisplay(domain);
+async function getUndecidedInfo(domain) {
+    const module = await import(browser.runtime.getURL("helper_functions.js"));
+    const formattedDomain = module.extractMainDomainName(domain);
+
     return websitesUndecided.find(d =>
         d.domain === formattedDomain ||
         d.originalDomain === domain ||
@@ -220,19 +224,20 @@ function displayUndecidedWebsites(domains) {
     if (table) table.style.display = 'table';
     if (noMsg) noMsg.style.display = 'none';
 
-    toDisplay.forEach(domain => {
+    toDisplay.forEach(async domain => {
         const row = document.createElement('tr');
 
         // Website cell
         const domainCell = document.createElement('td');
         domainCell.className = 'website-cell';
-        const formattedDomain = formatDomainForDisplay(domain.domain);
+        const module = await import(browser.runtime.getURL("helper_functions.js"));
+        const formattedDomain = module.extractMainDomainName(domain.domain);
 
         const favicon = document.createElement('img');
         favicon.alt = '';
         favicon.style.marginRight = '8px';
         favicon.style.verticalAlign = 'middle';
-        favicon.onerror = function() { this.style.display = 'none'; };
+        favicon.onerror = function () { this.style.display = 'none'; };
         favicon.src = `https://icons.duckduckgo.com/ip3/${formattedDomain}.ico`;
 
         const domainContainer = document.createElement('div');
@@ -318,15 +323,6 @@ function buildCategoryCell(domain, category, undecidedInfo) {
 }
 
 // ── Shared helpers (same as consent_history_and_discrepancies.js) ──────────
-
-function formatDomainForDisplay(domain) {
-    if (!domain) return 'Unknown';
-    if (domain.startsWith('.')) domain = domain.substring(1);
-    const parts = domain.split('.');
-    // if (parts.length === 2) domain = 'www.' + domain;
-    domain = domain.replace(/^www\./, '');
-    return domain;
-}
 
 function calculateDaysRemaining(expirationDate) {
     if (!expirationDate || expirationDate === 'Session cookie') return 'Session cookie';

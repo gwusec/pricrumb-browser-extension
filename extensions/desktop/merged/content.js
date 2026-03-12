@@ -8,6 +8,7 @@
 //     // ignore other domains
 //     return;
 // }
+
 if (window.location.hostname === "localhost" || window.location.hostname === "www.example.com") {
   console.log("[pricrumbs] content script successfully injected");
 
@@ -384,29 +385,13 @@ function normalizeActionTakenValue(value) {
 
     //this part is for eligibility check (if users have 10 or more unique websites where action taken = yes):
     if (event.data.payload?.action === "checkEligibility") {
+      buildAndStoreThreePerCategory
       console.log("Content script: Received eligibility check request");
 
       const isActionTakenYes = (value) =>
         typeof value === "string" && value.trim().toLowerCase() === "yes";
 
-      // Helper function to extract main domain name (e.g., "zoom" from "zoom.com" or "zoom.us")
-      function extractMainDomainName(domain) {
-        if (!domain) return '';
 
-        // Remove leading dots
-        let cleaned = domain.replace(/^\.+/, '');
-
-        // Remove www. prefix
-        cleaned = cleaned.replace(/^www\./, '');
-
-        // Split by dots and get the main part (before TLD)
-        const parts = cleaned.split('.');
-
-        // Return the main domain name (second-to-last part before TLD)
-        // For "zoom.com" or "zoom.us", this returns "zoom"
-        // For "stackoverflow.com", this returns "stackoverflow"
-        return parts.length >= 2 ? parts[parts.length - 2].toLowerCase() : cleaned.toLowerCase();
-      }
 
       if (event.data.payload?.action === "injectIframeAndReadLocalStorage") {
         const url = event.data.payload.url;
@@ -491,225 +476,287 @@ function normalizeActionTakenValue(value) {
         try {
           const result = await ext.storage.local.get(null);
 
-          console.log("Content script: All storage keys:", Object.keys(result));
-
-          // Try multiple possible keys
-          const cookieData = result.cookieData ||
+          const cookieData =
+            result.cookieData ||
             result.consentCookies ||
             result.cookies ||
             result.fetchedCookies ||
             [];
 
-          console.log("Content script: Found cookie data length:", cookieData.length);
+          const eligibleSites = cookieData.filter(site =>
+            isActionTakenYes(site?.actionTaken)
+          );
 
-          if (cookieData.length > 0) {
-            console.log("Content script: First cookie sample:", cookieData[0]);
+          const uniqueDomains = new Set();
+          const { extractMainDomainName } =
+            await import(browser.runtime.getURL("helper_functions.js"));
+
+          for (let i = 0; i < eligibleSites.length; i++) {
+            const domain = eligibleSites[i].domain;
+            if (!domain) continue;
+
+            const mainDomain = extractMainDomainName(domain);
+            if (mainDomain) uniqueDomains.add(mainDomain);
           }
 
-          // Filter websites where actionTaken is "Yes" (case-insensitive, exact value).
-          const eligibleSites = cookieData.filter((site) => isActionTakenYes(site?.actionTaken));
-
-          console.log("Content script: Sites with action taken = Yes:", eligibleSites.length);
-
-          // Extract unique domains by main domain name
-          const uniqueDomains = new Set();
-          eligibleSites.forEach(site => {
-            if (site.domain) {
-              const mainDomain = extractMainDomainName(site.domain);
-              if (mainDomain) {
-                uniqueDomains.add(mainDomain);
-                console.log(`Content script: Added unique domain "${mainDomain}" from ${site.domain}`);
-              }
-            }
-          });
-
           const uniqueDomainsArray = Array.from(uniqueDomains);
-          console.log("Content script: Unique domains found:", uniqueDomainsArray);
-          console.log("Content script: Unique domains count:", uniqueDomainsArray.length);
 
-          // Categorize websites to determine which types are available
           const websiteTypes = categorizeWebsites(cookieData);
-          console.log("Content script: Website types available:", websiteTypes);
-
           const eligibilityPending = cookieData.length === 0;
 
-          // Create payload (WITHOUT hasDiscrepancies - that will be checked later)
+          const isEligible = uniqueDomainsArray.length >= 10;
+
           const payload = {
             eligibleSitesCount: uniqueDomainsArray.length,
-            isEligible: uniqueDomainsArray.length >= 10,
+            isEligible,
             totalSites: cookieData.length,
             uniqueDomains: uniqueDomainsArray,
-            websiteTypes: websiteTypes,
+            websiteTypes,
             eligibilityPending,
             eligibilityReason: eligibilityPending ? "cookieDataNotReady" : null
           };
 
-          console.log("Content script: Sending eligibility response:", payload);
+          window.postMessage(
+            {
+              type: "FROM_EXTENSION_ELIGIBILITY",
+              payload
+            },
+            "*"
+          );
 
-          window.postMessage({
-            type: "FROM_EXTENSION_ELIGIBILITY",
-            payload: payload
-          }, "*");
+          if (isEligible) {
+            console.log("[ELIGIBILITY] User eligible, building & storing 3 domains per category...");
+            buildAndStoreThreePerCategory();
+          }
 
         } catch (error) {
-          console.error("Content script: Error in eligibility check:", error);
+          console.error(`${LOG} Error in eligibility check:`, error);
         }
-      })(); // Immediately invoke the async function
+      })();
 
       return;
     }
 
-    // Check for discrepancies after user sets preferences
     if (event.data.payload?.action === "checkDiscrepancies") {
-      console.log("Content script: Received discrepancy check request");
+
+      console.log("Content script: Starting discrepancy check");
 
       (async () => {
         try {
-          // Get user preferences
-          const prefsResult = await ext.storage.local.get("participantCookiesPreferences");
 
-          // Get cookie data and selected domains
-          const cookieResult = await ext.storage.local.get(["cookieData", "selectedDomainsForHistory"]);
+          console.log("Content script: Fetching stored preference and cookie data");
 
-          const userPreferences = prefsResult.participantCookiesPreferences;
+          // Retrieve stored preferences and cookie data in parallel
+          const [cookieResult] = await Promise.all([
+            ext.storage.local.get(["cookieData", "selectedDomainsForHistory"])
+          ]);
+
+          const module = await import(browser.runtime.getURL("helper_functions.js"));
+          const userPreferences = await module.getParticipantCookiesPreferences();
+
+          // Extract stored values with fallbacks
           const cookieData = cookieResult.cookieData || [];
           const selectedDomains = cookieResult.selectedDomainsForHistory || [];
 
-          console.log("Content script: User preferences count:", userPreferences?.length || 0);
+          console.log("Content script: Preferences count:", userPreferences.length);
           console.log("Content script: Cookie data count:", cookieData.length);
           console.log("Content script: Selected domains count:", selectedDomains.length);
 
           let hasDiscrepancies = false;
 
-          if (userPreferences && userPreferences.length > 0) {
-            const prefsMap = new Map(userPreferences);
-            console.log("Content script: Preferences map size:", prefsMap.size);
+          // No preferences → nothing to compare
+          if (!userPreferences.length) {
+            console.log("Content script: No user preferences found. Skipping check.");
 
-            // Use selected domains if available, otherwise use all eligible sites
-            const domainsToCheck = selectedDomains.length > 0
-              ? selectedDomains
-              : cookieData.filter(site => site.actionTaken === "Yes");
-
-            console.log("Content script: Checking", domainsToCheck.length, "domains for discrepancies");
-
-            // Check for discrepancies
-            for (const domainObj of domainsToCheck) {
-              const domain = domainObj.originalDomain || domainObj.domain;
-              if (!domain) continue;
-
-              console.log(`Content script: Checking domain: ${domain}`);
-
-              // Try to find matching user preference with multiple formats
-              const possibleFormats = [
-                domain,
-                domain.startsWith('.') ? domain.substring(1) : '.' + domain,
-                domain.replace(/^\./, ''),
-                domain.replace(/^www\./, ''),
-                'www.' + domain.replace(/^\./, '')
-              ];
-
-              let userPref = null;
-              let matchedFormat = null;
-              for (const format of possibleFormats) {
-                if (prefsMap.has(format)) {
-                  userPref = prefsMap.get(format);
-                  matchedFormat = format;
-                  break;
-                }
-              }
-
-              if (!userPref) {
-                console.log(`Content script: No preferences found for ${domain}`);
-                continue;
-              }
-
-              console.log(`Content script: Found preferences for ${matchedFormat}:`, userPref);
-
-              // Get actual cookie preferences
-              let actualPrefs = {
-                functional: false,
-                performance: false,
-                advertising: false
-              };
-
-              if (domainObj.categories) {
-                actualPrefs = {
-                  functional: domainObj.categories.functional === true,
-                  performance: domainObj.categories.performance === true,
-                  advertising: domainObj.categories.advertising === true
-                };
-              } else {
-                // Try to find in cookieData
-                const cookieMatch = cookieData.find(c =>
-                  c.domain === domain ||
-                  c.domain === domainObj.originalDomain ||
-                  c.domain.replace(/^\./, '') === domain.replace(/^\./, '')
-                );
-
-                if (cookieMatch && cookieMatch.categories) {
-                  actualPrefs = {
-                    functional: cookieMatch.categories.functional === true,
-                    performance: cookieMatch.categories.performance === true,
-                    advertising: cookieMatch.categories.advertising === true
-                  };
-                }
-              }
-
-              console.log(`Content script: Actual preferences for ${domain}:`, actualPrefs);
-
-              // Check for discrepancies using 5-point scale logic
-              const categories = ['functional', 'performance', 'advertising'];
-              for (const category of categories) {
-                const userValue = userPref[category];
-                if (typeof userValue === 'number') {
-                  const actualAccepted = actualPrefs[category];
-                  // Discrepancy = accepted but user chose 1-2, OR rejected but user chose 4-5
-                  if ((actualAccepted && userValue <= 2) || (!actualAccepted && userValue >= 4)) {
-                    hasDiscrepancies = true;
-                    console.log(` Content script: DISCREPANCY FOUND for ${domain}, category ${category}`);
-                    console.log(`   User value: ${userValue}, Actual: ${actualAccepted ? 'Allowed' : 'Not Allowed'}`);
-                    break;
-                  }
-                }
-              }
-
-              if (hasDiscrepancies) break; // Stop checking once we find one
-            }
-          } else {
-            console.log("Content script: No user preferences found");
-          }
-
-          console.log("Content script: Final discrepancy result:", hasDiscrepancies);
-
-          try {
-            await ext.storage.local.set({
-              hasDiscrepancies,
-              hasDiscrepanciesCheckedAt: new Date().toISOString()
-            });
-          } catch (storageError) {
-            console.warn("Content script: Failed to persist discrepancy result:", storageError);
-          }
-
-          window.postMessage({
-            type: "FROM_EXTENSION_DISCREPANCIES",
-            payload: { hasDiscrepancies: hasDiscrepancies }
-          }, "*");
-
-        } catch (error) {
-          console.error("Content script: Error checking discrepancies:", error);
-          try {
             await ext.storage.local.set({
               hasDiscrepancies: false,
               hasDiscrepanciesCheckedAt: new Date().toISOString()
             });
-          } catch (storageError) {
-            console.warn("Content script: Failed to persist discrepancy error fallback:", storageError);
+
+            window.postMessage({
+              type: "FROM_EXTENSION_DISCREPANCIES",
+              payload: { hasDiscrepancies: false }
+            }, "*");
+
+            return;
           }
+
+          // Convert preferences array to Map for faster lookups
+          const prefsMap = new Map(
+            userPreferences.map(pref => [pref.domain, {
+              functional: pref.functional,
+              performance: pref.performance,
+              advertising: pref.advertising
+            }])
+          );
+          console.log("Content script: Preferences map created. Size:", prefsMap.size);
+
+          // Determine domains that should be evaluated
+          const domainsToCheck =
+            selectedDomains.length > 0
+              ? selectedDomains
+              : cookieData.filter(site => site.actionTaken === "Yes");
+
+          console.log("Content script: Domains selected for checking:", domainsToCheck.length);
+
+          // Helper: generate possible domain variations
+          const normalizeDomainFormats = (domain) => {
+            const clean = domain.replace(/^\./, "").replace(/^www\./, "");
+            const formats = [
+              domain,
+              domain.startsWith('.') ? domain.substring(1) : '.' + domain,
+              clean,
+              'www.' + clean
+            ];
+
+            console.log("Content script: Generated domain formats for", domain, formats);
+            return formats;
+          };
+
+          // Helper: extract actual cookie consent state
+          const getActualPrefs = (domainObj) => {
+
+            if (domainObj.categories) {
+              console.log("Content script: Using categories directly from domain object", domainObj);
+
+              return {
+                functional: domainObj.categories.functional === true,
+                performance: domainObj.categories.performance === true,
+                advertising: domainObj.categories.advertising === true
+              };
+            }
+
+            const domain = domainObj.originalDomain || domainObj.domain;
+
+            console.log("Content script: Searching cookieData for domain match:", domain);
+
+            const match = cookieData.find(c =>
+              c.domain === domain ||
+              c.domain === domainObj.originalDomain ||
+              c.domain.replace(/^\./, '') === domain.replace(/^\./, '')
+            );
+
+            if (!match?.categories) {
+              console.log("Content script: No cookie categories found for", domain);
+              return { functional: false, performance: false, advertising: false };
+            }
+
+            console.log("Content script: Cookie categories found for", domain, match.categories);
+
+            return {
+              functional: match.categories.functional === true,
+              performance: match.categories.performance === true,
+              advertising: match.categories.advertising === true
+            };
+          };
+
+          // Iterate through domains to check
+          for (const domainObj of domainsToCheck) {
+
+            const domain = domainObj.originalDomain || domainObj.domain;
+            if (!domain) {
+              console.log("Content script: Skipping domain with no valid identifier", domainObj);
+              continue;
+            }
+
+            console.log("Content script: Checking domain:", domain);
+
+            const formats = normalizeDomainFormats(domain);
+
+            let userPref = null;
+            let matchedFormat = null;
+
+            // Try to match stored user preference with domain formats
+            for (const f of formats) {
+              if (prefsMap.has(f)) {
+                userPref = prefsMap.get(f);
+                matchedFormat = f;
+                break;
+              }
+            }
+
+            if (!userPref) {
+              console.log("Content script: No user preference found for domain:", domain);
+              continue;
+            }
+
+            console.log("Content script: Matched preference format:", matchedFormat);
+            console.log("Content script: User preference:", userPref);
+
+            // Get observed cookie state
+            const actualPrefs = getActualPrefs(domainObj);
+
+            console.log("Content script: Actual cookie preferences:", actualPrefs);
+
+            // Compare each category
+            for (const category of ["functional", "performance", "advertising"]) {
+
+              const userValue = userPref[category];
+              const actualAccepted = actualPrefs[category];
+
+              console.log(`Content script: Comparing category "${category}"`);
+              console.log("User value:", userValue, "Actual accepted:", actualAccepted);
+
+              if (
+                typeof userValue === "number" &&
+                ((actualAccepted && userValue <= 2) ||
+                  (!actualAccepted && userValue >= 4))
+              ) {
+                console.log("Content script: DISCREPANCY DETECTED", {
+                  domain,
+                  category,
+                  userValue,
+                  actualAccepted
+                });
+
+                hasDiscrepancies = true;
+                break;
+              }
+            }
+
+            // Stop after first discrepancy
+            if (hasDiscrepancies) {
+              console.log("Content script: Stopping further checks due to discrepancy");
+              break;
+            }
+          }
+
+          console.log("Content script: Final discrepancy result:", hasDiscrepancies);
+
+          // Persist result
+          await ext.storage.local.set({
+            hasDiscrepancies,
+            hasDiscrepanciesCheckedAt: new Date().toISOString()
+          });
+
+          console.log("Content script: Result stored in extension storage");
+
+          // Send result to page
+          window.postMessage({
+            type: "FROM_EXTENSION_DISCREPANCIES",
+            payload: { hasDiscrepancies }
+          }, "*");
+
+          console.log("Content script: Result posted to page");
+
+        } catch (error) {
+
+          console.error("Content script: Error during discrepancy check:", error);
+
+          // Fallback result
+          await ext.storage.local.set({
+            hasDiscrepancies: false,
+            hasDiscrepanciesCheckedAt: new Date().toISOString()
+          });
+
           window.postMessage({
             type: "FROM_EXTENSION_DISCREPANCIES",
             payload: { hasDiscrepancies: false }
           }, "*");
+
+          console.log("Content script: Fallback result sent after error");
         }
+
       })();
 
       return;
@@ -938,7 +985,7 @@ function normalizeActionTakenValue(value) {
 
     const elementMap = {
       "popup": { html: "popup.html", height: "600px" },
-      "pricrumbs_popup_hidden": { html: "popup.html", height: "100px" },
+      "pricrumbs_popup_hidden": { html: "popup.html", height: "0px" },
       "pricrumbs_popup_welcome": { html: "popup_welcome.html", height: "400px" },
       "pricrumbs_preferred_cookie_choices_functional": { html: "pricrumbs_preferred_cookie_choices_functional.html", height: "560px" },
       "pricrumbs_preferred_cookie_choices_performance": { html: "pricrumbs_preferred_cookie_choices_performance.html", height: "560px" },
@@ -1096,9 +1143,16 @@ function normalizeActionTakenValue(value) {
       }
 
       // Get user preferences
-      const prefsResult = await ext.storage.local.get('participantCookiesPreferences');
-      const userPreferences = prefsResult.participantCookiesPreferences || [];
-      const prefsMap = new Map(userPreferences);
+      const module = await import(browser.runtime.getURL("helper_functions.js"));
+      const userPreferences = await module.getParticipantCookiesPreferences();
+      // Convert preferences array to Map for faster lookups
+      const prefsMap = new Map(
+        userPreferences.map(pref => [pref.domain, {
+          functional: pref.functional,
+          performance: pref.performance,
+          advertising: pref.advertising
+        }])
+      );
 
       console.log(`Checking ${selectedDomains.length} domains for ${category} preferences`);
 
@@ -1168,227 +1222,270 @@ function normalizeActionTakenValue(value) {
     document.documentElement.appendChild(iframe);
   }
 
-  // Format domain for better display
-  function formatDomainForDisplay(domain) {
-    // If domain is empty or undefined, return "Unknown"
-    if (!domain) return "Unknown";
-
-    // Remove leading dot if present
-    if (domain.startsWith('.')) {
-      domain = domain.substring(1);
+  async function buildAndStoreThreePerCategory() {
+  try {
+    const cookieData = await getCookieData();
+    if (!cookieData || cookieData.length === 0) {
+      console.error('[STORE] No cookie data available.');
+      return;
     }
 
-    // If domain doesn't have a subdomain (no dots except the TLD), add www.
-    const parts = domain.split('.');
-    if (parts.length === 2) {
-      domain = 'www.' + domain;
-    }
+    const { formatDomainForDisplay, getFavicon, sendExtensionMessage } =
+      await import(browser.runtime.getURL("helper_functions.js"));
 
-    return domain;
-  }
+    const categories = {
+      category1: [], // Accept all
+      category2: [], // Reject all
+      category3: [], // Accept, Accept, Reject
+      category4: []  // Action taken = No
+    };
 
-  // Find websites matching each criteria based only on cookie data
-  function findMatchingWebsites(cookieData) {
-    console.log('All cookies count:', cookieData.length);
+    const allValidEntries = [];
 
-    // STEP 1: Filter for cookies where actionTaken = "Yes"
-    const actionTakenCookies = cookieData.filter(cookie =>
-      cookie.actionTaken && cookie.actionTaken.toLowerCase() === 'yes'
-    );
+    // Prepare favicon promises concurrently
+    const faviconPromises = cookieData.map(async (cookie) => {
+      if (!cookie.domain) return null;
 
-    // Filter for websites where actionTaken = "No"
-    const noActionCookies = cookieData.filter(cookie =>
-      cookie.actionTaken && cookie.actionTaken.toLowerCase() === 'no'
-    );
-
-    console.log('Cookies with action taken:', actionTakenCookies.length);
-    console.log('Cookies with action taken = no:', noActionCookies.length);
-
-
-    // STEP 2: Create an array of all domains with their preferences
-    const allDomains = [];
-    const noActionDomains = [];
-
-    // For each cookie with actionTaken = "Yes", extract its preferences
-    for (const cookie of actionTakenCookies) {
-      if (!cookie.domain) continue;
-
+      const action = cookie.actionTaken?.toLowerCase();
       const formattedDomain = formatDomainForDisplay(cookie.domain);
+
+      const favicon = await getFavicon(formattedDomain, cookie, { actionTaken: action || "Unknown" });
+
+      if (!favicon) return null; // Skip if favicon not found
+
       let preferences = null;
-
-      // First try to get preferences directly from the cookie
-      if (cookie.categories && typeof cookie.categories === 'object') {
-        // Categories directly from the cookie object (nested object)
-        preferences = {
-          functional: cookie.categories.functional === true,
-          performance: cookie.categories.performance === true,
-          advertising: cookie.categories.advertising === true
-        };
-        console.log(`Found preferences from cookie.categories for ${formattedDomain}:`, preferences);
-      }
-      // Then try to get from direct column values in table
-      else if ('functional' in cookie && 'performance' in cookie && 'advertising' in cookie) {
-        // Direct column values from the table (string values like "Yes" or "No")
-        preferences = {
-          functional: cookie.functional === "Yes" || cookie.functional === true,
-          performance: cookie.performance === "Yes" || cookie.performance === true,
-          advertising: cookie.advertising === "Yes" || cookie.advertising === true
-        };
-        console.log(`Found preferences from table columns for ${formattedDomain}:`, preferences);
+      if (action === "yes") {
+        if (cookie.categories && typeof cookie.categories === "object") {
+          preferences = {
+            functional: cookie.categories.functional === true,
+            performance: cookie.categories.performance === true,
+            advertising: cookie.categories.advertising === true
+          };
+        } else if ("functional" in cookie && "performance" in cookie && "advertising" in cookie) {
+          preferences = {
+            functional: cookie.functional === "Yes" || cookie.functional === true,
+            performance: cookie.performance === "Yes" || cookie.performance === true,
+            advertising: cookie.advertising === "Yes" || cookie.advertising === true
+          };
+        }
       }
 
-      // If we've got preferences, add this domain to our list
-      if (preferences &&
-        preferences.functional !== undefined &&
-        preferences.performance !== undefined &&
-        preferences.advertising !== undefined) {
-
-        allDomains.push({
-          domain: formattedDomain,
-          originalDomain: cookie.domain,
-          favicon: `https://icons.duckduckgo.com/ip3/${formattedDomain}.ico`,
-          preferences: preferences,
-          cookie: cookie
-        });
-
-        console.log(`Added ${formattedDomain} to allDomains`);
-      } else {
-        console.log(`Skipping ${formattedDomain} - could not determine complete preferences`);
-      }
-    }
-
-    // Process cookies where actionTaken = "No"
-    for (const cookie of noActionCookies) {
-      if (!cookie.domain) continue;
-
-      const formattedDomain = formatDomainForDisplay(cookie.domain);
-
-      noActionDomains.push({
+      const entryBase = {
         domain: formattedDomain,
         originalDomain: cookie.domain,
-        favicon: `https://icons.duckduckgo.com/ip3/${formattedDomain}.ico`,
-        cookie: cookie,
-        actionTaken: 'No'
-      });
+        favicon,
+        cookie
+      };
 
-      console.log(`Added ${formattedDomain} to noActionDomains`);
-    }
+      allValidEntries.push(entryBase);
 
-    console.log('Total domains with preferences:', allDomains.length);
-    console.log('Total domains with action taken = no:', noActionDomains.length);
+      if (action === "no") {
+        categories.category4.push({ ...entryBase, actionTaken: "No" });
+      } else if (action === "yes" && preferences) {
+        const p = preferences;
+        const entry = { ...entryBase, preferences: p };
+        if (p.functional && p.performance && p.advertising) categories.category1.push(entry);
+        else if (!p.functional && !p.performance && !p.advertising) categories.category2.push(entry);
+        else if (p.functional && p.performance && !p.advertising) categories.category3.push(entry);
+      }
 
-    // STEP 3: Categorize domains based on preferences (ignoring 'necessary')
-    const category1 = []; // Accept, Accept, Accept
-    const category2 = []; // Reject, Reject, Reject
-    const category3 = []; // Accept, Accept, Reject
-    const category4 = noActionDomains; // Action taken = no
+      return null;
+    });
 
+    await Promise.all(faviconPromises);
 
-    for (const domain of allDomains) {
-      const p = domain.preferences;
+    // Pick up to 3 random domains per category
+    const pickThree = (arr) => {
+      if (!arr || arr.length === 0) return [];
+      const shuffled = [...arr].sort(() => 0.5 - Math.random());
+      return shuffled.slice(0, 3);
+    };
 
-      if (p.functional === true && p.performance === true && p.advertising === true) {
-        category1.push(domain);
-        console.log(`Added ${domain.domain} to category 1 (Accept all)`);
-      } else if (p.functional === false && p.performance === false && p.advertising === false) {
-        category2.push(domain);
-        console.log(`Added ${domain.domain} to category 2 (Reject all)`);
-      } else if (p.functional === true && p.performance === true && p.advertising === false) {
-        category3.push(domain);
-        console.log(`Added ${domain.domain} to category 3 (Accept, Accept, Reject)`);
-      } else {
-        console.log(`Domain ${domain.domain} with preferences doesn't match any target category`, p);
+    let arrayToStore = {
+      "accept-all": pickThree(categories.category1),
+      "reject-all": pickThree(categories.category2),
+      "mixed": pickThree(categories.category3),
+      "default": pickThree(categories.category4)
+    };
+
+    // Fill categories with random entries if fewer than 3 found
+    for (const key of ["accept-all", "reject-all", "mixed", "default"]) {
+      const current = arrayToStore[key];
+      if (current.length < 3) {
+        const missing = 3 - current.length;
+        const extras = allValidEntries
+          .filter(e => !current.includes(e))
+          .sort(() => 0.5 - Math.random())
+          .slice(0, missing);
+        arrayToStore[key] = [...current, ...extras];
       }
     }
 
-    console.log('Category 1 (Accept all):', category1.map(d => d.domain));
-    console.log('Category 2 (Reject all):', category2.map(d => d.domain));
-    console.log('Category 3 (Accept, Accept, Reject):', category3.map(d => d.domain));
-    console.log('Category 4 (Default):', category4.map(d => d.domain));
+    // Store via your extension messaging
+    await sendExtensionMessage({
+      type: "STORAGE_SET",
+      key: "selectedCookieDomains",
+      value: arrayToStore
+    });
 
+    console.log('[STORE] Stored three domains per category:', arrayToStore);
 
-    // STEP 4: Select one random website from each category
+  } catch (error) {
+    console.error('[STORE] Error building category domains:', error);
+  }
+}
+
+  // Find websites matching each criteria based only on cookie data
+  async function findMatchingWebsites(cookieData) {
+    console.log('[MATCH] All cookies count:', cookieData.length);
+
+    const { formatDomainForDisplay, getFavicon } =
+      await import(browser.runtime.getURL("helper_functions.js"));
+
+    const categories = {
+      category1: [], // Accept all
+      category2: [], // Reject all
+      category3: [], // Accept, Accept, Reject
+      category4: []  // Action taken = No
+    };
+
+    // Build favicon promises first
+    const faviconPromises = cookieData.map(async (cookie) => {
+      if (!cookie.domain) return null;
+
+      const action = cookie.actionTaken?.toLowerCase();
+      const formattedDomain = formatDomainForDisplay(cookie.domain);
+
+      // Prepare favicon promise without blocking loop
+      const faviconPromise = getFavicon(formattedDomain, cookie, { actionTaken: action || "Unknown" });
+
+      let preferences = null;
+      if (action === "yes") {
+        if (cookie.categories && typeof cookie.categories === "object") {
+          preferences = {
+            functional: cookie.categories.functional === true,
+            performance: cookie.categories.performance === true,
+            advertising: cookie.categories.advertising === true
+          };
+        } else if ("functional" in cookie && "performance" in cookie && "advertising" in cookie) {
+          preferences = {
+            functional: cookie.functional === "Yes" || cookie.functional === true,
+            performance: cookie.performance === "Yes" || cookie.performance === true,
+            advertising: cookie.advertising === "Yes" || cookie.advertising === true
+          };
+        }
+      }
+
+      return { cookie, formattedDomain, action, preferences, faviconPromise };
+    });
+
+    const results = await Promise.all(faviconPromises);
+
+    for (const res of results) {
+      if (!res) continue;
+
+      const favicon = await res.faviconPromise;
+
+      const entryBase = {
+        domain: res.formattedDomain,
+        originalDomain: res.cookie.domain,
+        favicon,
+        cookie: res.cookie
+      };
+
+      if (res.action === "no") {
+        categories.category4.push({ ...entryBase, actionTaken: "No" });
+      } else if (res.action === "yes" && res.preferences) {
+        const p = res.preferences;
+        const entry = { ...entryBase, preferences: p };
+        if (p.functional && p.performance && p.advertising) categories.category1.push(entry);
+        else if (!p.functional && !p.performance && !p.advertising) categories.category2.push(entry);
+        else if (p.functional && p.performance && !p.advertising) categories.category3.push(entry);
+      }
+    }
+
+    const random = arr => arr.length ? arr[Math.floor(Math.random() * arr.length)] : null;
+
     return {
-      acceptAll: category1.length > 0 ? category1[Math.floor(Math.random() * category1.length)] : null,
-      rejectAll: category2.length > 0 ? category2[Math.floor(Math.random() * category2.length)] : null,
-      mixed: category3.length > 0 ? category3[Math.floor(Math.random() * category3.length)] : null,
-      default: category4.length > 0 ? category4[Math.floor(Math.random() * category4.length)] : null
-
+      acceptAll: random(categories.category1),
+      rejectAll: random(categories.category2),
+      mixed: random(categories.category3),
+      default: random(categories.category4)
     };
   }
 
-  // Main function to load cookie data and select websites
-  // categoryType must be one of 'accept-all', 'reject-all', 'mixed', 'default'
   async function loadCookieDataAndSelectWebsites(categoryType) {
     try {
-      // Load only cookie data
-      const cookieData = await getCookieData();
+      const { sendExtensionMessage } =
+        await import(browser.runtime.getURL("helper_functions.js"));
 
-      console.log('Loaded cookie data:', cookieData?.length || 0);
+      // Retrieve precomputed 3 domains per category from storage
+      const result = await sendExtensionMessage({
+        type: "STORAGE_GET",
+        key: "selectedCookieDomains",
+      });
+      const selectedCookieDomains = result?.selectedCookieDomains;
 
-      // Check if we have data
-      if (!cookieData || cookieData.length === 0) {
-        console.error('Missing cookie data. Please visit the Cookie Checker first.');
+      if (!selectedCookieDomains) {
+        console.error('[COOKIE] No stored selectedCookieDomains found.');
         return;
       }
 
-      // Find websites matching our criteria using only cookie data
-      const matchingWebsites = findMatchingWebsites(cookieData);
+      // Map your categoryType to the storage keys
+      const categoryMap = {
+        "accept-all": "accept-all",
+        "reject-all": "reject-all",
+        "mixed": "mixed",
+        "default": "default"
+      };
 
-      let website = null;
-      let containerId = null;
-
-      switch (categoryType) {
-        case 'accept-all':
-          website = matchingWebsites.acceptAll;
-          containerId = 'category1';
-          break;
-        case 'reject-all':
-          website = matchingWebsites.rejectAll;
-          containerId = 'category2';
-          break;
-        case 'mixed':
-          website = matchingWebsites.mixed;
-          containerId = 'category3';
-          break;
-        case 'default':  // Handle default category
-          website = matchingWebsites.default;
-          containerId = 'category4';
-          break;
-        default:
-          console.error('Unknown category type:', categoryType);
-          return;
+      const key = categoryMap[categoryType];
+      if (!key) {
+        console.error('[COOKIE] Unknown category type:', categoryType);
+        return;
       }
 
-      if (matchingWebsites) {
-        // Compute the booleans based on category availability
-        const websiteData = {
-          hasAdvertisingRejected: !!matchingWebsites.mixed,  // mixed
-          hasAllAccepted: !!matchingWebsites.acceptAll,          // accept all
-          hasAllRejected: !!matchingWebsites.rejectAll,          // reject all
-          hasDefaultCookies: !!matchingWebsites.default        // default
-        };
-        // Send to the survey page
-        window.postMessage({
+      const categoryArray = selectedCookieDomains[key] || [];
+      const website = categoryArray.length ? categoryArray[0] : null; // pick first or random
+
+      if (!website) {
+        console.warn(`[COOKIE] No website available for category: ${categoryType}`);
+        return;
+      }
+
+      // Prepare website data flags
+      const websiteData = {
+        hasAdvertisingRejected: (selectedCookieDomains.mixed?.length ?? 0) > 0,
+        hasAllAccepted: (selectedCookieDomains["accept-all"]?.length ?? 0) > 0,
+        hasAllRejected: (selectedCookieDomains["reject-all"]?.length ?? 0) > 0,
+        hasDefaultCookies: (selectedCookieDomains.default?.length ?? 0) > 0
+      };
+
+      // Send flags to survey or UI
+      window.postMessage(
+        {
           type: "WEBSITE_DATA",
           payload: websiteData
-        }, "*");
+        },
+        "*"
+      );
 
-        console.log(" Sent WEBSITE_DATA to survey:", websiteData);
-      }
+      console.log('[COOKIE] Sent WEBSITE_DATA:', websiteData);
 
+      // Return rendered HTML for selected website
       return `
-        <div style="display: flex; align-items: center; gap: 8px;">
-            <img 
-                src="${website.favicon}" 
-                alt="Favicon" 
-                style="width:32px; height:32px; object-fit: contain;" 
-                onerror="this.style.display='none'">
-            <h3 style="margin: 0; font-size: 1.5rem;">${website.domain}</h3>
-        </div>
-      `;
+      <div style="display:flex;align-items:center;gap:8px;">
+        <img 
+          src="${website.favicon}" 
+          alt="Favicon" 
+          style="width:32px;height:32px;object-fit:contain;"
+          onerror="this.style.display='none'">
+        <h3 style="margin:0;font-size:1.5rem;">${website.domain}</h3>
+      </div>
+    `;
+
     } catch (error) {
-      console.error('Error in loadCookieDataAndSelectWebsites:', error);
+      console.error('[COOKIE] loadCookieDataAndSelectWebsites error:', error);
       showError('An error occurred while loading data: ' + error.message);
     }
   }

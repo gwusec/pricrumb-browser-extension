@@ -1,6 +1,6 @@
 import {
     generateWebsiteRows,
-    formatDomainForDisplay,
+    extractMainDomainName,
     calculateDaysRemaining,
     sendExtensionMessage,
     addExtensionMessageListener,
@@ -86,13 +86,13 @@ export async function injectTopAndBottomFiveTable(target = null, tutorial = fals
     // Because favicons take long to render, we first get the table HTML without favicons from storage or generate it
     shadow.innerHTML = await getTopAndBottomFiveTableHTML(false, showDiscrepancies);
 
-    if(tutorial){
+    // Show tutorial if we want to
+    if (tutorial) {
         startTableTutorial(shadow);
     }
 
     // Then, retrieve or generate the table HTML with favicons and update the shadow DOM
-    const tableHTML = await getTopAndBottomFiveTableHTML(true, showDiscrepancies);
-    shadow.innerHTML = tableHTML;
+    shadow.innerHTML = await getTopAndBottomFiveTableHTML(true, showDiscrepancies);
 }
 
 /**
@@ -102,35 +102,29 @@ export async function injectTopAndBottomFiveTable(target = null, tutorial = fals
  * @returns {Promise<string>} The full HTML string for the table, ready to inject into the page.
  */
 export async function createTopAndBottomFiveTableHTML(includeFavIcons, showDiscrepancies) {
-    // Fetch selected domains and stored cookie data
-    const { selectedDomains, cookieData } = await fetchDomainsAndCookies();
 
-    // Use selected domains if available, otherwise use all cookie data
-    const domainsToRender = selectedDomains.length > 0 ? selectedDomains : cookieData;
-
-    // Split domains into most recent (top five) and least recent (bottom five)
-    const { mostRecentDomains, leastRecentDomains } = processStoredCookieData(domainsToRender);
+    // Retrieve the value from storage
+    const { STORAGE_KEYS } = await import(browser.runtime.getURL("helper_functions.js"));
+    const result = await sendExtensionMessage({
+        type: "STORAGE_GET",
+        key: STORAGE_KEYS.DOMAIN_HISTORY
+    });
+    const cookieHistory = result?.[STORAGE_KEYS.DOMAIN_HISTORY];
 
     if (showDiscrepancies) {
         findDiscrepanciesAndRender();
     }
 
     // Generate HTML rows for top five and bottom five domains
-    const topFiveRows = await generateWebsiteRows(
-        mostRecentDomains,
-        includeFavIcons ? getFavicon : null,
-        showDiscrepancies ? getDiscrepancyInfo : null,
-        getSelectionStatus
-    );
-    const bottomFiveRows = await generateWebsiteRows(
-        leastRecentDomains,
+    const rows = await generateWebsiteRows(
+        cookieHistory,
         includeFavIcons ? getFavicon : null,
         showDiscrepancies ? getDiscrepancyInfo : null,
         getSelectionStatus
     );
 
     // Combine all rows into a single HTML string
-    const allRowsHTML = [...topFiveRows, ...bottomFiveRows]
+    const allRowsHTML = [...rows]
         .map(row => row.outerHTML)
         .join("");
 
@@ -292,24 +286,10 @@ async function automaticRefreshOnLoad() {
             console.log('Background popup closed');
         }
 
-        // Now load preferences with fresh data
-        loadUserPreferences();
-
     } catch (error) {
         console.error('Error during automatic refresh:', error);
         // Continue loading even if refresh fails
         loadUserPreferences();
-    }
-}
-
-// Load user preferences and render tables
-async function loadUserPreferences() {
-    try {
-        const prefs = await getParticipantCookiesPreferences();
-        console.log("Loaded user preferences:", prefs);
-        await renderTopAndBottomFive(prefs);
-    } catch (error) {
-        console.error("Error loading user preferences:", error);
     }
 }
 
@@ -340,86 +320,47 @@ async function fetchDomainsAndCookies() {
  * Find discrepancies and render
  */
 async function findDiscrepanciesAndRender() {
-    // Fetch user preferences from storage
-    const userPreferences = await getParticipantCookiesPreferences();
-    const { selectedDomains, cookieData } = await fetchDomainsAndCookies();
+    const TAG = "[findDiscrepanciesAndRender]";
+    console.debug(`${TAG} Starting discrepancy check...`);
 
-    let domainsToCheck = selectedDomains.length > 0 ? selectedDomains : cookieData;
+    // Fetch user preferences and selected domains concurrently
+    const [userPreferences, { selectedDomains }] = await Promise.all([
+        getParticipantCookiesPreferences(),
+        fetchDomainsAndCookies()
+    ]);
 
-    // Update categories with fresh data if available
-    if (cookieData.length > 0 && selectedDomains.length > 0) {
-        domainsToCheck = selectedDomains.map(domain => {
-            const freshCookie = cookieData.find(c =>
-                c.domain === domain.domain ||
-                c.domain === domain.originalDomain ||
-                formatDomainForDisplay(c.domain) === domain.domain
-            );
-            if (freshCookie?.categories) {
-                return { ...domain, categories: freshCookie.categories };
-            }
-            return domain;
-        });
+    console.debug(`${TAG} Fetched user preferences:`, userPreferences);
+    console.debug(`${TAG} Selected domains:`, selectedDomains);
+
+    // Exit early if either selected domains or user preferences are empty
+    if (!selectedDomains.length) {
+        console.debug(`${TAG} No selected domains. Exiting discrepancy check.`);
+        await setWebsitesWithDiscrepancies([]);
+        hideLoadingMessage();
+        return;
     }
 
-    // Only find discrepancies if user preferences exist
-    if (userPreferences.size > 0) {
-        const discrepancies = findDiscrepancyWebsites(domainsToCheck, userPreferences);
-        await setWebsitesWithDiscrepancies(discrepancies);  // Save to storage
-        console.log("Websites with discrepancies:", discrepancies);
-    } else {
-        await setWebsitesWithDiscrepancies([]);  // Clear storage if no preferences
-        console.log("No user preferences. Skipping discrepancy detection.");
+    if (!userPreferences.length) {
+        console.debug(`${TAG} No user preferences. Exiting discrepancy check.`);
+        await setWebsitesWithDiscrepancies([]);
+        hideLoadingMessage();
+        return;
     }
 
-    const isDiscrepanciesOnlyPage = document.getElementById("WebsitesWithDiscrepancies") !== null;
-    if (isDiscrepanciesOnlyPage) {
-        await displayWebsitesWithDiscrepanciesOnly(domainsToCheck, "WebsitesWithDiscrepancies");
-    }
+    // Find discrepancies
+    const discrepancies = findDiscrepancyWebsites(selectedDomains, userPreferences);
+    await setWebsitesWithDiscrepancies(discrepancies);
+    console.debug(`${TAG} Discrepancies found:`, discrepancies);
 
-    hideLoadingMessage();
-}
-
-/**
- * Render top 5 / bottom 5 without checking discrepancies
- */
-async function renderTopAndBottomFive() {
-    const { selectedDomains, cookieData } = await fetchDomainsAndCookies();
-
-    const domainsToRender = selectedDomains.length > 0 ? selectedDomains : cookieData;
-    const { mostRecentDomains, leastRecentDomains } = splitDomainsByVisitFrequency(domainsToRender);
-
-    const hasTopFive = document.getElementById("mostRecentWebsitesList") !== null;
-    const hasBottomFive = document.getElementById("leastRecentWebsitesList") !== null;
-
-    if (hasTopFive) {
-        const rowsTopFive = await generateWebsiteRows(
-            mostRecentDomains,
-            getFavicon,          // favicon function
-            null,
-            getSelectionStatus   // selection status function
-        );
-
-        renderWebsiteRows(rowsTopFive, "mostRecentWebsitesList");
-
-        const mostRecentTable = document.getElementById("mostRecentTable");
-        if (mostRecentTable) mostRecentTable.style.display = "table";
-    }
-
-    if (hasBottomFive) {
-        const rowsTopFive = await generateWebsiteRows(
-            leastRecentDomains,
-            getFavicon,          // favicon function
-            null,
-            getSelectionStatus   // selection status function
-        );
-
-        renderWebsiteRows(rowsTopFive, "leastRecentWebsitesList");
-
-        const mostRecentTable = document.getElementById("mostRecentTable");
-        if (mostRecentTable) mostRecentTable.style.display = "table";
+    // Render discrepancies if on the dedicated page
+    const discrepanciesPage = document.getElementById("WebsitesWithDiscrepancies");
+    if (discrepanciesPage) {
+        console.debug(`${TAG} Rendering discrepancies page...`);
+        await displayWebsitesWithDiscrepanciesOnly(selectedDomains, "WebsitesWithDiscrepancies");
     }
 
     hideLoadingMessage();
+    console.debug(`${TAG} Discrepancy check completed.`);
 }
 
 /**
@@ -431,186 +372,113 @@ function hideLoadingMessage() {
 }
 
 function findDiscrepancyWebsites(cookieData, userPreferences) {
+    const TAG = '[DISCREPANCY]';
     const discrepancies = [];
 
-    // Skip if no user preferences exist
-    if (!userPreferences || userPreferences.size === 0) {
-        console.warn('No user preferences found when checking for discrepancies');
+    if (!userPreferences || userPreferences.length === 0) {
+        console.warn(`${TAG} No user preferences found.`);
         return discrepancies;
     }
 
-    console.log('Starting discrepancy detection...');
-    console.log('Total cookies to check:', cookieData.length);
-    console.log('Total user preferences:', userPreferences.size);
+    console.debug(`${TAG} Starting discrepancy detection. Cookies to check: ${cookieData.length}, User prefs: ${userPreferences.length}`);
 
-    // Process each cookie with ActionTaken = "Yes"
-    const actionTakenCookies = cookieData.filter(cookie =>
-        cookie.actionTaken && cookie.actionTaken.toLowerCase() === 'yes'
-    );
+    // Only cookies with actionTaken = "Yes"
+    const actionTakenCookies = cookieData.filter(c => c.actionTaken?.toLowerCase() === 'yes');
+    console.debug(`${TAG} Cookies with action taken: ${actionTakenCookies.length}`);
 
-    console.log('Cookies with action taken:', actionTakenCookies.length);
-    console.log('Sample cookie data:', actionTakenCookies.length > 0 ? actionTakenCookies[0] : 'No cookies');
+    // Assuming userPreferences is an array of objects like { domain, functional, performance, advertising }
+    const userPrefMap = new Map(userPreferences.map(p => [p.domain, p]));
 
-    // Debug: Log all user preference domains for easier comparison
-    const allPreferenceDomains = Array.from(userPreferences.keys());
-    console.log('All preference domains:', allPreferenceDomains);
-
-    // For each cookie, check if user has stated a different preference
     for (const cookie of actionTakenCookies) {
         if (!cookie.domain) {
-            console.log('Skipping cookie without domain');
+            console.debug(`${TAG} Skipping cookie without domain`);
             continue;
         }
 
-        const formattedDomain = formatDomainForDisplay(cookie.domain);
+        const formattedDomain = extractMainDomainName(cookie.domain);
         const originalDomain = cookie.domain;
 
-        console.log(`\nChecking cookie for domain: ${cookie.domain} (formatted: ${formattedDomain})`);
+        // Extract actual preferences
+        let actualPreferences = { functional: false, performance: false, advertising: false };
 
-        // Try to extract actual preferences from the cookie
-        let actualPreferences = {
-            functional: false,
-            performance: false,
-            advertising: false
-        };
-
-        // First try from cookie.categories
         if (cookie.categories && typeof cookie.categories === 'object') {
             actualPreferences = {
                 functional: cookie.categories.functional === true,
                 performance: cookie.categories.performance === true,
                 advertising: cookie.categories.advertising === true
             };
-            console.log('Extracted preferences from categories:', actualPreferences);
-        }
-        // Then try from direct columns 
-        else if ('functional' in cookie || 'performance' in cookie || 'advertising' in cookie) {
-            // Handle each category separately to avoid undefined errors
-            if ('functional' in cookie) {
-                actualPreferences.functional = cookie.functional === "Yes" || cookie.functional === true;
-            }
-            if ('performance' in cookie) {
-                actualPreferences.performance = cookie.performance === "Yes" || cookie.performance === true;
-            }
-            if ('advertising' in cookie) {
-                actualPreferences.advertising = cookie.advertising === "Yes" || cookie.advertising === true;
-            }
-            console.log('Extracted preferences from direct columns:', actualPreferences);
+        } else {
+            actualPreferences.functional = cookie.functional === "Yes" || cookie.functional === true;
+            actualPreferences.performance = cookie.performance === "Yes" || cookie.performance === true;
+            actualPreferences.advertising = cookie.advertising === "Yes" || cookie.advertising === true;
         }
 
-        // Find matching domain in user preferences
+        // Match domain in userPreferences
+        const possibleFormats = [
+            originalDomain,
+            originalDomain.startsWith('.') ? originalDomain.slice(1) : null,
+            !originalDomain.startsWith('.') ? '.' + originalDomain : null,
+            formattedDomain,
+            formattedDomain.startsWith('www.') ? formattedDomain.slice(4) : null,
+            !formattedDomain.startsWith('www.') ? 'www.' + formattedDomain : null
+        ].filter(Boolean);
+
         let statedPreferences = null;
         let matchedDomain = null;
 
-        // Try different domain formats to match with preferences
-        const possibleFormats = [
-            originalDomain,
-            originalDomain.startsWith('.') ? originalDomain.substring(1) : null,
-            !originalDomain.startsWith('.') ? '.' + originalDomain : null,
-            formattedDomain,
-            formattedDomain.startsWith('www.') ? formattedDomain.substring(4) : null,
-            !formattedDomain.startsWith('www.') ? 'www.' + formattedDomain : null,
-            // Additional formats for better matching
-            formattedDomain.startsWith('www.') ? '.' + formattedDomain.substring(4) : null, // .domain.com from www.domain.com
-            originalDomain.startsWith('.') && originalDomain.includes('www.') ? originalDomain.replace('.www.', '.') : null, // .domain.com from .www.domain.com
-            formattedDomain.replace('www.', '') // domain.com from www.domain.com
-        ].filter(Boolean);
-
-        console.log('Checking possible domain formats:', possibleFormats);
-
-        // Try each possible format
-        for (const format of possibleFormats) {
-            if (userPreferences.has(format)) {
-                const prefs = userPreferences.get(format);
-                console.log(`Found match for domain format: ${format}`, prefs);
-
-                // Check for at least one set preference
-                if (prefs && (prefs.functional !== null ||
-                    prefs.performance !== null ||
-                    prefs.advertising !== null)) {
-
-                    // Just use the preferences as they are, keeping the numeric values
+        for (const fmt of possibleFormats) {
+            if (userPrefMap.has(fmt)) {
+                const prefs = userPrefMap.get(fmt);
+                if (prefs && (prefs.functional !== null || prefs.performance !== null || prefs.advertising !== null)) {
                     statedPreferences = prefs;
-
-                    matchedDomain = format;
-                    console.log(`Using preferences for domain: ${matchedDomain}`, statedPreferences);
+                    matchedDomain = fmt;
                     break;
-                } else {
-                    console.log('No valid preferences for domain:', format);
                 }
             }
         }
 
-        // Skip if no stated preferences found
         if (!statedPreferences) {
-            console.log('No stated preferences found for domain:', cookie.domain);
+            console.debug(`${TAG} No stated preferences found for domain: ${cookie.domain}`);
             continue;
         }
 
-        // Compare preferences based on the 5-point scale
-        // Only compare categories that have a stated preference
-        const categories = {
-            functional: false,
-            performance: false,
-            advertising: false
+        // Compare preferences
+        const categories = { functional: false, performance: false, advertising: false };
+        const isDiscrepancyByScale = (userValue, actualAccepted) => {
+            if (typeof userValue !== 'number') return false;
+            if (actualAccepted && userValue <= 2) return true;
+            if (!actualAccepted && userValue >= 4) return true;
+            return false;
         };
 
-        // Helper function to check discrepancies based on the 5-point scale
-        function isDiscrepancyByScale(userValue, actualAccepted) {
-            if (typeof userValue !== 'number') return false;
-
-            // If cookie is accepted but user selected 1-2 (not willing/not really willing)
-            if (actualAccepted && userValue <= 2) return true;
-
-            // If cookie is rejected but user selected 4-5 (somewhat willing/willing)
-            if (!actualAccepted && userValue >= 4) return true;
-
-            return false;
-        }
-
-        // Only check for discrepancies in categories that have been explicitly set
         if (statedPreferences.functional !== null) {
             categories.functional = isDiscrepancyByScale(statedPreferences.functional, actualPreferences.functional);
         }
-
         if (statedPreferences.performance !== null) {
             categories.performance = isDiscrepancyByScale(statedPreferences.performance, actualPreferences.performance);
         }
-
         if (statedPreferences.advertising !== null) {
             categories.advertising = isDiscrepancyByScale(statedPreferences.advertising, actualPreferences.advertising);
         }
 
         const hasDifference = categories.functional || categories.performance || categories.advertising;
 
-        console.log('Comparison result for', cookie.domain, ':',
-            categories.functional ? 'Functional differs' : '',
-            categories.performance ? 'Performance differs' : '',
-            categories.advertising ? 'Advertising differs' : '',
-            hasDifference ? 'DISCREPANCY FOUND' : 'No discrepancy'
-        );
-
         if (hasDifference) {
             discrepancies.push({
                 domain: formattedDomain,
-                originalDomain: originalDomain,
+                originalDomain,
                 favicon: `https://icons.duckduckgo.com/ip3/${formattedDomain}.ico`,
-                statedPreferences: statedPreferences,
-                actualPreferences: actualPreferences,
-                cookie: cookie,
-                matchedDomain: matchedDomain,
-                categories: categories
+                statedPreferences,
+                actualPreferences,
+                cookie,
+                matchedDomain,
+                categories
             });
-
-            console.log(`Found discrepancy for ${formattedDomain}`, {
-                stated: statedPreferences,
-                actual: actualPreferences,
-                categories: categories
-            });
+            console.debug(`${TAG} Discrepancy found for ${formattedDomain}`, { categories, statedPreferences, actualPreferences });
         }
     }
 
-    console.log('Total discrepancies found:', discrepancies.length);
+    console.debug(`${TAG} Total discrepancies found: ${discrepancies.length}`);
     return discrepancies;
 }
 
@@ -640,105 +508,60 @@ function splitDomainsByVisitFrequency(domains) {
 
 // Process the stored cookie data from the extension
 function processStoredCookieData(cookieData) {
-    // Filter for cookies where the user has taken action
-    const actionTakenCookies = cookieData.filter(cookie =>
-        cookie.actionTaken && cookie.actionTaken.toLowerCase() === 'yes'
-    );
+    // Normalize visit counts and filter action taken
+    const normalizedCookies = cookieData.map(cookie => ({
+        ...cookie,
+        totalVisits: parseInt(cookie.totalVisitCount) || 0,
+        actionTakenYes: cookie.actionTaken?.toLowerCase() === 'yes'
+    }));
 
-    console.log('Action taken cookies for tables:', actionTakenCookies.length);
+    // Prefer cookies with action taken if >= 6, else use all
+    const filteredCookies =
+        normalizedCookies.filter(c => c.actionTakenYes).length >= 6
+            ? normalizedCookies.filter(c => c.actionTakenYes)
+            : normalizedCookies;
 
-    // If we have fewer than 6 domains with action taken, use all cookies
-    const cookiesToProcess = actionTakenCookies.length >= 6 ? actionTakenCookies : cookieData;
-
-    // Sort by totalVisitCount (most frequent first)
-    const sortedByFrequency = [...cookiesToProcess].sort((a, b) => {
-        // Parse integers from totalVisitCount, defaulting to 0 if invalid
-        const visitsA = parseInt(a.totalVisitCount) || 0;
-        const visitsB = parseInt(b.totalVisitCount) || 0;
-        return visitsB - visitsA;  // Most frequent first (highest count)
-    });
-
-    // Track seen main domain names to ensure uniqueness
+    // Track seen main domains to ensure uniqueness
     const seenMainDomains = new Set();
 
-    // Get EXACTLY 5 unique most frequently visited domains
     const mostFrequentDomains = [];
-    for (const cookie of sortedByFrequency) {
-        const formattedDomain = formatDomainForDisplay(cookie.domain);
-        const mainName = extractMainDomainName(formattedDomain);
+    const leastFrequentDomains = [];
 
+    // Sort once by descending visits for most frequent
+    const sortedByVisitsDesc = [...filteredCookies].sort((a, b) => b.totalVisits - a.totalVisits);
+
+    for (const cookie of sortedByVisitsDesc) {
+        if (mostFrequentDomains.length >= 5) break;
+
+        const mainName = extractMainDomainName(extractMainDomainName(cookie.domain));
         if (!seenMainDomains.has(mainName)) {
             seenMainDomains.add(mainName);
             mostFrequentDomains.push(cookie);
-
-            if (mostFrequentDomains.length === 5) break;
         }
     }
 
-    // Get EXACTLY 5 unique least frequently visited domains
-    const domainsWithVisits = cookiesToProcess.filter(cookie =>
-        parseInt(cookie.totalVisitCount) > 0
-    );
+    // For least frequent, filter those with >0 visits and sort ascending
+    const sortedByVisitsAsc = filteredCookies
+        .filter(c => c.totalVisits > 0)
+        .sort((a, b) => a.totalVisits - b.totalVisits);
 
-    // Then sort by ascending visit count
-    const sortedAscending = [...domainsWithVisits].sort((a, b) => {
-        const visitsA = parseInt(a.totalVisitCount) || 0;
-        const visitsB = parseInt(b.totalVisitCount) || 0;
-        return visitsA - visitsB;
-    });
+    for (const cookie of sortedByVisitsAsc) {
+        if (leastFrequentDomains.length >= 5) break;
 
-    const leastFrequentDomains = [];
-    for (const cookie of sortedAscending) {
-        const formattedDomain = formatDomainForDisplay(cookie.domain);
-        const mainName = extractMainDomainName(formattedDomain);
-
+        const mainName = extractMainDomainName(extractMainDomainName(cookie.domain));
         if (!seenMainDomains.has(mainName)) {
             seenMainDomains.add(mainName);
             leastFrequentDomains.push(cookie);
-
-            if (leastFrequentDomains.length === 5) break;
         }
     }
 
-    console.log(`Selected ${mostFrequentDomains.length} unique most frequent domains`);
-    console.log(`Selected ${leastFrequentDomains.length} unique least frequent domains`);
+    console.log('Selected', mostFrequentDomains.length, 'unique most frequent domains');
+    console.log('Selected', leastFrequentDomains.length, 'unique least frequent domains');
 
     return {
         mostRecentDomains: mostFrequentDomains,
         leastRecentDomains: leastFrequentDomains
     };
-}
-
-// Extract the main domain name for comparison (e.g., "zoom" from "www.zoom.com" or "www.zoom.us")
-function extractMainDomainName(domain) {
-    if (!domain) return '';
-
-    // Remove www. prefix
-    let cleaned = domain.replace(/^www\./, '');
-
-    // Split by dots and get the main part (before TLD)
-    const parts = cleaned.split('.');
-
-    // Return the main domain name (second-to-last part before TLD)
-    // For "zoom.com" or "zoom.us", this returns "zoom"
-    // For "stackoverflow.com", this returns "stackoverflow"
-    return parts.length >= 2 ? parts[parts.length - 2].toLowerCase() : cleaned.toLowerCase();
-}
-
-// Original function preserved for backward compatibility
-async function displayWebsites(domains, tableId) {
-    const rows = await buildWebsiteRows(domains);
-    renderWebsiteRows(rows, tableId);
-}
-
-// Build the table rows
-async function buildWebsiteRows(domains) {
-    return await generateWebsiteRows(
-        domains,
-        getFavicon,          // favicon function
-        getDiscrepancyInfo,  // discrepancy function
-        getSelectionStatus   // selection status function
-    );
 }
 
 // Render the rows into a table
@@ -812,7 +635,7 @@ async function displayWebsitesWithDiscrepanciesOnly(domains, tableId) {
         const domainCell = document.createElement('td');
         domainCell.className = 'website-cell';
 
-        const formattedDomain = formatDomainForDisplay(domain.domain);
+        const formattedDomain = extractMainDomainName(domain.domain);
 
         const container = document.createElement('div');
         container.style.display = 'flex';

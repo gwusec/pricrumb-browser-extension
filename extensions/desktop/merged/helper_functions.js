@@ -1,3 +1,9 @@
+export const STORAGE_KEYS = {
+    PREFS: "participantCookiesPreferences",
+    COOKIE_DATA: "cookieData",
+    DOMAIN_HISTORY: "selectedDomainsForHistory"
+};
+
 /**
  * Generates <tr> elements for domains with discrepancy highlighting.
  *
@@ -71,8 +77,6 @@ export async function generateWebsiteRows(domains, getFaviconFunc, getDiscrepanc
         let discrepancyInfo = null;
         if (getDiscrepancyInfoFunc) {
             discrepancyInfo = await getDiscrepancyInfoFunc(domain.domain);
-            console.log("Discrepancy Info");
-            console.log(discrepancyInfo);
         }
 
         for (const category of categories) {
@@ -85,7 +89,8 @@ export async function generateWebsiteRows(domains, getFaviconFunc, getDiscrepanc
                 discrepancyInfo?.categories?.[category] ?? false,
                 Boolean(getDiscrepancyInfoFunc) // only show discrepancies if function exists
             );
-            console.log(selectionStatus.innerHTML);
+console.log("[WTFWTFWTFWTFWTFWTFWTFWTFWTFWTFWTFWTFWTFWTFWTFWTFWTFWTFWTFWTFWTF]");
+            console.log(selectionStatus);
 
             cell.appendChild(selectionStatus);
             row.appendChild(cell);
@@ -107,10 +112,37 @@ export async function generateWebsiteRows(domains, getFaviconFunc, getDiscrepanc
     return Promise.all(rowPromises);
 }
 
-export function formatDomainForDisplay(domain) {
-    if (!domain) return "Unknown";
-    if (domain.startsWith('.')) domain = domain.substring(1);
-    return domain.replace(/^www\./, '');
+// Helper function to extract main domain name (e.g., "zoom" from "zoom.com" or "zoom.us")
+export function extractMainDomainName(domain) {
+    const second_level_domains = [
+        "com", "net", "org", "edu", "gov", "mil", "us", "ca", "ny", "tx", "k12", "co", "org", "ac", "mod",
+        "nhs", "de", "fr", "asso", "gouv", "nom", "or", "gv", "priv", "it", "nl", "be", "ch", "es", "se",
+        "no", "fi", "id", "tv", "gen", "ind", "ernet", "mil", "tsk", "k12", "av", "dr", "bel", "pol", "kep",
+        "bbs", "biz", "tel", "web", "name"
+    ];
+
+    if (!domain) return '';
+
+    // Remove protocol, leading dots, www.
+    let cleaned = domain.toLowerCase()
+        .replace(/^https?:\/\//, '')
+        .replace(/^\.+/, '')
+        .replace(/^www\./, '')
+        .split('/')[0]; // remove path if present
+
+    const parts = cleaned.split('.');
+    if (parts.length < 2) return cleaned; // localhost or single-label domains
+
+    // Check if the last part or second-to-last part is in the suffix list
+    let suffixIndex = parts.length - 1;
+    if (second_level_domains.includes(parts[parts.length - 2])) {
+        // second-to-last label matches suffix list
+        suffixIndex = parts.length - 2;
+    }
+
+    // Main domain is the label immediately before the suffix
+    const mainDomainIndex = suffixIndex - 1;
+    return mainDomainIndex >= 0 ? parts[mainDomainIndex] : parts[0];
 }
 
 export function calculateDaysRemaining(expirationDate) {
@@ -195,8 +227,7 @@ export async function getFavicon(domain) {
 }
 
 export async function getDiscrepancyInfo(domain) {
-    console.log(domain);
-    const formattedDomain = formatDomainForDisplay(domain);
+    const formattedDomain = extractMainDomainName(domain);
 
     const domainVariations = [
         domain,
@@ -208,12 +239,12 @@ export async function getDiscrepancyInfo(domain) {
 
     // Await the stored discrepancies
     const discrepanciesList = await getWebsitesWithDiscrepancies();
-    
+
     const discrepancy = discrepanciesList.find(d => {
         for (const inputVar of domainVariations) {
             if (d.domain === inputVar ||
                 d.originalDomain === inputVar ||
-                formatDomainForDisplay(d.originalDomain) === inputVar ||
+                extractMainDomainName(d.originalDomain) === inputVar ||
                 d.domain.replace('www.', '') === inputVar.replace('www.', '') ||
                 d.originalDomain.replace(/^\./, '') === inputVar.replace(/^\./, '')) {
                 return true;
@@ -255,9 +286,6 @@ export function getSelectionStatus(domain, category, userPref, hasDiscrepancy, s
     if (shouldShowDiscrepancy(isAccepted, category, userPref, showDiscrepancies)) {
         const marker = createDiscrepancyMarker(isAccepted, userPref[category], category);
         container.appendChild(marker);
-
-        container.style.overflow = 'visible';
-        container.style.marginTop = '15px';
     }
 
     return container;
@@ -328,17 +356,6 @@ function createDiscrepancyMarker(isAccepted, userValue, category) {
     marker.textContent = '!';
     marker.className = 'discrepancy-marker';
 
-    Object.assign(marker.style, {
-        position: 'absolute',
-        left: 'calc(100% + 8px)',
-        top: '50%',
-        transform: 'translateY(-50%)',
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: '2'
-    });
-
     const tooltip = createTooltip(isAccepted, userValue, category);
     marker.appendChild(tooltip);
 
@@ -358,30 +375,8 @@ function createTooltip(isAccepted, userValue, category) {
     const valueText = getWillingnessText(userValue, category);
 
     tooltip.innerHTML =
-        `Your preference: "<strong>${valueText}</strong>"<br>
-         Actual setting: <strong>${isAccepted ? 'Allowed' : 'Not Allowed'}</strong>`;
-
-    Object.assign(tooltip.style, {
-        position: 'absolute',
-        bottom: 'calc(100% + 8px)',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        minWidth: '240px',
-        maxWidth: '300px',
-        padding: '8px 10px',
-        borderRadius: '6px',
-        backgroundColor: '#333',
-        color: '#fff',
-        fontSize: '12px',
-        lineHeight: '1.35',
-        textAlign: 'center',
-        whiteSpace: 'normal',
-        visibility: 'hidden',
-        opacity: '0',
-        transition: 'opacity 0.15s ease',
-        pointerEvents: 'none',
-        zIndex: '9999'
-    });
+        `You said that you "<strong>${valueText}</strong>"<br> 
+        but it's currently set to <strong>${isAccepted ? 'Allowed' : 'Not Allowed'}</strong>`;
 
     return tooltip;
 }
@@ -396,141 +391,6 @@ function hideTooltip(tooltip) {
     tooltip.style.opacity = '0';
 }
 
-// // Helper function to get a single button showing the selection status (Updated to work with the scale)
-// export function getSelectionStatus(domain, category, userPref, hasDiscrepancy, showDiscrepancies = true) {
-//     console.log(`Creating selection status for ${domain.domain}, category ${category}, discrepancy: ${hasDiscrepancy}`);
-
-//     const container = document.createElement('div');
-//     container.className = 'selection-container';
-//     container.style.display = 'inline-flex';
-//     container.style.justifyContent = 'center';
-//     container.style.alignItems = 'center';
-//     container.style.position = 'relative';
-//     container.style.margin = '0 auto';
-
-//     // Determine if accepted or rejected in cookie history
-//     let isAccepted = false;
-
-//     if (domain.categories && domain.categories[category] !== undefined) {
-//         isAccepted = domain.categories[category];
-//     } else if (domain[category] !== undefined) {
-//         // Handle string or boolean values
-//         if (typeof domain[category] === 'string') {
-//             isAccepted = domain[category] === "Yes" ||
-//                 domain[category] === "Accepted" ||
-//                 domain[category] === "Accept";
-//         } else {
-//             isAccepted = domain[category] === true;
-//         }
-//     } else if (domain[category.charAt(0).toUpperCase() + category.slice(1)] !== undefined) {
-//         // Try with capitalized first letter (Functional instead of functional)
-//         const value = domain[category.charAt(0).toUpperCase() + category.slice(1)];
-//         if (typeof value === 'string') {
-//             isAccepted = value === "Yes" ||
-//                 value === "Accepted" ||
-//                 value === "Accept";
-//         } else {
-//             isAccepted = value === true;
-//         }
-//     }
-
-//     // Create the display button
-//     const button = document.createElement('button');
-
-//     if (isAccepted) {
-//         button.textContent = 'Allowed';
-//         button.className = 'toggle-btn accept selected';
-//         button.style.backgroundColor = '#4c7aaf';
-//         button.style.color = 'white';
-//         button.style.borderColor = '#4c7aaf';
-//     } else {
-//         button.textContent = 'Not Allowed';
-//         button.className = 'toggle-btn reject selected';
-//         button.style.backgroundColor = '#919291';
-//         button.style.color = 'white';
-//         button.style.borderColor = '#919291';
-//     }
-
-//     // Add to container
-//     container.appendChild(button);
-
-//     // Check for discrepancy according to the 5-point scale logic
-//     if (showDiscrepancies && userPref && typeof userPref[category] === 'number') {
-//         const userValue = userPref[category];
-//         const valueText = getWillingnessText(userValue, category);
-
-//         // If cookie is accepted but user selected 1-2 (not willing/not really willing)
-//         // OR if cookie is rejected but user selected 4-5 (somewhat willing/willing)
-//         const hasDiscrepancyByScale = (isAccepted && userValue <= 2) || (!isAccepted && userValue >= 4);
-
-//         if (hasDiscrepancyByScale) {
-//             console.log(`Adding discrepancy marker for ${domain.domain}, category ${category}`);
-
-//             // Outer span acts as the tooltip trigger
-//             const discrepancyMarker = document.createElement('span');
-//             discrepancyMarker.textContent = '!';
-//             discrepancyMarker.className = 'discrepancy-marker';
-//             discrepancyMarker.style.position = 'absolute';
-//             discrepancyMarker.style.left = 'calc(100% + 8px)';
-//             discrepancyMarker.style.top = '50%';
-//             discrepancyMarker.style.transform = 'translateY(-50%)';
-//             discrepancyMarker.style.display = 'inline-flex';
-//             discrepancyMarker.style.alignItems = 'center';
-//             discrepancyMarker.style.justifyContent = 'center';
-//             discrepancyMarker.style.zIndex = '2';
-
-//             // Inner span is the tooltip bubble
-//             const tooltipText = document.createElement('span');
-//             tooltipText.className = 'discrepancy-tooltiptext';
-//             // tooltipText.textContent = `Your preference: "${valueText}" — Actual: ${isAccepted ? 'Allowed' : 'Not Allowed'}`;
-//             tooltipText.innerHTML = `Your preference: "<strong>${valueText}</strong>"<br>Actual setting: <strong>${isAccepted ? 'Allowed' : 'Not Allowed'}</strong>`;
-//             tooltipText.style.position = 'absolute';
-//             tooltipText.style.bottom = 'calc(100% + 8px)';
-//             tooltipText.style.left = '50%';
-//             tooltipText.style.transform = 'translateX(-50%)';
-//             tooltipText.style.minWidth = '240px';
-//             tooltipText.style.maxWidth = '300px';
-//             tooltipText.style.padding = '8px 10px';
-//             tooltipText.style.borderRadius = '6px';
-//             tooltipText.style.backgroundColor = '#333';
-//             tooltipText.style.color = '#fff';
-//             tooltipText.style.fontSize = '12px';
-//             tooltipText.style.lineHeight = '1.35';
-//             tooltipText.style.textAlign = 'center';
-//             tooltipText.style.whiteSpace = 'normal';
-//             tooltipText.style.visibility = 'hidden';
-//             tooltipText.style.opacity = '0';
-//             tooltipText.style.transition = 'opacity 0.15s ease';
-//             tooltipText.style.pointerEvents = 'none';
-//             tooltipText.style.zIndex = '9999';
-
-//             discrepancyMarker.addEventListener('mouseenter', () => {
-//                 tooltipText.style.visibility = 'visible';
-//                 tooltipText.style.opacity = '1';
-//             });
-//             discrepancyMarker.addEventListener('mouseleave', () => {
-//                 tooltipText.style.visibility = 'hidden';
-//                 tooltipText.style.opacity = '0';
-//             });
-//             discrepancyMarker.addEventListener('focus', () => {
-//                 tooltipText.style.visibility = 'visible';
-//                 tooltipText.style.opacity = '1';
-//             });
-//             discrepancyMarker.addEventListener('blur', () => {
-//                 tooltipText.style.visibility = 'hidden';
-//                 tooltipText.style.opacity = '0';
-//             });
-
-//             discrepancyMarker.appendChild(tooltipText);
-//             container.appendChild(discrepancyMarker);
-//             container.style.overflow = 'visible';
-//             container.style.marginTop = '15px';
-//         }
-//     }
-
-//     return container;
-// }
-
 // Helper function to get text for willingness level
 function getWillingnessText(value, category) {
     const categoryLabel = {
@@ -541,11 +401,11 @@ function getWillingnessText(value, category) {
 
     if (categoryLabel) {
         switch (value) {
-            case 1: return `1 - I strongly prefer this website NOT use ${categoryLabel} cookies`;
-            case 2: return `2 - I prefer this website NOT use ${categoryLabel} cookies`;
-            case 3: return "3 - No preference";
-            case 4: return `4 - I prefer this website TO use ${categoryLabel} cookies`;
-            case 5: return `5 - I strongly prefer this website TO use ${categoryLabel} cookies`;
+            case 1: return `strongly prefer this website NOT use ${categoryLabel} cookies`;
+            case 2: return `prefer this website NOT use ${categoryLabel} cookies`;
+            case 3: return "no preference";
+            case 4: return `prefer this website to use ${categoryLabel} cookies`;
+            case 5: return `strongly prefer this website to use ${categoryLabel} cookies`;
             default: return "Unknown";
         }
     }
@@ -561,31 +421,17 @@ function getWillingnessText(value, category) {
     }
 }
 
-/**
- * Get user preferences from storage
- * @returns {Promise<Map<string, Object>>}
- */
 export async function getParticipantCookiesPreferences() {
-    const result = await sendExtensionMessage({
-        type: "STORAGE_GET",
-        key: "participantCookiesPreferences"
-    });
-
-    const prefs = new Map();
-
-    if (result?.participantCookiesPreferences) {
-        if (Array.isArray(result.participantCookiesPreferences)) {
-            result.participantCookiesPreferences.forEach(([domain, preference]) => {
-                prefs.set(domain, preference);
-            });
-        } else if (typeof result.participantCookiesPreferences === "object") {
-            Object.entries(result.participantCookiesPreferences).forEach(([domain, preference]) => {
-                prefs.set(domain, preference);
-            });
-        }
+    try {
+        const result = await sendExtensionMessage({
+            type: "STORAGE_GET",
+            key: STORAGE_KEYS.PREFS
+        });
+        return result[STORAGE_KEYS.PREFS] || [];
+    } catch (e) {
+        console.error("Failed to get stored preferences", e);
+        return [];
     }
-
-    return prefs;
 }
 
 /**
@@ -599,4 +445,27 @@ export async function setUserPreferences(preferencesMap) {
         key: "participantCookiesPreferences",
         value: arrayToStore
     });
+}
+
+
+// Format domain for better display
+export function formatDomainForDisplay(domain) {
+    if (!domain) return "Unknown";
+
+    if (domain.startsWith(".")) {
+        domain = domain.slice(1);
+    }
+
+    const main = extractMainDomainName(domain);
+    if (!main) return domain;
+
+    const parts = domain.split(".");
+    const mainIndex = parts.indexOf(main);
+
+    if (mainIndex === -1) return domain;
+
+    // Everything after the main domain is the suffix (TLD or multi-part TLD)
+    const suffix = parts.slice(mainIndex + 1).join(".");
+
+    return suffix ? `${main}.${suffix}` : main;
 }

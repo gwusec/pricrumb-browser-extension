@@ -187,27 +187,8 @@ function showError(message) {
     });
 }
 
-// Format domain for better display
-function formatDomainForDisplay(domain) {
-    // If domain is empty or undefined, return "Unknown"
-    if (!domain) return "Unknown";
-
-    // Remove leading dot if present
-    if (domain.startsWith('.')) {
-        domain = domain.substring(1);
-    }
-
-    // If domain doesn't have a subdomain (no dots except the TLD), add www.
-    const parts = domain.split('.');
-    if (parts.length === 2) {
-        domain = 'www.' + domain;
-    }
-
-    return domain;
-}
-
 // Find websites matching each criteria based only on cookie data
-function findMatchingWebsites(cookieData) {
+async function findMatchingWebsites(cookieData) {
     console.log('All cookies count:', cookieData.length);
 
     // STEP 1: Filter for cookies where actionTaken = "Yes"
@@ -232,7 +213,8 @@ function findMatchingWebsites(cookieData) {
     for (const cookie of actionTakenCookies) {
         if (!cookie.domain) continue;
 
-        const formattedDomain = formatDomainForDisplay(cookie.domain);
+        const module = await import(browser.runtime.getURL("helper_functions.js"));
+        const formattedDomain = module.extractMainDomainName(cookie.domain);
         let preferences = null;
 
         // First try to get preferences directly from the cookie
@@ -280,7 +262,8 @@ function findMatchingWebsites(cookieData) {
     for (const cookie of noActionCookies) {
         if (!cookie.domain) continue;
 
-        const formattedDomain = formatDomainForDisplay(cookie.domain);
+        const module = await import(browser.runtime.getURL("helper_functions.js"));
+        const formattedDomain = module.extractMainDomainName(cookie.domain);
 
         noActionDomains.push({
             domain: formattedDomain,

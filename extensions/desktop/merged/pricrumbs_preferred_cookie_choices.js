@@ -1,13 +1,7 @@
 // ============================
 // CONFIG / CONSTANTS
 // ============================
-import { getFavicon } from './helper_functions.js';
-
-const STORAGE_KEYS = {
-    PREFS: "participantCookiesPreferences",
-    COOKIE_DATA: "cookieData",
-    DOMAIN_HISTORY: "selectedDomainsForHistory"
-};
+import { getFavicon, STORAGE_KEYS, getParticipantCookiesPreferences } from './helper_functions.js';
 
 // Mapping for display names
 const CATEGORY_LABELS = {
@@ -73,24 +67,23 @@ async function init() {
 // ============================
 // STORAGE HELPERS
 // ============================
-async function getStoredPreferences() {
-    try {
-        const result = await ext.storage.local.get(STORAGE_KEYS.PREFS);
-        return result[STORAGE_KEYS.PREFS] || {};
-    } catch (e) {
-        console.error("Failed to get stored preferences", e);
-        return {};
-    }
-}
 
-async function savePreference(domain, category, value) {
+export async function savePreference(domain, category, value) {
     try {
-        const prefs = await getStoredPreferences();
+        const prefs = await getParticipantCookiesPreferences();
         const key = domain.originalDomain || domain.domain;
 
-        if (!prefs[key]) prefs[key] = { functional: null, performance: null, advertising: null };
-        prefs[key][category] = value;
+        // Find existing entry
+        let entry = prefs.find(p => p.domain === key);
 
+        if (!entry) {
+            entry = { domain: key, functional: null, performance: null, advertising: null };
+            prefs.push(entry);
+        }
+
+        entry[category] = value;
+
+        // Save updated array
         await ext.storage.local.set({ [STORAGE_KEYS.PREFS]: prefs });
 
         // Update session state for UI highlighting

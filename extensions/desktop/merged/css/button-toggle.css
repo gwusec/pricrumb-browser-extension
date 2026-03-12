@@ -181,5 +181,52 @@ img.favicon-error {
 
 /* Add this to your CSS */
 .selection-container {
-    position: relative;
+    display: inline-flex;
+    align-items: center;
+    position: relative; /* for absolute children */
+}
+
+.discrepancy-marker {
+    position: absolute;
+    top: 50%;
+    left: 100%;
+    transform: translateY(-50%) translateX(4px);
+    width: 22px;
+    height: 22px;
+    background-color: #ff9800;
+    font-weight: bold;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+}
+
+.discrepancy-tooltiptext {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    min-width: 240px;
+    max-width: 300px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    background-color: #ff9800;
+    text-align: center;
+    white-space: normal;
+
+    /* make hidden initially */
+    opacity: 0;
+    visibility: hidden;
+
+    transition: opacity 0.15s;
+    pointer-events: none;
+    z-index: 9999;
+}
+
+/* Tooltip appears on hover */
+.discrepancy-marker:hover .discrepancy-tooltiptext {
+    opacity: 1;
+    visibility: visible;
 }

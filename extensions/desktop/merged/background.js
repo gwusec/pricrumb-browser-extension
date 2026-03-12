@@ -947,19 +947,26 @@ ext.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const category = request.category || request.payload?.category || null;
         const result = await ext.storage.local.get([
           "selectedDomainsForHistory",
-          "participantCookiesPreferences",
           "cookieData"
         ]);
 
         const selectedDomains = Array.isArray(result.selectedDomainsForHistory)
           ? result.selectedDomainsForHistory
           : [];
-        const userPreferences = Array.isArray(result.participantCookiesPreferences)
-          ? result.participantCookiesPreferences
-          : [];
         const cookieData = Array.isArray(result.cookieData) ? result.cookieData : [];
         const rankMap = await getTop1mDomainRankMap();
-        const prefsMap = new Map(userPreferences);
+
+
+        const module = await import(browser.runtime.getURL("helper_functions.js"));
+        const userPreferences = await getParticipantCookiesPreferences();
+        // Convert preferences array to Map for faster lookups
+        const prefsMap = new Map(
+          userPreferences.map(pref => [pref.domain, {
+            functional: pref.functional,
+            performance: pref.performance,
+            advertising: pref.advertising
+          }])
+        );
 
         const canonicalDomains = Array.from(
           new Set(
@@ -1089,43 +1096,63 @@ ext.runtime.onMessage.addListener((request, sender, sendResponse) => {
 ext.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
   if (msg.type === "GET_FAVICON") {
+  const domain = msg.domain;
 
-    const domain = msg.domain;
+  const fetchFaviconAsDataURL = async (url) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      return await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result); // full data URL
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch {
+      return null;
+    }
+  };
 
-    // 1. Try open tabs
-    ext.tabs.query({}, async (tabs) => {
-      const tab = tabs.find(t => t.url && t.url.includes(domain));
-      if (tab?.favIconUrl) {
-        sendResponse({ favicon: tab.favIconUrl });
+  // 1. Try open tabs
+  ext.tabs.query({}, async (tabs) => {
+    const tab = tabs.find(t => t.url && t.url.includes(domain));
+    if (tab?.favIconUrl) {
+      const dataUrl = await fetchFaviconAsDataURL(tab.favIconUrl);
+      if (dataUrl) {
+        sendResponse({ favicon: dataUrl });
         return;
       }
+    }
 
-      // 2. Fetch HTML and parse <link rel="icon">
-      try {
-        const response = await fetch(`https://${domain}`);
-        const html = await response.text();
-        const match = html.match(/<link[^>]+rel=["'](?:shortcut )?icon["'][^>]*>/i);
-        if (match) {
-          const hrefMatch = match[0].match(/href=["']([^"']+)["']/i);
-          if (hrefMatch) {
-            let url = hrefMatch[1];
-            if (!url.startsWith('http')) {
-              url = `https://${domain}${url.startsWith('/') ? '' : '/'}${url}`;
-            }
-            sendResponse({ favicon: url });
+    // 2. Fetch HTML and parse <link rel="icon">
+    try {
+      const response = await fetch(`https://${domain}`);
+      const html = await response.text();
+      const match = html.match(/<link[^>]+rel=["'](?:shortcut )?icon["'][^>]*>/i);
+      if (match) {
+        const hrefMatch = match[0].match(/href=["']([^"']+)["']/i);
+        if (hrefMatch) {
+          let url = hrefMatch[1];
+          if (!url.startsWith('http')) {
+            url = `https://${domain}${url.startsWith('/') ? '' : '/'}${url}`;
+          }
+          const dataUrl = await fetchFaviconAsDataURL(url);
+          if (dataUrl) {
+            sendResponse({ favicon: dataUrl });
             return;
           }
         }
-      } catch (e) {
-        // Ignore fetch errors
       }
+    } catch (e) {
+      // Ignore fetch errors
+    }
 
-      // 3. Fallback to standard /favicon.ico
-      sendResponse({ favicon: `https://${domain}/favicon.ico` });
-    });
+    // Fallback: no favicon found
+    sendResponse({ favicon: null });
+  });
 
-    return true; // Indicates async response
-  }
+  return true; // Indicates async response
+}
 
   if (msg.type === "STORAGE_GET") {
 
@@ -1143,8 +1170,8 @@ ext.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
         const stored = await ext.storage.local.get(msg.key);
 
-        console.log("Stored key:", msg.key);
-        console.log("Stored value:", stored[msg.key]);
+        // console.log("Stored key:", msg.key);
+        // console.log("Stored value:", stored[msg.key]);
 
         sendResponse(true);
       })
@@ -1173,12 +1200,5 @@ ext.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
     return true;
   }
-
-});
-
-
-ext.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  if (msg.type !== "GET_FAVICON") return;
-
 
 });
