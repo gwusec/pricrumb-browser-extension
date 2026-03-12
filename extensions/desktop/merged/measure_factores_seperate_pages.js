@@ -17,6 +17,64 @@ document.addEventListener('DOMContentLoaded', () => {
     loadCookieDataAndSelectWebsites();
 });
 
+const DOMAIN_HASH_PATTERN = /^[0-9a-f]{64}$/i;
+
+function normalizeDomainHash(value) {
+    return typeof value === "string" ? value.trim().toLowerCase() : "";
+}
+
+function isValidDomainHash(value) {
+    return DOMAIN_HASH_PATTERN.test(normalizeDomainHash(value));
+}
+
+function categoryTypeToSurveyGroupName(categoryType) {
+    switch (categoryType) {
+        case 'accept-all':
+            return 'all_cookies_accepted';
+        case 'reject-all':
+            return 'all_cookies_rejected';
+        case 'mixed':
+            return 'ad_cookies_rejected';
+        case 'default':
+            return 'default_cookies';
+        default:
+            return null;
+    }
+}
+
+function categoryTypeToWebsiteKey(categoryType) {
+    switch (categoryType) {
+        case 'accept-all':
+            return 'category1';
+        case 'reject-all':
+            return 'category2';
+        case 'mixed':
+            return 'category3';
+        case 'default':
+            return 'category4';
+        default:
+            return null;
+    }
+}
+
+function postWebsiteDataToSurvey(payload) {
+    const message = { type: "WEBSITE_DATA", payload };
+    try {
+        // Main path for iframe -> survey page communication.
+        if (window.parent && window.parent !== window) {
+            window.parent.postMessage(message, "*");
+        }
+        // Keep same-window posting for compatibility with older flows.
+        window.postMessage(message, "*");
+        // If nested, also notify top-level survey window.
+        if (window.top && window.top !== window && window.top !== window.parent) {
+            window.top.postMessage(message, "*");
+        }
+    } catch (error) {
+        console.warn("Failed to post WEBSITE_DATA:", error);
+    }
+}
+
 function detectCategoryFromURL() {
     const currentURL = window.location.href;
     const filename = currentURL.split('/').pop().split('.')[0]; // Get filename without extension
@@ -70,20 +128,34 @@ async function loadCookieDataAndSelectWebsites() {
         displayWebsite(matchingWebsites, categoryType);
 
         if (matchingWebsites) {
-            // Compute the booleans based on category availability
+            // Compute availability flags.
             const websiteData = {
                 hasAdvertisingRejected: !!matchingWebsites.category3,  // mixed
                 hasAllAccepted: !!matchingWebsites.category1,          // accept all
                 hasAllRejected: !!matchingWebsites.category2,          // reject all
                 hasDefaultCookies: !!matchingWebsites.category4        // default
             };
-            // Send to the survey page
-            window.postMessage({
-                type: "WEBSITE_DATA",
-                payload: websiteData
-            }, "*");
 
-            console.log(" Sent WEBSITE_DATA to survey:", websiteData);
+            const surveyGroupName = categoryTypeToSurveyGroupName(categoryType);
+            const websiteKey = categoryTypeToWebsiteKey(categoryType);
+            const displayedWebsite = websiteKey ? matchingWebsites[websiteKey] : null;
+            const displayedWebsiteHash = normalizeDomainHash(displayedWebsite?.cookie?.domainHash);
+
+            const payload = {
+                websiteTypes: websiteData,
+            };
+
+            // Send both raw domain and hash for the exact website shown on this page.
+            if (surveyGroupName) {
+                payload[surveyGroupName] = {
+                    domain: displayedWebsite?.domain || null,
+                    originalDomain: displayedWebsite?.originalDomain || null,
+                    domainHash: isValidDomainHash(displayedWebsiteHash) ? displayedWebsiteHash : null,
+                };
+            }
+
+            postWebsiteDataToSurvey(payload);
+            console.log("Sent WEBSITE_DATA to survey:", payload);
         }
 
 
