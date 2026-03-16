@@ -1479,18 +1479,39 @@ document.addEventListener('DOMContentLoaded', async () => {
   /**
    * Complete IAB TCF v2.2 compliant decoder for the extension
    */
+  function extractTCFString(rawValue) {
+    try {
+      const decoded = decodeURIComponent(rawValue);
+      const parsed = JSON.parse(decoded);
+      if (parsed.encodedConsentString) {
+        console.log('[pricrumbs] Extracted encodedConsentString from JSON wrapper');
+        return { tcfString: parsed.encodedConsentString, googleConsentGiven: parsed.googleConsentGiven ?? null };
+      }
+    } catch (e) { console.warn('[pricrumbs] extractTCFString fallback:', e.message); }
+    return { tcfString: rawValue, googleConsentGiven: null };
+  }
+
   function decodeTCF(value, cookie, allCookies) {
     try {
       console.log('Enhanced TCF decoding with CMP pattern analysis');
 
-      const tcfData = decodeTCFString(value);
+      const { tcfString, googleConsentGiven } = extractTCFString(value);
+
+      const tcfData = decodeTCFString(tcfString);
 
       if (!tcfData) {
         throw new Error('Failed to decode TCF string per IAB specification');
       }
 
       // action detection using CMP patterns
-      const enhancedActionAnalysis = enhancedTCFActionDetection(value, cookie, allCookies);
+      const enhancedActionAnalysis = enhancedTCFActionDetection(tcfString, cookie, allCookies);
+
+      // If the JSON wrapper explicitly says googleConsentGiven: true, treat as action taken
+      if (googleConsentGiven === true && enhancedActionAnalysis.actionTaken === "Unknown") {
+        enhancedActionAnalysis.actionTaken = "Yes";
+        enhancedActionAnalysis.confidence = "High";
+        enhancedActionAnalysis.method = "googleConsentGiven flag in JSON wrapper";
+      }
 
       // Use enhanced results 
       const actionTaken = enhancedActionAnalysis.actionTaken;
@@ -1541,7 +1562,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         advertising: categories.advertising,
         consent: consentStatus,
         // actionTaken: actionTaken, 
-        actionTaken: isNoStoreBeforeInteractionSite(cookie.domain) ? "Yes" : actionTaken,
+        actionTaken: isNoStoreBeforeInteractionSite(cookie.domain) ? "Yes" : (value.includes('ConsentGiven%22:true') || value.includes('ConsentGiven":true') ? "Yes" : actionTaken),
         rawCookie: value,
         misc: {
           // IAB specification fields
@@ -1600,7 +1621,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         performance: "Unknown",
         advertising: "Unknown",
         consent: "Unknown",
-        actionTaken: "Unknown",
+        actionTaken: (value.includes("ConsentGiven%22:true") || value.includes("ConsentGiven\":true")) ? "Yes" : "Unknown",
         rawCookie: value,
         misc: { error: error.message }
       };
