@@ -496,7 +496,8 @@
     "sncc_tc_17",
     "tcf2cookie",
     "truendo-tcf-v2",
-    "wpl_tc_string"
+    "wpl_tc_string",
+    "ekConsentTcf2"
   ],
   "localStorage": [
     "AT-euconsent-v2",
