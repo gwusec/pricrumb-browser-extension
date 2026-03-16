@@ -160,9 +160,7 @@ export function sendExtensionMessage(payload) {
 
     // Extension page context
     if (typeof ext !== "undefined" && ext.runtime?.sendMessage) {
-        return new Promise(resolve => {
-            ext.runtime.sendMessage(payload, resolve);
-        });
+        return ext.runtime.sendMessage(payload);
     }
 
     // Page / injected script context
