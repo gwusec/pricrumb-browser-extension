@@ -51,7 +51,10 @@
         "tcf_default_decoded_js.json",
         "tcf_no_store_before_interaction.json",
         "pricrumbs_websites_with_discripincies.html",
-        "undecided_websites.js"
+        "undecided_websites.js",
+        "helper_functions.js",
+        "pricrumbs_consent_history.js",
+        "css/button-toggle.css"
       ],
       "matches": [
         "<all_urls>"

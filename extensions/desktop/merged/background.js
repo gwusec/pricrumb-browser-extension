@@ -51,7 +51,7 @@ browser.runtime.onInstalled.addListener(async () => {
 
   const tabs = await browser.tabs.query({
     url: [
-      "http://localhost*/*",
+      "http://localhost:*/*",
       "*://gwuaddressatsomepoint/*"
     ]
   });

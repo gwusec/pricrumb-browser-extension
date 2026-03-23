@@ -89,8 +89,6 @@ export async function generateWebsiteRows(domains, getFaviconFunc, getDiscrepanc
                 discrepancyInfo?.categories?.[category] ?? false,
                 Boolean(getDiscrepancyInfoFunc) // only show discrepancies if function exists
             );
-console.log("[WTFWTFWTFWTFWTFWTFWTFWTFWTFWTFWTFWTFWTFWTFWTFWTFWTFWTFWTFWTFWTF]");
-            console.log(selectionStatus);
 
             cell.appendChild(selectionStatus);
             row.appendChild(cell);
