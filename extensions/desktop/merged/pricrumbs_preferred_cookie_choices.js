@@ -71,7 +71,14 @@ async function init() {
 export async function savePreference(domain, category, value) {
     try {
         const prefs = await getParticipantCookiesPreferences();
-        const key = domain.originalDomain || domain.domain;
+        const key = (domain.originalDomain || domain.domain || "")
+            .trim()
+            .toLowerCase()
+            .replace(/^https?:\/\//, "")
+            .split("/")[0]
+            .replace(/^\.+/, "")
+            .replace(/^www\./, "")
+            .replace(/\.+$/, "");
 
         // Find existing entry
         let entry = prefs.find(p => p.domain === key);

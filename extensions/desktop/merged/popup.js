@@ -1898,7 +1898,15 @@ document.addEventListener('DOMContentLoaded', async () => {
       // Attempt to get previously stored cookies and their domains
       const fetchedCookiesFromStorage = await getCookiesAndDomainsFromStorage();
 
-      if (fetchedCookiesFromStorage) {
+      if (Array.isArray(fetchedCookiesFromStorage) && fetchedCookiesFromStorage.length > 0) {
+        // Older runs may have the legacy cookiesAndDomains cache without the newer
+        // cookieData/consentDomainData/browsingHistoryData keys needed by screening.
+        const existingCookieData = await getCookieData();
+        if (!Array.isArray(existingCookieData) || existingCookieData.length === 0) {
+          console.log("Backfilling cookieData from cached cookiesAndDomains records");
+          await storeCookiesInStorage(fetchedCookiesFromStorage);
+        }
+
         // If cookies exist in storage, mark installation as ready and display them
         setInstallationWelcomeReady(true);
         displayCookies(fetchedCookiesFromStorage);

@@ -154,6 +154,110 @@ export function calculateDaysRemaining(expirationDate) {
     return `${diffDays} more days`;
 }
 
+const PARTICIPANT_PREFERENCE_CATEGORIES = ["functional", "performance", "advertising"];
+
+export function normalizeDomainForMatching(domain) {
+    if (typeof domain !== "string") return "";
+
+    let normalized = domain.trim().toLowerCase();
+    if (!normalized) return "";
+
+    normalized = normalized.replace(/^https?:\/\//, "");
+    normalized = normalized.split("/")[0];
+    normalized = normalized.replace(/^\.+/, "");
+    normalized = normalized.replace(/\.+$/, "");
+    if (normalized.startsWith("www.")) {
+        normalized = normalized.slice(4);
+    }
+
+    return normalized;
+}
+
+export function getDomainVariantsForMatching(domain) {
+    const normalized = normalizeDomainForMatching(domain);
+    if (!normalized) return [];
+
+    return Array.from(new Set([
+        normalized,
+        `.${normalized}`,
+        `www.${normalized}`,
+        `.www.${normalized}`
+    ]));
+}
+
+export function domainsMatchForLookup(left, right) {
+    const normalizedLeft = normalizeDomainForMatching(left);
+    const normalizedRight = normalizeDomainForMatching(right);
+    return normalizedLeft !== "" && normalizedLeft === normalizedRight;
+}
+
+export function findRecordByDomain(domain, records, candidateFields = ["domain", "originalDomain"]) {
+    if (!Array.isArray(records)) return null;
+
+    return records.find((record) =>
+        candidateFields.some((field) => domainsMatchForLookup(domain, record?.[field]))
+    ) || null;
+}
+
+function normalizeParticipantPreferenceValue(value) {
+    if (value === null || value === undefined || value === "") return null;
+
+    const numericValue = typeof value === "number" ? value : Number(value);
+    return Number.isFinite(numericValue) ? numericValue : null;
+}
+
+function normalizeParticipantPreferenceEntry(entry) {
+    let domain = "";
+    let preferences = null;
+
+    if (Array.isArray(entry)) {
+        domain = entry[0];
+        preferences = entry[1];
+    } else if (entry && typeof entry === "object") {
+        domain = entry.domain;
+        preferences = entry;
+    } else {
+        return null;
+    }
+
+    const canonicalDomain = normalizeDomainForMatching(domain);
+    if (!canonicalDomain) return null;
+
+    const normalized = { domain: canonicalDomain };
+
+    PARTICIPANT_PREFERENCE_CATEGORIES.forEach((category) => {
+        normalized[category] = normalizeParticipantPreferenceValue(preferences?.[category]);
+    });
+
+    return normalized;
+}
+
+function normalizeParticipantCookiesPreferences(preferences) {
+    const normalizedByDomain = new Map();
+
+    (Array.isArray(preferences) ? preferences : []).forEach((entry) => {
+        const normalizedEntry = normalizeParticipantPreferenceEntry(entry);
+        if (!normalizedEntry) return;
+
+        const existingEntry = normalizedByDomain.get(normalizedEntry.domain) || {
+            domain: normalizedEntry.domain,
+            functional: null,
+            performance: null,
+            advertising: null
+        };
+
+        PARTICIPANT_PREFERENCE_CATEGORIES.forEach((category) => {
+            if (normalizedEntry[category] !== null) {
+                existingEntry[category] = normalizedEntry[category];
+            }
+        });
+
+        normalizedByDomain.set(normalizedEntry.domain, existingEntry);
+    });
+
+    return Array.from(normalizedByDomain.values());
+}
+
 export function sendExtensionMessage(payload) {
 
     // Extension page context
@@ -223,33 +327,14 @@ export async function getFavicon(domain) {
 }
 
 export async function getDiscrepancyInfo(domain) {
-    const formattedDomain = extractMainDomainName(domain);
-
-    const domainVariations = [
-        domain,
-        formattedDomain,
-        domain.startsWith('.') ? domain.substring(1) : domain,
-        formattedDomain.startsWith('www.') ? formattedDomain.substring(4) : formattedDomain,
-        domain.startsWith('.') ? domain.substring(1) : '.' + domain
-    ];
-
     // Await the stored discrepancies
     const discrepanciesList = await getWebsitesWithDiscrepancies();
-
-    const discrepancy = discrepanciesList.find(d => {
-        for (const inputVar of domainVariations) {
-            if (d.domain === inputVar ||
-                d.originalDomain === inputVar ||
-                extractMainDomainName(d.originalDomain) === inputVar ||
-                d.domain.replace('www.', '') === inputVar.replace('www.', '') ||
-                d.originalDomain.replace(/^\./, '') === inputVar.replace(/^\./, '')) {
-                return true;
-            }
-        }
-        return false;
-    });
-
-    return discrepancy;
+    return findRecordByDomain(domain, discrepanciesList, [
+        "domain",
+        "originalDomain",
+        "matchedDomain",
+        "canonicalDomain"
+    ]);
 }
 
 // Setter: save discrepancies to storage
@@ -279,7 +364,7 @@ export function getSelectionStatus(domain, category, userPref, hasDiscrepancy, s
     const button = createStatusButton(isAccepted);
     container.appendChild(button);
 
-    if (shouldShowDiscrepancy(isAccepted, category, userPref, showDiscrepancies)) {
+    if (shouldShowDiscrepancy(hasDiscrepancy, isAccepted, category, userPref, showDiscrepancies)) {
         const marker = createDiscrepancyMarker(isAccepted, userPref[category], category);
         container.appendChild(marker);
     }
@@ -337,9 +422,10 @@ function createStatusButton(isAccepted) {
     return button;
 }
 
-function shouldShowDiscrepancy(isAccepted, category, userPref, showDiscrepancies) {
+function shouldShowDiscrepancy(hasDiscrepancy, isAccepted, category, userPref, showDiscrepancies) {
     if (!showDiscrepancies) return false;
     if (!userPref || typeof userPref[category] !== 'number') return false;
+    if (typeof hasDiscrepancy === 'boolean') return hasDiscrepancy;
 
     const userValue = userPref[category];
 
@@ -423,7 +509,18 @@ export async function getParticipantCookiesPreferences() {
             type: "STORAGE_GET",
             key: STORAGE_KEYS.PREFS
         });
-        return result[STORAGE_KEYS.PREFS] || [];
+        const storedPreferences = result?.[STORAGE_KEYS.PREFS] || [];
+        const normalizedPreferences = normalizeParticipantCookiesPreferences(storedPreferences);
+
+        if (JSON.stringify(storedPreferences) !== JSON.stringify(normalizedPreferences)) {
+            await sendExtensionMessage({
+                type: "STORAGE_SET",
+                key: STORAGE_KEYS.PREFS,
+                value: normalizedPreferences
+            });
+        }
+
+        return normalizedPreferences;
     } catch (e) {
         console.error("Failed to get stored preferences", e);
         return [];
@@ -435,7 +532,7 @@ export async function getParticipantCookiesPreferences() {
  * @param {Map<string, Object>} preferencesMap 
  */
 export async function setUserPreferences(preferencesMap) {
-    const arrayToStore = Array.from(preferencesMap.entries());
+    const arrayToStore = normalizeParticipantCookiesPreferences(Array.from(preferencesMap.entries()));
     await sendExtensionMessage({
         type: "STORAGE_SET",
         key: "participantCookiesPreferences",

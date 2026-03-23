@@ -105,7 +105,9 @@ async function getTop1mDomainRankMap() {
 }
 
 function canonicalizeDomain(domain) {
-  let d = (domain || "").trim().toLowerCase();
+  let d = String(domain || "").trim().toLowerCase();
+  d = d.replace(/^https?:\/\//, "");
+  d = d.split("/")[0];
   if (d.startsWith(".")) d = d.slice(1);
   if (d.endsWith(".")) d = d.slice(0, -1);
   if (d.startsWith("www.")) d = d.slice(4);
@@ -535,8 +537,7 @@ function fetchPaginatedHistory(cookieDomain, callback) {
 
 // Standardize domain by removing leading dots and converting to lowercase
 function standardizeDomain(domain) {
-  if (!domain) return '';
-  return domain.replace(/^\.+/, '').toLowerCase();
+  return canonicalizeDomain(domain);
 }
 
 // Improved domain matching for better history correlation
