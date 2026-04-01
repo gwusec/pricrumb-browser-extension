@@ -1072,6 +1072,30 @@ function normalizeActionTakenValue(value) {
       await module.injectScenarioFamiliarityWidget(target);
     }
 
+    async function injectScenarioFollowupTrustworthinessWidget(target) {
+      const module = await import(browser.runtime.getURL("pricrumbs_scenario_familiarity.js"));
+      await module.injectScenarioFollowupWidget(
+        target,
+        "pricrumbs_website_followup_trustworthiness"
+      );
+    }
+
+    async function injectScenarioFollowupUtilityWidget(target) {
+      const module = await import(browser.runtime.getURL("pricrumbs_scenario_familiarity.js"));
+      await module.injectScenarioFollowupWidget(
+        target,
+        "pricrumbs_website_followup_utility"
+      );
+    }
+
+    async function injectScenarioFollowupPrivacyWidget(target) {
+      const module = await import(browser.runtime.getURL("pricrumbs_scenario_familiarity.js"));
+      await module.injectScenarioFollowupWidget(
+        target,
+        "pricrumbs_website_followup_privacy_concerns"
+      );
+    }
+
     const elementMap = {
       "popup": { html: "popup.html", height: "600px" },
       "pricrumbs_popup_hidden": { html: "popup.html", height: "0px" },
@@ -1082,6 +1106,9 @@ function normalizeActionTakenValue(value) {
       "pricrumbs_consent_history_top_websites": { html: "pricrumbs_consent_history_top_websites.html", height: "500px" },
       "pricrumbs_consent_history_bottom_websites": { html: "pricrumbs_consent_history_bottom_websites.html", height: "600px" },
       "pricrumbs_website_familiarity_widget": { inject: injectScenarioFamiliarityWidget },
+      "pricrumbs_website_followup_trustworthiness_widget": { inject: injectScenarioFollowupTrustworthinessWidget },
+      "pricrumbs_website_followup_utility_widget": { inject: injectScenarioFollowupUtilityWidget },
+      "pricrumbs_website_followup_privacy_concerns_widget": { inject: injectScenarioFollowupPrivacyWidget },
       "pricrumbs_website_all_cookies_accepted": { js: getPricrumbsWebsiteAllCookiesAccept },
       "pricrumbs_website_all_cookies_rejected": { js: getPricrumbsWebsiteAllCookiesReject },
       "pricrumbs_website_advertising_cookies_rejected": { js: getPricrumbsWebsiteAllCookiesMixed },

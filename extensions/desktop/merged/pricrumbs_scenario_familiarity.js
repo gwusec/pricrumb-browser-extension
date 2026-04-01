@@ -18,6 +18,30 @@ const FAMILIARITY_OPTIONS = [
     { value: 5, label: "5 - Extremely familiar" }
 ];
 
+const SCENARIO_FOLLOWUP_OPTIONS_BY_FIELD = Object.freeze({
+    pricrumbs_website_followup_trustworthiness: [
+        { value: "1 - Not at all trustworthy", label: "1 - Not at all trustworthy" },
+        { value: "2 - Slightly trustworthy", label: "2 - Slightly trustworthy" },
+        { value: "3 - Somewhat trustworthy", label: "3 - Somewhat trustworthy" },
+        { value: "4 - Moderately trustworthy", label: "4 - Moderately trustworthy" },
+        { value: "5 - Extremely trustworthy", label: "5 - Extremely trustworthy" }
+    ],
+    pricrumbs_website_followup_utility: [
+        { value: "1 - Not at all useful", label: "1 - Not at all useful" },
+        { value: "2 - Slightly useful", label: "2 - Slightly useful" },
+        { value: "3 - Somewhat useful", label: "3 - Somewhat useful" },
+        { value: "4 - Moderately useful", label: "4 - Moderately useful" },
+        { value: "5 - Extremely useful", label: "5 - Extremely useful" }
+    ],
+    pricrumbs_website_followup_privacy_concerns: [
+        { value: "1 - Not at all concerned", label: "1 - Not at all concerned" },
+        { value: "2 - Slightly concerned", label: "2 - Slightly concerned" },
+        { value: "3 - Somewhat concerned", label: "3 - Somewhat concerned" },
+        { value: "4 - Moderately concerned", label: "4 - Moderately concerned" },
+        { value: "5 - Extremely concerned", label: "5 - Extremely concerned" }
+    ]
+});
+
 const PLACEHOLDER_ICON = 'data:image/svg+xml;base64,' + btoa(`
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24">
   <rect width="24" height="24" rx="4" fill="#d1d5db"/>
@@ -36,6 +60,101 @@ function isValidDomainHash(value) {
 function normalizeScenarioFamiliarityAnswer(value) {
     const parsed = typeof value === "number" ? value : Number(value);
     return Number.isFinite(parsed) && parsed >= 1 && parsed <= 5 ? parsed : null;
+}
+
+function getScenarioFollowupOptions(fieldName) {
+    return SCENARIO_FOLLOWUP_OPTIONS_BY_FIELD[fieldName] || [];
+}
+
+function normalizeScenarioFollowupAnswer(value, fieldName) {
+    if (typeof value !== "string") return "";
+    const normalizedValue = value.trim();
+    if (!normalizedValue) return "";
+
+    const options = getScenarioFollowupOptions(fieldName);
+    const allowedValues = new Set(options.map((option) => option.value));
+    return allowedValues.has(normalizedValue) ? normalizedValue : "";
+}
+
+function createEmptyScenarioFollowupState(fieldName) {
+    return {
+        fieldName,
+        familiarDomainHashes: [],
+        familiarCount: 0,
+        answersByHash: {},
+        metadataByHash: {}
+    };
+}
+
+function normalizeScenarioFollowupState(source, fieldName) {
+    const normalizedState = createEmptyScenarioFollowupState(fieldName);
+    const options = getScenarioFollowupOptions(fieldName);
+    if (options.length === 0) {
+        return normalizedState;
+    }
+
+    const familiarDomainHashes = [];
+    const seenHashes = new Set();
+    const rawHashes = Array.isArray(source?.familiarDomainHashes)
+        ? source.familiarDomainHashes
+        : [];
+    rawHashes.forEach((entry) => {
+        const domainHash = normalizeDomainHash(entry);
+        if (!isValidDomainHash(domainHash) || seenHashes.has(domainHash)) return;
+        seenHashes.add(domainHash);
+        familiarDomainHashes.push(domainHash);
+    });
+
+    const familiarHashSet = new Set(familiarDomainHashes);
+    const metadataByHash = {};
+    const rawMetadataByHash =
+        source?.metadataByHash && typeof source.metadataByHash === "object" && !Array.isArray(source.metadataByHash)
+            ? source.metadataByHash
+            : {};
+    familiarDomainHashes.forEach((domainHash) => {
+        const rawMetadata = rawMetadataByHash[domainHash] || {};
+        const rawDomain = typeof rawMetadata?.rawDomain === "string"
+            ? rawMetadata.rawDomain.trim()
+            : "";
+        const displayDomain = typeof rawMetadata?.displayDomain === "string"
+            ? rawMetadata.displayDomain.trim()
+            : "";
+        const faviconDataUrl = typeof rawMetadata?.faviconDataUrl === "string"
+            ? rawMetadata.faviconDataUrl.trim()
+            : "";
+
+        metadataByHash[domainHash] = {
+            rawDomain: rawDomain || displayDomain || domainHash,
+            displayDomain: displayDomain || rawDomain || domainHash,
+            faviconDataUrl
+        };
+    });
+
+    const answersByHash = {};
+    const rawAnswersByHash =
+        source?.answersByHash && typeof source.answersByHash === "object" && !Array.isArray(source.answersByHash)
+            ? source.answersByHash
+            : {};
+    Object.entries(rawAnswersByHash).forEach(([domainHashCandidate, answerCandidate]) => {
+        const domainHash = normalizeDomainHash(domainHashCandidate);
+        if (!familiarHashSet.has(domainHash)) return;
+
+        const answer = normalizeScenarioFollowupAnswer(answerCandidate, fieldName);
+        if (!answer) return;
+        answersByHash[domainHash] = answer;
+    });
+
+    return {
+        fieldName,
+        familiarDomainHashes,
+        familiarCount: familiarDomainHashes.length,
+        answersByHash,
+        metadataByHash
+    };
+}
+
+function toSafeDomId(value) {
+    return String(value).replace(/[^a-z0-9_-]+/gi, "-");
 }
 
 function createEmptyScenarioCandidateMap() {
@@ -459,4 +578,240 @@ export async function injectScenarioFamiliarityWidget(target = null) {
     };
 
     await renderWithLiveState();
+}
+
+function emitScenarioFollowupState(state) {
+    window.postMessage({
+        type: "FROM_EXTENSION_SCENARIO_FOLLOWUP_STATE",
+        payload: {
+            fieldName: state.fieldName,
+            answersByHash: state.answersByHash
+        }
+    }, "*");
+}
+
+function requestScenarioFollowupWidgetState(fieldName) {
+    if (!fieldName) return;
+    window.postMessage({
+        type: "FROM_EXTENSION_SCENARIO_FOLLOWUP_WIDGET_REQUEST",
+        payload: { fieldName }
+    }, "*");
+}
+
+function renderScenarioFollowupLoadingState(shadowRoot, fieldName) {
+    const options = getScenarioFollowupOptions(fieldName);
+    shadowRoot.innerHTML = `
+        <style>${buildStyles()}</style>
+        <div class="wrapper">
+            <table class="loading-table">
+                <thead>
+                    <tr>
+                        <th class="website-col">Website domain</th>
+                        ${options.map((option) => `<th>${escapeHtml(option.label)}</th>`).join("")}
+                    </tr>
+                </thead>
+                <tbody>
+                    ${Array.from({ length: 4 }, () => `
+                        <tr>
+                            <td><span class="loading-pill"></span></td>
+                            ${Array.from({ length: options.length }, () => `<td><span class="loading-pill"></span></td>`).join("")}
+                        </tr>
+                    `).join("")}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
+function buildScenarioFollowupTableRow(state, domainHash) {
+    const options = getScenarioFollowupOptions(state.fieldName);
+    const metadata = state.metadataByHash[domainHash] || {};
+    const checkedValue = typeof state.answersByHash?.[domainHash] === "string"
+        ? state.answersByHash[domainHash]
+        : "";
+    const faviconSource = metadata.faviconDataUrl || PLACEHOLDER_ICON;
+    const displayDomain = metadata.displayDomain || metadata.rawDomain || domainHash;
+    const safeIdPrefix = toSafeDomId(`followup-${state.fieldName}-${domainHash}`);
+
+    return `
+        <tr data-domain-hash="${escapeHtml(domainHash)}">
+            <td class="website-cell">
+                <label class="website-label" for="${escapeHtml(`${safeIdPrefix}-0`)}">
+                    <img
+                        src="${escapeHtml(faviconSource)}"
+                        alt=""
+                        aria-hidden="true"
+                        data-followup-favicon-hash="${escapeHtml(domainHash)}"
+                    />
+                    <span>${escapeHtml(displayDomain)}</span>
+                </label>
+            </td>
+            ${options.map((option, index) => `
+                <td>
+                    <label class="radio-option" for="${escapeHtml(`${safeIdPrefix}-${index}`)}">
+                        <input
+                            type="radio"
+                            id="${escapeHtml(`${safeIdPrefix}-${index}`)}"
+                            name="${escapeHtml(`followup-${toSafeDomId(`${state.fieldName}-${domainHash}`)}`)}"
+                            value="${escapeHtml(option.value)}"
+                            data-domain-hash="${escapeHtml(domainHash)}"
+                            data-field-name="${escapeHtml(state.fieldName)}"
+                            ${checkedValue === option.value ? "checked" : ""}
+                        />
+                    </label>
+                </td>
+            `).join("")}
+        </tr>
+    `;
+}
+
+function renderScenarioFollowupTable(shadowRoot, state) {
+    const options = getScenarioFollowupOptions(state.fieldName);
+    if (options.length === 0 || state.familiarDomainHashes.length === 0) {
+        renderEmptyState(shadowRoot);
+        return;
+    }
+
+    shadowRoot.innerHTML = `
+        <style>${buildStyles()}</style>
+        <div class="wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th class="website-col">Website domain</th>
+                        ${options.map((option) => `<th>${escapeHtml(option.label)}</th>`).join("")}
+                    </tr>
+                </thead>
+                <tbody>
+                    ${state.familiarDomainHashes.map((domainHash) => (
+                        buildScenarioFollowupTableRow(state, domainHash)
+                    )).join("")}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
+async function hydrateScenarioFollowupFavicons(shadowRoot, state) {
+    await Promise.all(state.familiarDomainHashes.map(async (domainHash) => {
+        const image = shadowRoot.querySelector(
+            `img[data-followup-favicon-hash="${domainHash}"]`
+        );
+        if (!image) return;
+
+        const metadata = state.metadataByHash?.[domainHash] || {};
+        const currentSource = typeof image.getAttribute("src") === "string"
+            ? image.getAttribute("src")
+            : "";
+        if (metadata.faviconDataUrl && currentSource !== metadata.faviconDataUrl) {
+            image.setAttribute("src", metadata.faviconDataUrl);
+            return;
+        }
+
+        const rawDomain = typeof metadata.rawDomain === "string"
+            ? metadata.rawDomain.trim()
+            : "";
+        if (!rawDomain) return;
+
+        try {
+            const favicon = await getFavicon(rawDomain);
+            if (!favicon) return;
+
+            image.setAttribute("src", favicon);
+            state.metadataByHash[domainHash] = {
+                ...metadata,
+                faviconDataUrl: favicon
+            };
+        } catch (_error) {
+            // Keep the current icon.
+        }
+    }));
+}
+
+export async function injectScenarioFollowupWidget(target = null, fieldName = "") {
+    if (!target) return;
+    if (getScenarioFollowupOptions(fieldName).length === 0) return;
+
+    let container = target.querySelector(".ext-injected-container");
+    if (!container) {
+        container = document.createElement("div");
+        container.className = "ext-injected-container";
+        target.innerHTML = "";
+        target.appendChild(container);
+    }
+
+    let shadowRoot = container.shadowRoot;
+    if (!shadowRoot) {
+        shadowRoot = container.attachShadow({ mode: "open" });
+    }
+
+    const widgetState = createEmptyScenarioFollowupState(fieldName);
+
+    const renderWithCurrentState = () => {
+        renderScenarioFollowupTable(shadowRoot, widgetState);
+        if (widgetState.familiarCount > 0) {
+            queueMicrotask(() => {
+                void hydrateScenarioFollowupFavicons(shadowRoot, widgetState);
+            });
+        }
+    };
+
+    const applyIncomingState = (payload) => {
+        const normalizedState = normalizeScenarioFollowupState(payload, fieldName);
+        widgetState.familiarDomainHashes = normalizedState.familiarDomainHashes;
+        widgetState.familiarCount = normalizedState.familiarCount;
+        widgetState.answersByHash = normalizedState.answersByHash;
+        widgetState.metadataByHash = normalizedState.metadataByHash;
+        renderWithCurrentState();
+    };
+
+    const changeListenerFlag = `scenarioFollowupChangeListenerAttached_${fieldName}`;
+    if (!container.dataset[changeListenerFlag]) {
+        shadowRoot.addEventListener("change", (event) => {
+            const input = event.target;
+            if (!(input instanceof HTMLInputElement) || input.type !== "radio") return;
+
+            const inputFieldName = typeof input.getAttribute("data-field-name") === "string"
+                ? input.getAttribute("data-field-name").trim()
+                : "";
+            if (inputFieldName !== fieldName) return;
+
+            const domainHash = normalizeDomainHash(input.getAttribute("data-domain-hash"));
+            const answer = normalizeScenarioFollowupAnswer(input.value, fieldName);
+            if (!isValidDomainHash(domainHash) || !answer) return;
+            if (!widgetState.familiarDomainHashes.includes(domainHash)) return;
+
+            widgetState.answersByHash = {
+                ...widgetState.answersByHash,
+                [domainHash]: answer
+            };
+            emitScenarioFollowupState(widgetState);
+        });
+        container.dataset[changeListenerFlag] = "true";
+    }
+
+    if (!container.__scenarioFollowupMessageHandlers) {
+        container.__scenarioFollowupMessageHandlers = {};
+    }
+
+    if (!container.__scenarioFollowupMessageHandlers[fieldName]) {
+        const handleSurveyStateMessage = (event) => {
+            if (event.source !== window) return;
+            if (event.data?.type !== "FROM_SURVEY_SCENARIO_FOLLOWUP_STATE") return;
+
+            const payload = event.data?.payload || {};
+            if (payload.fieldName !== fieldName) return;
+
+            applyIncomingState(payload);
+        };
+
+        window.addEventListener("message", handleSurveyStateMessage);
+        container.__scenarioFollowupMessageHandlers[fieldName] = handleSurveyStateMessage;
+    }
+
+    renderScenarioFollowupLoadingState(shadowRoot, fieldName);
+
+    requestScenarioFollowupWidgetState(fieldName);
+    setTimeout(() => requestScenarioFollowupWidgetState(fieldName), 500);
+    setTimeout(() => requestScenarioFollowupWidgetState(fieldName), 1200);
 }

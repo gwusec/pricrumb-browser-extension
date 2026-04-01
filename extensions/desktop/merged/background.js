@@ -47,7 +47,7 @@ const SCENARIO_GROUP_NAMES = [
   "ad_cookies_rejected",
   "default_cookies"
 ];
-const MAX_SCENARIO_FAMILIARITY_CANDIDATES_PER_GROUP = 4;
+const MAX_SCENARIO_FAMILIARITY_CANDIDATES_PER_GROUP = 3;
 const SCENARIO_DISPLAY_DOMAIN_TRIM_ANCHORS = new Set([
   "com",
   "org",
@@ -1738,3 +1738,4 @@ ext.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
 
 });
+
