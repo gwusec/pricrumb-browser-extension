@@ -162,6 +162,21 @@ document.addEventListener('DOMContentLoaded', async () => {
   console.log(`[pricrumbs] Total cookie names to monitor: ${cookieNames.length}`);
 
   let fetchedCookies = [];
+  const isDebugMode = new URLSearchParams(window.location.search).get("debug") === "1";
+
+  function configureDebugControlsVisibility() {
+    if (document.body) {
+      document.body.classList.toggle("debug-mode", isDebugMode);
+    }
+
+    const debugControlsEl = document.getElementById("debugControls");
+    if (!debugControlsEl) return;
+
+    debugControlsEl.style.display = isDebugMode ? "block" : "none";
+    debugControlsEl.setAttribute("aria-hidden", isDebugMode ? "false" : "true");
+  }
+
+  configureDebugControlsVisibility();
 
   function setInstallationWelcomeReady(isReady, loadingText) {
     const loadingMessageEl = document.getElementById("historyLoadingMessage");
@@ -2030,7 +2045,10 @@ document.addEventListener('DOMContentLoaded', async () => {
    * Handles downloading the cookies as a JSON file.
    */
   function setupDownloadCookiesListener() {
-    document.getElementById("download").addEventListener("click", async () => {
+    const downloadButton = document.getElementById("download");
+    if (!downloadButton) return;
+
+    downloadButton.addEventListener("click", async () => {
       if (fetchedCookies.length === 0) {
         alert("No cookies available to download.");
         return;
@@ -2073,7 +2091,10 @@ document.addEventListener('DOMContentLoaded', async () => {
    * Handles downloading the table data as a CSV file.
    */
   function setupDownloadTableListener() {
-    document.getElementById("downloadTable").addEventListener("click", () => {
+    const downloadTableButton = document.getElementById("downloadTable");
+    if (!downloadTableButton) return;
+
+    downloadTableButton.addEventListener("click", () => {
       if (fetchedCookies.length === 0) {
         alert("No cookies available to download.");
         return;
@@ -2524,9 +2545,16 @@ async function setBrowsingHistory(historyData) {
   /**
    * Sets up event listeners for the popup buttons.
    */
+  function addClickListenerIfPresent(elementId, handler) {
+    const element = document.getElementById(elementId);
+    if (!element) return false;
+    element.addEventListener("click", handler);
+    return true;
+  }
+
   function setupEventListeners() {
     // Refresh button to fetch and display cookies
-    document.getElementById("refresh").addEventListener("click", fetchAndDisplayCookies);
+    addClickListenerIfPresent("refresh", fetchAndDisplayCookies);
 
     // Download Cookies button to download cookies as JSON
     setupDownloadCookiesListener();
