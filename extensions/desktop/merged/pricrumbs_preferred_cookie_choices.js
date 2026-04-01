@@ -9,6 +9,7 @@ const CATEGORY_LABELS = {
     functional: "Extra Functionality Cookies",
     advertising: "Personalized Advertising"
 };
+const HEADER_READY_TIMEOUT_MS = 1200;
 
 // ============================
 // STATE
@@ -17,7 +18,10 @@ const state = {
     domains: [],
     domainLookup: new Map(),
     index: 0,
-    selections: {} // session selections for UI
+    selections: {}, // session selections for UI
+    renderToken: 0,
+    isInteractionLocked: false,
+    isSelectionPending: false
 };
 
 // ============================
@@ -34,6 +38,7 @@ function cacheDOM() {
     DOM.currentDomain = document.getElementById("currentDomain");
     DOM.currentDomainName = document.getElementById("currentDomainName");
     DOM.cookieType = document.getElementById("currentCookieType");
+    DOM.answerLockHint = document.getElementById("answerLockHint");
 
     DOM.previousButton = document.getElementById("previousButton");
     DOM.progressFill = document.querySelector(".progress-fill");
@@ -173,7 +178,7 @@ async function loadCookies(category) {
         if (DOM.totalDomains) DOM.totalDomains.textContent = state.domains.length;
 
         initializeSelections(category);
-        renderDomain(category);
+        void renderDomain(category);
 
     } catch (e) {
         console.error("Failed to load cookies", e);
@@ -226,48 +231,156 @@ function initializeSelections(category) {
 // ============================
 // UI RENDERING
 // ============================
-function renderDomain(category) {
+async function renderDomain(category) {
     const domain = state.domains[state.index];
     if (!domain) return;
 
-    renderDomainHeader(domain, getFavicon, category);
+    const token = ++state.renderToken;
+
+    setInteractionLock(true, "Loading website details...");
     renderProgress();
     renderScale(domain, category);
+
+    await renderDomainHeader(domain, getFavicon, category, token);
+    if (token !== state.renderToken) return;
+
+    if (!state.isSelectionPending) {
+        setInteractionLock(false);
+    }
 }
 
-async function renderDomainHeader(domain, getFaviconFunc, category) {
+async function renderDomainHeader(domain, getFaviconFunc, category, token) {
     if (!DOM.currentDomainName) return;
 
+    const formattedDomain = formatDomain(domain.domain);
     const wrapper = document.createElement("div");
     wrapper.style.display = "inline-flex";
     wrapper.style.alignItems = "center";
     wrapper.style.gap = "12px";
 
-    const favicon = document.createElement("img");
-    favicon.style.width = "24px";
-    favicon.style.height = "24px";
-    favicon.onerror = () => favicon.remove();
-
-    const formattedDomain = formatDomain(domain.domain);
-    favicon.src = `https://icons.duckduckgo.com/ip3/${formattedDomain}.ico`;
-
-    if (getFaviconFunc) {
-        try {
-            const realFavicon = await getFaviconFunc(formattedDomain);
-            if (realFavicon) favicon.src = realFavicon;
-        } catch (e) {
-            console.warn("Failed to load favicon for", formattedDomain, e);
-        }
-    }
+    const placeholder = document.createElement("span");
+    placeholder.textContent = "?";
+    Object.assign(placeholder.style, {
+        display: "inline-flex",
+        width: "24px",
+        height: "24px",
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: "6px",
+        backgroundColor: "#e2e8f0",
+        color: "#475569",
+        fontSize: "11px",
+        fontWeight: "700",
+        flexShrink: "0"
+    });
 
     const name = document.createElement("span");
     name.textContent = domain.domain;
 
-    wrapper.append(favicon, name);
+    wrapper.append(placeholder, name);
     DOM.currentDomainName.innerHTML = "";
     DOM.currentDomainName.appendChild(wrapper);
 
     if (DOM.cookieType) DOM.cookieType.textContent = CATEGORY_LABELS[category] || category;
+    postHeight();
+
+    const faviconUrl = await resolveFaviconWithTimeout(formattedDomain, getFaviconFunc, HEADER_READY_TIMEOUT_MS);
+    if (token !== state.renderToken || !faviconUrl) return;
+
+    const favicon = document.createElement("img");
+    favicon.src = faviconUrl;
+    favicon.alt = "";
+    Object.assign(favicon.style, {
+        width: "24px",
+        height: "24px",
+        borderRadius: "6px",
+        objectFit: "cover",
+        flexShrink: "0"
+    });
+    favicon.onerror = () => favicon.remove();
+
+    if (placeholder.isConnected) {
+        wrapper.replaceChild(favicon, placeholder);
+        postHeight();
+    }
+}
+
+function setInteractionLock(isLocked, hintText = "") {
+    state.isInteractionLocked = Boolean(isLocked);
+
+    if (DOM.answerLockHint) {
+        DOM.answerLockHint.textContent = isLocked ? hintText : "";
+        DOM.answerLockHint.style.display = isLocked && hintText ? "block" : "none";
+    }
+
+    updateScaleButtonInteractivity();
+    updatePreviousButtonState();
+    postHeight();
+}
+
+function updateScaleButtonInteractivity() {
+    if (!DOM.toggleContainer) return;
+    const shouldDisable = state.isInteractionLocked || state.isSelectionPending;
+    DOM.toggleContainer.querySelectorAll(".scale-btn").forEach((btn) => {
+        btn.disabled = shouldDisable;
+    });
+}
+
+function updatePreviousButtonState() {
+    if (!DOM.previousButton) return;
+    DOM.previousButton.disabled = state.index === 0 || state.isSelectionPending;
+}
+
+function waitForImageLoad(src) {
+    return new Promise((resolve) => {
+        if (!src) {
+            resolve(false);
+            return;
+        }
+
+        const probe = new Image();
+        probe.onload = () => resolve(true);
+        probe.onerror = () => resolve(false);
+        probe.src = src;
+    });
+}
+
+function withTimeout(promise, timeoutMs) {
+    return new Promise((resolve) => {
+        const timeoutId = setTimeout(() => resolve(null), timeoutMs);
+
+        Promise.resolve(promise)
+            .then((value) => {
+                clearTimeout(timeoutId);
+                resolve(value ?? null);
+            })
+            .catch(() => {
+                clearTimeout(timeoutId);
+                resolve(null);
+            });
+    });
+}
+
+async function resolveFaviconWithTimeout(formattedDomain, getFaviconFunc, timeoutMs) {
+    const fallbackUrl = `https://icons.duckduckgo.com/ip3/${formattedDomain}.ico`;
+
+    const faviconResolution = (async () => {
+        let candidateUrl = fallbackUrl;
+
+        if (getFaviconFunc) {
+            try {
+                const resolved = await getFaviconFunc(formattedDomain);
+                if (resolved) candidateUrl = resolved;
+            } catch (e) {
+                console.warn("Failed to load favicon for", formattedDomain, e);
+            }
+        }
+
+        const loaded = await waitForImageLoad(candidateUrl);
+        return loaded ? candidateUrl : null;
+    })();
+
+    return await withTimeout(faviconResolution, timeoutMs);
 }
 
 function renderProgress() {
@@ -276,16 +389,16 @@ function renderProgress() {
     const percent = ((state.index + 1) / state.domains.length) * 100;
     if (DOM.progressFill) DOM.progressFill.style.width = percent + "%";
 
-    if (DOM.previousButton) DOM.previousButton.disabled = state.index === 0;
+    updatePreviousButtonState();
 }
 
 // ============================
 // SCALE BUTTONS
 // ============================
 const SCALE = [
-    { value: 1, text: "I strongly prefer this website NOT use" },
-    { value: 2, text: "I prefer this website NOT use" },
-    { value: 3, text: "I have no preference" },
+    { value: 1, text: "I strongly prefer this website NOT to use" },
+    { value: 2, text: "I prefer this website NOT to use" },
+    { value: 3, text: "I have no preference regarding" },
     { value: 4, text: "I prefer this website to use" },
     { value: 5, text: "I strongly prefer this website to use" }
 ];
@@ -303,8 +416,9 @@ function renderScale(domain, category) {
         btn.textContent = item.text + " " + label;
         btn.dataset.value = item.value;
         btn.className = "scale-btn";
+        btn.disabled = state.isInteractionLocked || state.isSelectionPending;
 
-        if (current === item.value) applySelectedStyle(btn);
+        if (current === item.value) btn.classList.add("is-selected");
 
         btn.addEventListener("click", () => handleSelection(domain, item.value, category));
 
@@ -312,19 +426,31 @@ function renderScale(domain, category) {
     });
 }
 
-function applySelectedStyle(btn) {
-    btn.style.backgroundColor = "#4c7aaf";
-    btn.style.color = "white";
-    btn.style.borderColor = "#4c7aaf";
-}
-
 // ============================
 // SELECTION HANDLER
 // ============================
 async function handleSelection(domain, value, category) {
+    if (state.isInteractionLocked || state.isSelectionPending) return;
+
+    state.isSelectionPending = true;
+    setInteractionLock(true);
+
     state.selections[domain.domain][category] = value;
-    await savePreference(domain, category, value);
-    nextDomain(category);
+
+    if (DOM.toggleContainer) {
+        DOM.toggleContainer.querySelectorAll(".scale-btn").forEach((btn) => {
+            btn.classList.toggle("is-selected", Number(btn.dataset.value) === value);
+            btn.disabled = true;
+        });
+    }
+
+    try {
+        await savePreference(domain, category, value);
+        nextDomain(category);
+    } finally {
+        state.isSelectionPending = false;
+        updatePreviousButtonState();
+    }
 }
 
 // ============================
@@ -333,16 +459,18 @@ async function handleSelection(domain, value, category) {
 function nextDomain(category) {
     if (state.index < state.domains.length - 1) {
         state.index++;
-        renderDomain(category);
+        void renderDomain(category);
     } else {
         finishCategory();
     }
 }
 
 function showPreviousDomain(category) {
+    if (state.isSelectionPending) return;
+
     if (state.index > 0) {
         state.index--;
-        renderDomain(category);
+        void renderDomain(category);
     }
 }
 
@@ -352,6 +480,8 @@ function showPreviousDomain(category) {
 function finishCategory() {
     if (DOM.questionView) DOM.questionView.style.display = "none";
     if (DOM.completionView) DOM.completionView.style.display = "block";
+    setInteractionLock(false);
+    postHeight();
 }
 
 // ============================
@@ -369,9 +499,10 @@ function postHeight() {
     if (h === lastHeight) return;
     lastHeight = h;
 
+    const embedId = document.body?.dataset?.embedId || DOM.toggleContainer?.getAttribute("id") || "embed";
     window.parent.postMessage({
         type: "PRICRUMBS_EMBED_HEIGHT",
-        payload: { elementId: DOM.toggleContainer.getAttribute("id") || "embed", height: h }
+        payload: { elementId: embedId, height: h }
     }, "*");
 }
 

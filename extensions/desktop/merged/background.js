@@ -38,6 +38,28 @@ let browsingHistoryDataCacheLastUpdated = 0;
 const DOMAIN_HASH_REQUEST_TIMEOUT_MS = 10000;
 const DEFAULT_SURVEY_API_BASE_URL = "https://nets.gwusec.seas.gwu.edu";
 const DEFAULT_DOMAIN_HASH_SERVICE_PATH = "/postsurvey/hash-domains";
+const SCENARIO_FAMILIARITY_CANDIDATES_KEY = "scenarioFamiliarityCandidates";
+const SCENARIO_FAMILIARITY_ANSWERS_KEY = "scenarioFamiliarityAnswers";
+const SELECTED_SCENARIO_DOMAIN_HASHES_KEY = "selectedScenarioDomainHashes";
+const SCENARIO_GROUP_NAMES = [
+  "all_cookies_accepted",
+  "all_cookies_rejected",
+  "ad_cookies_rejected",
+  "default_cookies"
+];
+const MAX_SCENARIO_FAMILIARITY_CANDIDATES_PER_GROUP = 4;
+const SCENARIO_DISPLAY_DOMAIN_TRIM_ANCHORS = new Set([
+  "com",
+  "org",
+  "edu",
+  "gov",
+  "net",
+  "mil",
+  "int",
+  "biz",
+  "info"
+]);
+const faviconDataUrlCache = new Map();
 
 /*
  * Extension lifecycle: installation / update phase
@@ -112,6 +134,19 @@ function canonicalizeDomain(domain) {
   if (d.endsWith(".")) d = d.slice(0, -1);
   if (d.startsWith("www.")) d = d.slice(4);
   return d;
+}
+
+function canonicalizeScenarioDisplayDomain(domain) {
+  const canonical = canonicalizeDomain(domain);
+  if (!canonical) return "";
+
+  const labels = canonical.split(".").filter(Boolean);
+  if (!labels.length) return "";
+
+  const anchorIndex = labels.findIndex((label) => SCENARIO_DISPLAY_DOMAIN_TRIM_ANCHORS.has(label));
+  if (anchorIndex === -1) return canonical;
+
+  return labels.slice(0, anchorIndex + 1).join(".");
 }
 
 function normalizeHttpUrl(value) {
@@ -248,6 +283,458 @@ async function hashDomains(domains, { strict = false } = {}) {
   }
 
   return result;
+}
+
+function normalizeConsentBoolean(value) {
+  if (value === true || value === 1) return true;
+  if (value === false || value === 0) return false;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "yes" || normalized === "true" || normalized === "1") return true;
+    if (normalized === "no" || normalized === "false" || normalized === "0") return false;
+  }
+  return null;
+}
+
+function normalizeActionTakenValue(value) {
+  if (value === true) return "yes";
+  if (value === false) return "no";
+  if (typeof value === "number") {
+    if (value === 1) return "yes";
+    if (value === 0) return "no";
+  }
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "yes" || normalized === "true" || normalized === "1") return "yes";
+    if (normalized === "no" || normalized === "false" || normalized === "0") return "no";
+    if (normalized.startsWith("yes")) return "yes";
+    if (normalized.startsWith("no")) return "no";
+  }
+  return "unknown";
+}
+
+function resolveActionTakenValue(record) {
+  if (!record || typeof record !== "object") return "unknown";
+  return normalizeActionTakenValue(
+    record.actionTaken ??
+    record["action taken"] ??
+    record.action_taken
+  );
+}
+
+function normalizeScenarioDomainHash(value) {
+  return typeof value === "string" ? value.trim().toLowerCase() : "";
+}
+
+function createEmptyScenarioCandidateMap() {
+  return Object.fromEntries(SCENARIO_GROUP_NAMES.map((groupName) => [groupName, []]));
+}
+
+function isValidScenarioFamiliarityCandidateEntry(entry) {
+  const domainHash = normalizeScenarioDomainHash(entry?.domainHash);
+  const rawDomain = typeof entry?.rawDomain === "string" ? entry.rawDomain.trim() : "";
+  const displayDomain = typeof entry?.displayDomain === "string" ? entry.displayDomain.trim() : "";
+  if (!isHexDomainHash(domainHash, [64]) || !rawDomain || !displayDomain) return false;
+  return canonicalizeScenarioDisplayDomain(rawDomain) === displayDomain;
+}
+
+function hasScenarioFamiliarityCandidates(candidatesByCondition) {
+  if (!candidatesByCondition || typeof candidatesByCondition !== "object") return false;
+
+  if (!SCENARIO_GROUP_NAMES.every((groupName) => Array.isArray(candidatesByCondition[groupName]))) {
+    return false;
+  }
+
+  let hasAnyCandidates = false;
+  const hasValidShape = SCENARIO_GROUP_NAMES.every((groupName) => {
+    const entries = candidatesByCondition[groupName];
+    if (!entries.length) return true;
+
+    hasAnyCandidates = true;
+    const seenHashes = new Set();
+
+    return entries.every((entry) => {
+      if (!isValidScenarioFamiliarityCandidateEntry(entry)) return false;
+
+      const domainHash = normalizeScenarioDomainHash(entry.domainHash);
+      if (seenHashes.has(domainHash)) return false;
+      seenHashes.add(domainHash);
+      return true;
+    });
+  });
+
+  return hasValidShape && hasAnyCandidates;
+}
+
+function parseStoredCookieArray(value) {
+  if (Array.isArray(value)) return value;
+  if (typeof value !== "string") return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function createEmptySelectedScenarioDomainHashes() {
+  return Object.fromEntries(SCENARIO_GROUP_NAMES.map((groupName) => [groupName, null]));
+}
+
+function normalizeSelectedScenarioDomainHashes(value) {
+  const normalized = createEmptySelectedScenarioDomainHashes();
+  if (!value || typeof value !== "object") return normalized;
+
+  SCENARIO_GROUP_NAMES.forEach((groupName) => {
+    const domainHash = normalizeScenarioDomainHash(value[groupName]);
+    normalized[groupName] = isHexDomainHash(domainHash, [64]) ? domainHash : null;
+  });
+
+  return normalized;
+}
+
+function normalizeScenarioFamiliarityAnswerValue(value) {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value >= 1 && value <= 5 ? value : null;
+  }
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed >= 1 && parsed <= 5 ? parsed : null;
+  }
+  return null;
+}
+
+function normalizeScenarioFamiliarityAnswers(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+
+  const normalized = {};
+  Object.entries(value).forEach(([domainHashCandidate, answerCandidate]) => {
+    const domainHash = normalizeScenarioDomainHash(domainHashCandidate);
+    const answer = normalizeScenarioFamiliarityAnswerValue(answerCandidate);
+    if (!isHexDomainHash(domainHash, [64]) || answer === null) return;
+    normalized[domainHash] = answer;
+  });
+
+  return normalized;
+}
+
+function getScenarioFamiliarityCandidateCount(candidatesByCondition) {
+  return SCENARIO_GROUP_NAMES.reduce(
+    (count, groupName) => count + (Array.isArray(candidatesByCondition?.[groupName]) ? candidatesByCondition[groupName].length : 0),
+    0
+  );
+}
+
+function pruneScenarioFamiliarityAnswers(candidatesByCondition, answersByHash) {
+  const normalizedAnswers = normalizeScenarioFamiliarityAnswers(answersByHash);
+  const validHashes = new Set();
+
+  SCENARIO_GROUP_NAMES.forEach((groupName) => {
+    const candidates = Array.isArray(candidatesByCondition?.[groupName])
+      ? candidatesByCondition[groupName]
+      : [];
+    candidates.forEach((candidate) => {
+      const domainHash = normalizeScenarioDomainHash(candidate?.domainHash);
+      if (isHexDomainHash(domainHash, [64])) {
+        validHashes.add(domainHash);
+      }
+    });
+  });
+
+  const pruned = {};
+  Object.entries(normalizedAnswers).forEach(([domainHash, answer]) => {
+    if (validHashes.has(domainHash)) {
+      pruned[domainHash] = answer;
+    }
+  });
+
+  return pruned;
+}
+
+function isScenarioFamiliarityComplete(candidatesByCondition, answersByHash) {
+  const candidateCount = getScenarioFamiliarityCandidateCount(candidatesByCondition);
+  if (candidateCount === 0) return true;
+
+  const prunedAnswers = pruneScenarioFamiliarityAnswers(candidatesByCondition, answersByHash);
+  return SCENARIO_GROUP_NAMES.every((groupName) => {
+    const candidates = Array.isArray(candidatesByCondition?.[groupName])
+      ? candidatesByCondition[groupName]
+      : [];
+    return candidates.every((candidate) => {
+      const domainHash = normalizeScenarioDomainHash(candidate?.domainHash);
+      return isHexDomainHash(domainHash, [64]) && prunedAnswers[domainHash] !== undefined;
+    });
+  });
+}
+
+function getScenarioConditionForCookie(cookie) {
+  const actionTaken = resolveActionTakenValue(cookie);
+  if (actionTaken === "no") return "default_cookies";
+  if (actionTaken !== "yes") return null;
+
+  const functional = normalizeConsentBoolean(cookie?.categories?.functional ?? cookie?.functional);
+  const performance = normalizeConsentBoolean(cookie?.categories?.performance ?? cookie?.performance);
+  const advertising = normalizeConsentBoolean(cookie?.categories?.advertising ?? cookie?.advertising);
+
+  if (functional === true && performance === true && advertising === true) {
+    return "all_cookies_accepted";
+  }
+  if (functional === false && performance === false && advertising === false) {
+    return "all_cookies_rejected";
+  }
+  if (functional === true && performance === true && advertising === false) {
+    return "ad_cookies_rejected";
+  }
+
+  return null;
+}
+
+function getScenarioCandidateSortKey(entry) {
+  return [
+    -(entry.visitCount || 0),
+    entry.rawDomain || "",
+    entry.domainHash || ""
+  ];
+}
+
+function compareScenarioCandidates(a, b) {
+  const [aVisits, aDomain, aHash] = getScenarioCandidateSortKey(a);
+  const [bVisits, bDomain, bHash] = getScenarioCandidateSortKey(b);
+  if (aVisits !== bVisits) return aVisits - bVisits;
+  const domainCompare = aDomain.localeCompare(bDomain);
+  if (domainCompare !== 0) return domainCompare;
+  return aHash.localeCompare(bHash);
+}
+
+async function fetchFaviconAsDataURL(url) {
+  if (typeof url !== "string" || !url.trim()) return null;
+  if (faviconDataUrlCache.has(url)) {
+    return faviconDataUrlCache.get(url);
+  }
+
+  const fetchPromise = (async () => {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) return null;
+      const blob = await response.blob();
+      return await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch {
+      return null;
+    }
+  })();
+
+  faviconDataUrlCache.set(url, fetchPromise);
+  return fetchPromise;
+}
+
+async function withTimeout(promise, timeoutMs) {
+  return await new Promise((resolve) => {
+    const timeoutId = setTimeout(() => resolve(null), timeoutMs);
+    Promise.resolve(promise)
+      .then((value) => {
+        clearTimeout(timeoutId);
+        resolve(value ?? null);
+      })
+      .catch(() => {
+        clearTimeout(timeoutId);
+        resolve(null);
+      });
+  });
+}
+
+async function resolveFaviconDataUrlForDomain(domain) {
+  const canonicalDomain = canonicalizeDomain(domain);
+  if (!canonicalDomain) return null;
+
+  try {
+    const tabs = await ext.tabs.query({});
+    const matchingTab = tabs.find((tab) => {
+      if (!tab?.url || !tab?.favIconUrl) return false;
+      try {
+        return canonicalizeDomain(new URL(tab.url).hostname) === canonicalDomain;
+      } catch {
+        return false;
+      }
+    });
+    if (matchingTab?.favIconUrl) {
+      const faviconFromTab = await fetchFaviconAsDataURL(matchingTab.favIconUrl);
+      if (faviconFromTab) return faviconFromTab;
+    }
+  } catch (_error) {
+    // Ignore tab query errors and continue with network fallbacks.
+  }
+
+  try {
+    const response = await fetch(`https://${canonicalDomain}`);
+    if (response.ok) {
+      const html = await response.text();
+      const match = html.match(/<link[^>]+rel=["'](?:shortcut )?icon["'][^>]*>/i);
+      if (match) {
+        const hrefMatch = match[0].match(/href=["']([^"']+)["']/i);
+        if (hrefMatch) {
+          const iconUrl = new URL(hrefMatch[1], `https://${canonicalDomain}/`).toString();
+          const faviconFromMarkup = await fetchFaviconAsDataURL(iconUrl);
+          if (faviconFromMarkup) return faviconFromMarkup;
+        }
+      }
+    }
+  } catch (_error) {
+    // Ignore fetch errors and continue to favicon.ico fallback.
+  }
+
+  return fetchFaviconAsDataURL(`https://${canonicalDomain}/favicon.ico`);
+}
+
+async function getScenarioCandidateSourceData() {
+  const stored = await ext.storage.local.get([
+    "cookieData",
+    "cookiesAndDomains",
+    "browsingHistoryData"
+  ]);
+
+  const cookieData = Array.isArray(stored.cookieData) && stored.cookieData.length > 0
+    ? stored.cookieData
+    : parseStoredCookieArray(stored.cookiesAndDomains);
+  let browsingHistoryData = Array.isArray(stored.browsingHistoryData)
+    ? stored.browsingHistoryData
+    : [];
+
+  if (browsingHistoryData.length === 0 && cookieData.length > 0) {
+    browsingHistoryData = await getBrowsingHistoryData(false).catch(() => []);
+  }
+
+  return {
+    cookieData: Array.isArray(cookieData) ? cookieData : [],
+    browsingHistoryData: Array.isArray(browsingHistoryData) ? browsingHistoryData : []
+  };
+}
+
+async function buildScenarioFamiliarityCandidates() {
+  const { cookieData, browsingHistoryData } = await getScenarioCandidateSourceData();
+  const visitCountByHash = new Map(
+    (Array.isArray(browsingHistoryData) ? browsingHistoryData : [])
+      .map((record) => [normalizeScenarioDomainHash(record?.domainHash), Number(record?.numberOfVisits) || 0])
+      .filter(([domainHash]) => isHexDomainHash(domainHash, [64]))
+  );
+  const pendingEntries = [];
+  const missingHashDomains = new Set();
+
+  cookieData.forEach((cookie) => {
+    const groupName = getScenarioConditionForCookie(cookie);
+    if (!groupName) return;
+
+    const rawDomain = canonicalizeDomain(cookie?.domain || cookie?.originalDomain || cookie?.url || "");
+    if (!rawDomain) return;
+
+    const domainHash = normalizeScenarioDomainHash(cookie?.domainHash);
+    const entry = {
+      groupName,
+      rawDomain,
+      domainHash: isHexDomainHash(domainHash, [64]) ? domainHash : "",
+      visitCount: Number(cookie?.totalVisitCount) || Number(cookie?.numberOfVisits) || 0
+    };
+
+    if (!entry.domainHash) {
+      missingHashDomains.add(rawDomain);
+    }
+
+    pendingEntries.push(entry);
+  });
+
+  const missingHashMap = missingHashDomains.size > 0
+    ? await hashDomains(Array.from(missingHashDomains), { strict: false }).catch(() => new Map())
+    : new Map();
+  const dedupedGlobalByDisplayDomain = new Map();
+
+  pendingEntries.forEach((entry) => {
+    const domainHash = entry.domainHash || missingHashMap.get(entry.rawDomain) || "";
+    if (!isHexDomainHash(domainHash, [64])) return;
+
+    const visitCount = Math.max(entry.visitCount, visitCountByHash.get(domainHash) || 0);
+    const displayDomain = canonicalizeScenarioDisplayDomain(entry.rawDomain);
+    if (!displayDomain) return;
+
+    const normalizedEntry = {
+      groupName: entry.groupName,
+      domainHash,
+      rawDomain: entry.rawDomain,
+      displayDomain,
+      faviconDataUrl: null,
+      visitCount
+    };
+
+    const existingEntry = dedupedGlobalByDisplayDomain.get(displayDomain);
+    if (!existingEntry || compareScenarioCandidates(normalizedEntry, existingEntry) < 0) {
+      dedupedGlobalByDisplayDomain.set(displayDomain, normalizedEntry);
+    }
+  });
+
+  const dedupedByGroup = Object.fromEntries(
+    SCENARIO_GROUP_NAMES.map((groupName) => [groupName, []])
+  );
+  dedupedGlobalByDisplayDomain.forEach((entry) => {
+    if (dedupedByGroup[entry.groupName]) {
+      dedupedByGroup[entry.groupName].push(entry);
+    }
+  });
+
+  const candidatesByCondition = createEmptyScenarioCandidateMap();
+
+  SCENARIO_GROUP_NAMES.forEach((groupName) => {
+    candidatesByCondition[groupName] = dedupedByGroup[groupName]
+      .sort(compareScenarioCandidates)
+      .slice(0, MAX_SCENARIO_FAMILIARITY_CANDIDATES_PER_GROUP)
+      .map((entry) => ({
+        domainHash: entry.domainHash,
+        rawDomain: entry.rawDomain,
+        displayDomain: entry.displayDomain,
+        faviconDataUrl: null
+      }));
+  });
+
+  await ext.storage.local.set({
+    [SCENARIO_FAMILIARITY_CANDIDATES_KEY]: candidatesByCondition
+  });
+
+  return candidatesByCondition;
+}
+
+async function getScenarioFamiliarityStateResponse(forceRefresh = false) {
+  let candidatesByCondition = createEmptyScenarioCandidateMap();
+
+  if (!forceRefresh) {
+    const storedCandidates = await ext.storage.local.get(SCENARIO_FAMILIARITY_CANDIDATES_KEY);
+    const cachedCandidates = storedCandidates?.[SCENARIO_FAMILIARITY_CANDIDATES_KEY];
+    if (hasScenarioFamiliarityCandidates(cachedCandidates)) {
+      candidatesByCondition = cachedCandidates;
+    }
+  }
+
+  if (!hasScenarioFamiliarityCandidates(candidatesByCondition)) {
+    candidatesByCondition = await buildScenarioFamiliarityCandidates();
+  }
+
+  const storedAnswers = await ext.storage.local.get(SCENARIO_FAMILIARITY_ANSWERS_KEY);
+  const answersByHash = pruneScenarioFamiliarityAnswers(
+    candidatesByCondition,
+    storedAnswers?.[SCENARIO_FAMILIARITY_ANSWERS_KEY]
+  );
+
+  await ext.storage.local.set({
+    [SCENARIO_FAMILIARITY_ANSWERS_KEY]: answersByHash
+  });
+
+  return {
+    candidatesByCondition,
+    answersByHash,
+    candidateCount: getScenarioFamiliarityCandidateCount(candidatesByCondition),
+    complete: isScenarioFamiliarityComplete(candidatesByCondition, answersByHash)
+  };
 }
 
 // Opens the popup.html when the extension icon is clicked
@@ -718,7 +1205,7 @@ async function getBrowsingHistoryData(forceRefresh = false) {
   const hashMap = await hashDomains(domains, { strict: true });
   const browsingHistoryData = Array.from(domainStats.entries()).map(([domain, stats]) => ({
     domainHash: hashMap.get(domain) || null,
-    domainRankRange: rankMap.get(domain) || "100000+",
+    domainRankRange: rankMap.get(domain) || "1000000+",
     numberOfVisits: stats.numberOfVisits,
     dates: Array.from(stats.datesSet).sort()
   }));
@@ -859,7 +1346,7 @@ ext.runtime.onMessage.addListener((request, sender, sendResponse) => {
           const canonicalDomain = canonicalizeDomain(cookie.domain);
           return {
             ...cookie,
-            domainRankRange: canonicalDomain ? (rankMap.get(canonicalDomain) || "100000+") : null,
+            domainRankRange: canonicalDomain ? (rankMap.get(canonicalDomain) || "1000000+") : null,
             domainHash: canonicalDomain ? (hashMap.get(canonicalDomain) || null) : null
           };
         });
@@ -958,8 +1445,8 @@ ext.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const rankMap = await getTop1mDomainRankMap();
 
 
-        const module = await import(browser.runtime.getURL("helper_functions.js"));
-        const userPreferences = await getParticipantCookiesPreferences();
+        const helperModule = await import(browser.runtime.getURL("helper_functions.js"));
+        const userPreferences = await helperModule.getParticipantCookiesPreferences();
         // Convert preferences array to Map for faster lookups
         const prefsMap = new Map(
           userPreferences.map(pref => [pref.domain, {
@@ -989,7 +1476,7 @@ ext.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
           return {
             domainHash: domainHash || matchedCookie?.domainHash || null,
-            trancoRank: rankMap.get(canonicalDomain) || matchedCookie?.domainRankRange || "100000+",
+            trancoRank: rankMap.get(canonicalDomain) || matchedCookie?.domainRankRange || "1000000+",
             functional: prefs.functional ?? null,
             performance: prefs.performance ?? null,
             advertising: prefs.advertising ?? null
@@ -1013,6 +1500,98 @@ ext.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
 
+  if (request.action === "getScenarioFamiliarityCandidates") {
+    (async () => {
+      try {
+        const familiarityState = await getScenarioFamiliarityStateResponse(Boolean(request.forceRefresh));
+        sendResponse({ candidatesByCondition: familiarityState.candidatesByCondition });
+      } catch (error) {
+        console.error("Failed to build scenario familiarity candidates:", error);
+        const stored = await ext.storage.local.get(SCENARIO_FAMILIARITY_CANDIDATES_KEY);
+        sendResponse({
+          candidatesByCondition:
+            stored?.[SCENARIO_FAMILIARITY_CANDIDATES_KEY] || createEmptyScenarioCandidateMap(),
+          error: error.message
+        });
+      }
+    })();
+    return true;
+  }
+
+  if (request.action === "getScenarioFamiliarityState") {
+    (async () => {
+      try {
+        const familiarityState = await getScenarioFamiliarityStateResponse(Boolean(request.forceRefresh));
+        sendResponse(familiarityState);
+      } catch (error) {
+        console.error("Failed to build scenario familiarity state:", error);
+        const stored = await ext.storage.local.get([
+          SCENARIO_FAMILIARITY_CANDIDATES_KEY,
+          SCENARIO_FAMILIARITY_ANSWERS_KEY
+        ]);
+        const candidatesByCondition =
+          stored?.[SCENARIO_FAMILIARITY_CANDIDATES_KEY] || createEmptyScenarioCandidateMap();
+        const answersByHash = pruneScenarioFamiliarityAnswers(
+          candidatesByCondition,
+          stored?.[SCENARIO_FAMILIARITY_ANSWERS_KEY]
+        );
+
+        sendResponse({
+          candidatesByCondition,
+          answersByHash,
+          candidateCount: getScenarioFamiliarityCandidateCount(candidatesByCondition),
+          complete: isScenarioFamiliarityComplete(candidatesByCondition, answersByHash),
+          error: error.message
+        });
+      }
+    })();
+    return true;
+  }
+
+  if (request.action === "setScenarioFamiliarityAnswers") {
+    (async () => {
+      try {
+        const stored = await ext.storage.local.get(SCENARIO_FAMILIARITY_CANDIDATES_KEY);
+        const candidatesByCondition =
+          stored?.[SCENARIO_FAMILIARITY_CANDIDATES_KEY] || createEmptyScenarioCandidateMap();
+        const answersByHash = pruneScenarioFamiliarityAnswers(
+          candidatesByCondition,
+          request.answersByHash
+        );
+        await ext.storage.local.set({
+          [SCENARIO_FAMILIARITY_ANSWERS_KEY]: answersByHash
+        });
+        sendResponse({
+          ok: true,
+          answersByHash,
+          complete: isScenarioFamiliarityComplete(candidatesByCondition, answersByHash)
+        });
+      } catch (error) {
+        console.error("Failed to store scenario familiarity answers:", error);
+        sendResponse({ ok: false, error: error.message });
+      }
+    })();
+    return true;
+  }
+
+  if (request.action === "setSelectedScenarioDomainHashes") {
+    (async () => {
+      try {
+        const selectedScenarioDomainHashes = normalizeSelectedScenarioDomainHashes(
+          request.selectedScenarioDomainHashes
+        );
+        await ext.storage.local.set({
+          [SELECTED_SCENARIO_DOMAIN_HASHES_KEY]: selectedScenarioDomainHashes
+        });
+        sendResponse({ ok: true, selectedScenarioDomainHashes });
+      } catch (error) {
+        console.error("Failed to store selected scenario domain hashes:", error);
+        sendResponse({ ok: false, error: error.message });
+      }
+    })();
+    return true;
+  }
+
   if (request.action === "resetStudyData" || request.payload?.action === "resetStudyData") {
     (async () => {
       try {
@@ -1024,7 +1603,10 @@ ext.runtime.onMessage.addListener((request, sender, sendResponse) => {
           "cookieData",
           "hasDiscrepancies",
           "hasDiscrepanciesCheckedAt",
-          "participantId"
+          "participantId",
+          SCENARIO_FAMILIARITY_CANDIDATES_KEY,
+          SCENARIO_FAMILIARITY_ANSWERS_KEY,
+          SELECTED_SCENARIO_DOMAIN_HASHES_KEY
         ]);
 
         visitedDomainsCache.clear();
@@ -1097,63 +1679,16 @@ ext.runtime.onMessage.addListener((request, sender, sendResponse) => {
 ext.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
   if (msg.type === "GET_FAVICON") {
-  const domain = msg.domain;
-
-  const fetchFaviconAsDataURL = async (url) => {
-    try {
-      const response = await fetch(url);
-      const blob = await response.blob();
-      return await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result); // full data URL
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
+    resolveFaviconDataUrlForDomain(msg.domain)
+      .then((favicon) => {
+        sendResponse({ favicon });
+      })
+      .catch((_error) => {
+        sendResponse({ favicon: null });
       });
-    } catch {
-      return null;
-    }
-  };
 
-  // 1. Try open tabs
-  ext.tabs.query({}, async (tabs) => {
-    const tab = tabs.find(t => t.url && t.url.includes(domain));
-    if (tab?.favIconUrl) {
-      const dataUrl = await fetchFaviconAsDataURL(tab.favIconUrl);
-      if (dataUrl) {
-        sendResponse({ favicon: dataUrl });
-        return;
-      }
-    }
-
-    // 2. Fetch HTML and parse <link rel="icon">
-    try {
-      const response = await fetch(`https://${domain}`);
-      const html = await response.text();
-      const match = html.match(/<link[^>]+rel=["'](?:shortcut )?icon["'][^>]*>/i);
-      if (match) {
-        const hrefMatch = match[0].match(/href=["']([^"']+)["']/i);
-        if (hrefMatch) {
-          let url = hrefMatch[1];
-          if (!url.startsWith('http')) {
-            url = `https://${domain}${url.startsWith('/') ? '' : '/'}${url}`;
-          }
-          const dataUrl = await fetchFaviconAsDataURL(url);
-          if (dataUrl) {
-            sendResponse({ favicon: dataUrl });
-            return;
-          }
-        }
-      }
-    } catch (e) {
-      // Ignore fetch errors
-    }
-
-    // Fallback: no favicon found
-    sendResponse({ favicon: null });
-  });
-
-  return true; // Indicates async response
-}
+    return true; // Indicates async response
+  }
 
   if (msg.type === "STORAGE_GET") {
 

@@ -54,6 +54,7 @@
         "undecided_websites.js",
         "helper_functions.js",
         "pricrumbs_consent_history.js",
+        "pricrumbs_scenario_familiarity.js",
         "css/button-toggle.css"
       ],
       "matches": [
