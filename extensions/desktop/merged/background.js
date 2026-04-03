@@ -1102,6 +1102,60 @@ function findDomainPreferences(domain, prefsMap) {
   return null;
 }
 
+function normalizeParticipantPreferenceValue(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const numericValue = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(numericValue) ? numericValue : null;
+}
+
+function normalizeParticipantPreferenceEntry(entry) {
+  let domain = "";
+  let preferences = null;
+
+  if (Array.isArray(entry)) {
+    domain = entry[0];
+    preferences = entry[1];
+  } else if (entry && typeof entry === "object") {
+    domain = entry.domain;
+    preferences = entry;
+  } else {
+    return null;
+  }
+
+  const normalizedDomain = standardizeDomain(domain);
+  if (!normalizedDomain) return null;
+
+  return {
+    domain: normalizedDomain,
+    functional: normalizeParticipantPreferenceValue(preferences?.functional),
+    performance: normalizeParticipantPreferenceValue(preferences?.performance),
+    advertising: normalizeParticipantPreferenceValue(preferences?.advertising)
+  };
+}
+
+function buildParticipantPreferencesMap(preferences) {
+  const prefsMap = new Map();
+
+  (Array.isArray(preferences) ? preferences : []).forEach((entry) => {
+    const normalized = normalizeParticipantPreferenceEntry(entry);
+    if (!normalized) return;
+
+    const existing = prefsMap.get(normalized.domain) || {
+      functional: null,
+      performance: null,
+      advertising: null
+    };
+
+    if (normalized.functional !== null) existing.functional = normalized.functional;
+    if (normalized.performance !== null) existing.performance = normalized.performance;
+    if (normalized.advertising !== null) existing.advertising = normalized.advertising;
+
+    prefsMap.set(normalized.domain, existing);
+  });
+
+  return prefsMap;
+}
+
 function findCookieMetadataForDomain(domain, cookies) {
   const variants = new Set(getPreferenceVariants(domain));
   for (const cookie of cookies) {
@@ -1435,7 +1489,8 @@ ext.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const category = request.category || request.payload?.category || null;
         const result = await ext.storage.local.get([
           "selectedDomainsForHistory",
-          "cookieData"
+          "cookieData",
+          "participantCookiesPreferences"
         ]);
 
         const selectedDomains = Array.isArray(result.selectedDomainsForHistory)
@@ -1443,18 +1498,7 @@ ext.runtime.onMessage.addListener((request, sender, sendResponse) => {
           : [];
         const cookieData = Array.isArray(result.cookieData) ? result.cookieData : [];
         const rankMap = await getTop1mDomainRankMap();
-
-
-        const helperModule = await import(browser.runtime.getURL("helper_functions.js"));
-        const userPreferences = await helperModule.getParticipantCookiesPreferences();
-        // Convert preferences array to Map for faster lookups
-        const prefsMap = new Map(
-          userPreferences.map(pref => [pref.domain, {
-            functional: pref.functional,
-            performance: pref.performance,
-            advertising: pref.advertising
-          }])
-        );
+        const prefsMap = buildParticipantPreferencesMap(result.participantCookiesPreferences);
 
         const canonicalDomains = Array.from(
           new Set(

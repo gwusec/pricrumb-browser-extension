@@ -161,6 +161,91 @@ function normalizeActionTakenValue(value) {
     return Array.from(recordsByHash.values());
   }
 
+  function normalizeDomainForPreferenceMatch(domain) {
+    if (typeof domain !== "string") return "";
+    let normalized = domain.trim().toLowerCase();
+    if (!normalized) return "";
+    normalized = normalized.replace(/^https?:\/\//, "");
+    normalized = normalized.split("/")[0];
+    normalized = normalized.replace(/^\.+/, "");
+    normalized = normalized.replace(/\.+$/, "");
+    if (normalized.startsWith("www.")) {
+      normalized = normalized.slice(4);
+    }
+    return normalized;
+  }
+
+  function normalizePreferenceValue(value) {
+    if (value === null || value === undefined || value === "") return null;
+    const numericValue = typeof value === "number" ? value : Number(value);
+    return Number.isFinite(numericValue) ? numericValue : null;
+  }
+
+  function normalizePreferenceEntry(entry) {
+    let domain = "";
+    let preferences = null;
+
+    if (Array.isArray(entry)) {
+      domain = entry[0];
+      preferences = entry[1];
+    } else if (entry && typeof entry === "object") {
+      domain = entry.domain;
+      preferences = entry;
+    } else {
+      return null;
+    }
+
+    const normalizedDomain = normalizeDomainForPreferenceMatch(domain);
+    if (!normalizedDomain) return null;
+
+    return {
+      domain: normalizedDomain,
+      functional: normalizePreferenceValue(preferences?.functional),
+      performance: normalizePreferenceValue(preferences?.performance),
+      advertising: normalizePreferenceValue(preferences?.advertising)
+    };
+  }
+
+  function buildNormalizedPreferenceMap(storedPreferences) {
+    const byDomain = new Map();
+
+    (Array.isArray(storedPreferences) ? storedPreferences : []).forEach((entry) => {
+      const normalized = normalizePreferenceEntry(entry);
+      if (!normalized) return;
+
+      const existing = byDomain.get(normalized.domain) || {
+        functional: null,
+        performance: null,
+        advertising: null
+      };
+
+      if (normalized.functional !== null) existing.functional = normalized.functional;
+      if (normalized.performance !== null) existing.performance = normalized.performance;
+      if (normalized.advertising !== null) existing.advertising = normalized.advertising;
+
+      byDomain.set(normalized.domain, existing);
+    });
+
+    return byDomain;
+  }
+
+  function findPreferenceForDomain(domain, prefsMap) {
+    const normalized = normalizeDomainForPreferenceMatch(domain);
+    if (!normalized) return null;
+
+    const variants = [
+      normalized,
+      `.${normalized}`,
+      `www.${normalized}`,
+      `.www.${normalized}`
+    ];
+    for (const variant of variants) {
+      if (prefsMap.has(variant)) return prefsMap.get(variant);
+    }
+
+    return prefsMap.get(normalized) || null;
+  }
+
   function createEmptyScenarioCandidateMap() {
     return Object.fromEntries(SCENARIO_GROUP_NAMES.map((groupName) => [groupName, []]));
   }
@@ -1254,8 +1339,11 @@ function normalizeActionTakenValue(value) {
 
   async function checkCategoryPreferences(category) {
     try {
-      // Get selected domains
-      const domainsResult = await ext.storage.local.get('selectedDomainsForHistory');
+      // Get selected domains and stored participant preferences directly from local storage.
+      const [domainsResult, prefsResult] = await Promise.all([
+        ext.storage.local.get("selectedDomainsForHistory"),
+        ext.storage.local.get("participantCookiesPreferences")
+      ]);
       const selectedDomains = domainsResult.selectedDomainsForHistory || [];
 
       if (selectedDomains.length === 0) {
@@ -1263,16 +1351,8 @@ function normalizeActionTakenValue(value) {
         return { isComplete: false, completedCount: 0, totalCount: 0 };
       }
 
-      // Get user preferences
-      const module = await import(browser.runtime.getURL("helper_functions.js"));
-      const userPreferences = await module.getParticipantCookiesPreferences();
-      // Convert preferences array to Map for faster lookups
-      const prefsMap = new Map(
-        userPreferences.map(pref => [pref.domain, {
-          functional: pref.functional,
-          performance: pref.performance,
-          advertising: pref.advertising
-        }])
+      const prefsMap = buildNormalizedPreferenceMap(
+        prefsResult?.participantCookiesPreferences
       );
 
       console.log(`Checking ${selectedDomains.length} domains for ${category} preferences`);
@@ -1282,7 +1362,7 @@ function normalizeActionTakenValue(value) {
       // Check each domain
       for (const domainObj of selectedDomains) {
         const domain = domainObj.originalDomain || domainObj.domain;
-        const prefs = prefsMap.get(domain);
+        const prefs = findPreferenceForDomain(domain, prefsMap);
 
         // Check if this category has a value set (not null/undefined)
         if (prefs && prefs[category] !== null && prefs[category] !== undefined) {
@@ -1661,15 +1741,23 @@ function normalizeActionTakenValue(value) {
 
     const { id, payload } = event.data;
 
-    ext.runtime.sendMessage(payload, (response) => {
-
-      window.postMessage({
-        type: "EXTENSION_MESSAGE_RESPONSE",
-        id,
-        response
-      }, "*");
-
-    });
+    Promise.resolve(ext.runtime.sendMessage(payload))
+      .then((response) => {
+        window.postMessage({
+          type: "EXTENSION_MESSAGE_RESPONSE",
+          id,
+          response
+        }, "*");
+      })
+      .catch((error) => {
+        window.postMessage({
+          type: "EXTENSION_MESSAGE_RESPONSE",
+          id,
+          response: {
+            error: error?.message || String(error)
+          }
+        }, "*");
+      });
 
   });
 
