@@ -46,11 +46,14 @@
     "pricrumbs_website_all_cookies_default.html",
     "popup.html",
     "popup_welcome.html",
-    "tcf_strings.json",
-    "tcf_default_decoded_js.json",
-    "tcf_no_store_before_interaction.json",
-    "pricrumbs_websites_with_discripincies.html"
-  ],
+ "tcf_strings.json",
+ "tcf_default_decoded_js.json",
+ "tcf_no_store_before_interaction.json",
+ "pricrumbs_websites_with_discripincies.html",
+ "helper_functions.js",
+ "pricrumbs_consent_history.js",
+ "pricrumbs_scenario_familiarity.js"
+],
   "browser_action": {
     "default_title": "Cookie Checker3"
   }

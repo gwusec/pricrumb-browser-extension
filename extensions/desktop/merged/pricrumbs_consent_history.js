@@ -10,7 +10,9 @@ import {
     setWebsitesWithDiscrepancies,
     getParticipantCookiesPreferences,
     setUserPreferences,
-    getSelectionStatus
+    getSelectionStatus,
+    normalizeDomainForMatching,
+    formatDomainForDisplay
 } from './helper_functions.js';
 
 /**
@@ -83,8 +85,13 @@ export async function injectTopAndBottomFiveTable(target = null, tutorial = fals
         </table>
     `;
 
-    // Because favicons take long to render, we first get the table HTML without favicons from storage or generate it
-    shadow.innerHTML = await getTopAndBottomFiveTableHTML(false, showDiscrepancies);
+    if (showDiscrepancies) {
+        await findDiscrepanciesAndRender();
+        shadow.innerHTML = await createTopAndBottomFiveTableHTML(false, showDiscrepancies);
+    } else {
+        // Because favicons take long to render, we first get the table HTML without favicons from storage or generate it
+        shadow.innerHTML = await getTopAndBottomFiveTableHTML(false, showDiscrepancies);
+    }
 
     // Show tutorial if we want to
     if (tutorial) {
@@ -92,7 +99,11 @@ export async function injectTopAndBottomFiveTable(target = null, tutorial = fals
     }
 
     // Then, retrieve or generate the table HTML with favicons and update the shadow DOM
-    shadow.innerHTML = await getTopAndBottomFiveTableHTML(true, showDiscrepancies);
+    if (showDiscrepancies) {
+        shadow.innerHTML = await createTopAndBottomFiveTableHTML(true, showDiscrepancies);
+    } else {
+        shadow.innerHTML = await getTopAndBottomFiveTableHTML(true, showDiscrepancies);
+    }
 }
 
 /**
@@ -110,10 +121,6 @@ export async function createTopAndBottomFiveTableHTML(includeFavIcons, showDiscr
         key: STORAGE_KEYS.DOMAIN_HISTORY
     });
     const cookieHistory = result?.[STORAGE_KEYS.DOMAIN_HISTORY];
-
-    if (showDiscrepancies) {
-        findDiscrepanciesAndRender();
-    }
 
     // Generate HTML rows for top five and bottom five domains
     const rows = await generateWebsiteRows(
@@ -386,17 +393,22 @@ function findDiscrepancyWebsites(cookieData, userPreferences) {
     const actionTakenCookies = cookieData.filter(c => c.actionTaken?.toLowerCase() === 'yes');
     console.debug(`${TAG} Cookies with action taken: ${actionTakenCookies.length}`);
 
-    // Assuming userPreferences is an array of objects like { domain, functional, performance, advertising }
-    const userPrefMap = new Map(userPreferences.map(p => [p.domain, p]));
+    const userPrefMap = new Map(
+        userPreferences
+            .map((preference) => {
+                const canonicalDomain = normalizeDomainForMatching(preference?.domain);
+                return canonicalDomain ? [canonicalDomain, preference] : null;
+            })
+            .filter(Boolean)
+    );
 
     for (const cookie of actionTakenCookies) {
-        if (!cookie.domain) {
+        const originalDomain = cookie.originalDomain || cookie.domain;
+        const canonicalDomain = normalizeDomainForMatching(originalDomain);
+        if (!originalDomain || !canonicalDomain) {
             console.debug(`${TAG} Skipping cookie without domain`);
             continue;
         }
-
-        const formattedDomain = extractMainDomainName(cookie.domain);
-        const originalDomain = cookie.domain;
 
         // Extract actual preferences
         let actualPreferences = { functional: false, performance: false, advertising: false };
@@ -413,32 +425,11 @@ function findDiscrepancyWebsites(cookieData, userPreferences) {
             actualPreferences.advertising = cookie.advertising === "Yes" || cookie.advertising === true;
         }
 
-        // Match domain in userPreferences
-        const possibleFormats = [
-            originalDomain,
-            originalDomain.startsWith('.') ? originalDomain.slice(1) : null,
-            !originalDomain.startsWith('.') ? '.' + originalDomain : null,
-            formattedDomain,
-            formattedDomain.startsWith('www.') ? formattedDomain.slice(4) : null,
-            !formattedDomain.startsWith('www.') ? 'www.' + formattedDomain : null
-        ].filter(Boolean);
-
-        let statedPreferences = null;
-        let matchedDomain = null;
-
-        for (const fmt of possibleFormats) {
-            if (userPrefMap.has(fmt)) {
-                const prefs = userPrefMap.get(fmt);
-                if (prefs && (prefs.functional !== null || prefs.performance !== null || prefs.advertising !== null)) {
-                    statedPreferences = prefs;
-                    matchedDomain = fmt;
-                    break;
-                }
-            }
-        }
+        const statedPreferences = userPrefMap.get(canonicalDomain) || null;
+        const matchedDomain = canonicalDomain;
 
         if (!statedPreferences) {
-            console.debug(`${TAG} No stated preferences found for domain: ${cookie.domain}`);
+            console.debug(`${TAG} No stated preferences found for domain: ${originalDomain}`);
             continue;
         }
 
@@ -465,16 +456,18 @@ function findDiscrepancyWebsites(cookieData, userPreferences) {
 
         if (hasDifference) {
             discrepancies.push({
-                domain: formattedDomain,
+                domain: canonicalDomain,
+                canonicalDomain,
                 originalDomain,
-                favicon: `https://icons.duckduckgo.com/ip3/${formattedDomain}.ico`,
+                displayDomain: formatDomainForDisplay(originalDomain),
+                favicon: `https://icons.duckduckgo.com/ip3/${canonicalDomain}.ico`,
                 statedPreferences,
                 actualPreferences,
                 cookie,
                 matchedDomain,
                 categories
             });
-            console.debug(`${TAG} Discrepancy found for ${formattedDomain}`, { categories, statedPreferences, actualPreferences });
+            console.debug(`${TAG} Discrepancy found for ${canonicalDomain}`, { categories, statedPreferences, actualPreferences });
         }
     }
 

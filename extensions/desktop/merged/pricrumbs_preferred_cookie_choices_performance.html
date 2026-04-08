@@ -70,7 +70,7 @@ body {
 .domain-name {
     font-size: 1.95rem;
     font-weight: bold;
-    margin-bottom: 15px;
+    margin: 36px 0 36px;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -80,6 +80,14 @@ body {
 .question {
     font-size: 1.25rem;
     margin-bottom: 15px;
+}
+
+.answer-lock-hint {
+    display: none;
+    margin: 6px auto 14px;
+    font-size: 0.9rem;
+    color: #475569;
+    font-weight: 600;
 }
 
 /* Toggle container */
@@ -143,7 +151,7 @@ body {
 }
 </style>
 </head>
-<body>
+<body data-embed-id="pricrumbs_preferred_cookie_choices_performance">
 <div class="container">
 
     <!-- Loading -->
@@ -156,6 +164,7 @@ body {
                 <b>What is your preference for this website's use of <u>Performance</u> Cookies?</b>
             </div>
             <div class="domain-name" id="currentDomainName"></div>
+            <div id="answerLockHint" class="answer-lock-hint" aria-live="polite"></div>
             <div class="toggle-container" cookie-category="performance"></div>
         </div>
 

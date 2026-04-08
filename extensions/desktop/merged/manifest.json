@@ -1,6 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "Cookie Checker3",
+  "name": "Cookie Consent Alignment Study",
+  "description": "This extension collects cookie consent data across visited sites to support an IRB-approved research study.",
   "version": "1.1",
   "permissions": [
     "cookies",
@@ -51,7 +52,11 @@
         "tcf_default_decoded_js.json",
         "tcf_no_store_before_interaction.json",
         "pricrumbs_websites_with_discripincies.html",
-        "undecided_websites.js"
+        "undecided_websites.js",
+        "helper_functions.js",
+        "pricrumbs_consent_history.js",
+        "pricrumbs_scenario_familiarity.js",
+        "css/button-toggle.css"
       ],
       "matches": [
         "<all_urls>"

@@ -19,6 +19,22 @@ if (window.location.hostname === "localhost" || window.location.hostname === "ne
   );
 
   const DOMAIN_HASH_PATTERN = /^[0-9a-f]{64}$/i;
+  const SCENARIO_FAMILIARITY_CANDIDATES_KEY = "scenarioFamiliarityCandidates";
+  const SELECTED_SCENARIO_DOMAIN_HASHES_KEY = "selectedScenarioDomainHashes";
+  const SCENARIO_GROUP_BY_CATEGORY_TYPE = {
+    "accept-all": "all_cookies_accepted",
+    "reject-all": "all_cookies_rejected",
+    "mixed": "ad_cookies_rejected",
+    "default": "default_cookies"
+  };
+  const SCENARIO_GROUP_NAMES = Object.values(SCENARIO_GROUP_BY_CATEGORY_TYPE);
+  const SCENARIO_FLAG_NAME_BY_GROUP = {
+    all_cookies_accepted: "hasAllAccepted",
+    all_cookies_rejected: "hasAllRejected",
+    ad_cookies_rejected: "hasAdvertisingRejected",
+    default_cookies: "hasDefaultCookies"
+  };
+  const SCENARIO_FALLBACK_FAVICON = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiI+PHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0iI2QxZDVkYiIvPjx0ZXh0IHg9IjE2IiB5PSIyMSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIxNiIgZmlsbD0iIzExMTgyNyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIj4/PC90ZXh0Pjwvc3ZnPg==";
 
 function normalizeConsentValue(value) {
   if (value === true || value === "yes" || value === "Yes") return "yes";
@@ -143,6 +159,153 @@ function normalizeActionTakenValue(value) {
   });
 
     return Array.from(recordsByHash.values());
+  }
+
+  function normalizeDomainForPreferenceMatch(domain) {
+    if (typeof domain !== "string") return "";
+    let normalized = domain.trim().toLowerCase();
+    if (!normalized) return "";
+    normalized = normalized.replace(/^https?:\/\//, "");
+    normalized = normalized.split("/")[0];
+    normalized = normalized.replace(/^\.+/, "");
+    normalized = normalized.replace(/\.+$/, "");
+    if (normalized.startsWith("www.")) {
+      normalized = normalized.slice(4);
+    }
+    return normalized;
+  }
+
+  function normalizePreferenceValue(value) {
+    if (value === null || value === undefined || value === "") return null;
+    const numericValue = typeof value === "number" ? value : Number(value);
+    return Number.isFinite(numericValue) ? numericValue : null;
+  }
+
+  function normalizePreferenceEntry(entry) {
+    let domain = "";
+    let preferences = null;
+
+    if (Array.isArray(entry)) {
+      domain = entry[0];
+      preferences = entry[1];
+    } else if (entry && typeof entry === "object") {
+      domain = entry.domain;
+      preferences = entry;
+    } else {
+      return null;
+    }
+
+    const normalizedDomain = normalizeDomainForPreferenceMatch(domain);
+    if (!normalizedDomain) return null;
+
+    return {
+      domain: normalizedDomain,
+      functional: normalizePreferenceValue(preferences?.functional),
+      performance: normalizePreferenceValue(preferences?.performance),
+      advertising: normalizePreferenceValue(preferences?.advertising)
+    };
+  }
+
+  function buildNormalizedPreferenceMap(storedPreferences) {
+    const byDomain = new Map();
+
+    (Array.isArray(storedPreferences) ? storedPreferences : []).forEach((entry) => {
+      const normalized = normalizePreferenceEntry(entry);
+      if (!normalized) return;
+
+      const existing = byDomain.get(normalized.domain) || {
+        functional: null,
+        performance: null,
+        advertising: null
+      };
+
+      if (normalized.functional !== null) existing.functional = normalized.functional;
+      if (normalized.performance !== null) existing.performance = normalized.performance;
+      if (normalized.advertising !== null) existing.advertising = normalized.advertising;
+
+      byDomain.set(normalized.domain, existing);
+    });
+
+    return byDomain;
+  }
+
+  function findPreferenceForDomain(domain, prefsMap) {
+    const normalized = normalizeDomainForPreferenceMatch(domain);
+    if (!normalized) return null;
+
+    const variants = [
+      normalized,
+      `.${normalized}`,
+      `www.${normalized}`,
+      `.www.${normalized}`
+    ];
+    for (const variant of variants) {
+      if (prefsMap.has(variant)) return prefsMap.get(variant);
+    }
+
+    return prefsMap.get(normalized) || null;
+  }
+
+  function createEmptyScenarioCandidateMap() {
+    return Object.fromEntries(SCENARIO_GROUP_NAMES.map((groupName) => [groupName, []]));
+  }
+
+  function createEmptySelectedScenarioDomainHashes() {
+    return Object.fromEntries(SCENARIO_GROUP_NAMES.map((groupName) => [groupName, null]));
+  }
+
+  function normalizeSelectedScenarioDomainHashes(value) {
+    const normalized = createEmptySelectedScenarioDomainHashes();
+    if (!value || typeof value !== "object") return normalized;
+
+    SCENARIO_GROUP_NAMES.forEach((groupName) => {
+      const domainHash = normalizeDomainHash(value[groupName]);
+      normalized[groupName] = isValidDomainHash(domainHash) ? domainHash : null;
+    });
+
+    return normalized;
+  }
+
+  function normalizeScenarioCandidatesByCondition(value) {
+    const normalized = createEmptyScenarioCandidateMap();
+    if (!value || typeof value !== "object") return normalized;
+
+    SCENARIO_GROUP_NAMES.forEach((groupName) => {
+      const candidates = Array.isArray(value[groupName]) ? value[groupName] : [];
+      normalized[groupName] = candidates.filter((candidate) => {
+        const domainHash = normalizeDomainHash(candidate?.domainHash);
+        const rawDomain = typeof candidate?.rawDomain === "string" ? candidate.rawDomain.trim() : "";
+        return isValidDomainHash(domainHash) && rawDomain !== "";
+      }).map((candidate) => ({
+        domainHash: normalizeDomainHash(candidate.domainHash),
+        rawDomain: candidate.rawDomain.trim(),
+        displayDomain:
+          typeof candidate?.displayDomain === "string" && candidate.displayDomain.trim() !== ""
+            ? candidate.displayDomain.trim()
+            : candidate.rawDomain.trim(),
+        faviconDataUrl: typeof candidate?.faviconDataUrl === "string" ? candidate.faviconDataUrl.trim() : ""
+      }));
+    });
+
+    return normalized;
+  }
+
+  function buildScenarioWebsiteFlags(selectedScenarioDomainHashes) {
+    return {
+      hasAllAccepted: Boolean(selectedScenarioDomainHashes.all_cookies_accepted),
+      hasAllRejected: Boolean(selectedScenarioDomainHashes.all_cookies_rejected),
+      hasAdvertisingRejected: Boolean(selectedScenarioDomainHashes.ad_cookies_rejected),
+      hasDefaultCookies: Boolean(selectedScenarioDomainHashes.default_cookies)
+    };
+  }
+
+  function escapeHtml(value) {
+    return String(value)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#39;");
   }
 
   // Listens for messages from the webpage
@@ -385,7 +548,6 @@ function normalizeActionTakenValue(value) {
 
     //this part is for eligibility check (if users have 10 or more unique websites where action taken = yes):
     if (event.data.payload?.action === "checkEligibility") {
-      buildAndStoreThreePerCategory
       console.log("Content script: Received eligibility check request");
 
       const isActionTakenYes = (value) =>
@@ -525,12 +687,19 @@ function normalizeActionTakenValue(value) {
           );
 
           if (isEligible) {
-            console.log("[ELIGIBILITY] User eligible, building & storing 3 domains per category...");
-            buildAndStoreThreePerCategory();
+            console.log("[ELIGIBILITY] User eligible, refreshing familiarity candidates...");
+            try {
+              await ext.runtime.sendMessage({
+                action: "getScenarioFamiliarityCandidates",
+                forceRefresh: true
+              });
+            } catch (candidateError) {
+              console.warn("[ELIGIBILITY] Unable to precompute familiarity candidates:", candidateError);
+            }
           }
 
         } catch (error) {
-          console.error(`${LOG} Error in eligibility check:`, error);
+          console.error("[ELIGIBILITY] Error in eligibility check:", error);
         }
       })();
 
@@ -983,6 +1152,35 @@ function normalizeActionTakenValue(value) {
     }
     window.__pricrumbs_checker_installed = true;
 
+    async function injectScenarioFamiliarityWidget(target) {
+      const module = await import(browser.runtime.getURL("pricrumbs_scenario_familiarity.js"));
+      await module.injectScenarioFamiliarityWidget(target);
+    }
+
+    async function injectScenarioFollowupTrustworthinessWidget(target) {
+      const module = await import(browser.runtime.getURL("pricrumbs_scenario_familiarity.js"));
+      await module.injectScenarioFollowupWidget(
+        target,
+        "pricrumbs_website_followup_trustworthiness"
+      );
+    }
+
+    async function injectScenarioFollowupUtilityWidget(target) {
+      const module = await import(browser.runtime.getURL("pricrumbs_scenario_familiarity.js"));
+      await module.injectScenarioFollowupWidget(
+        target,
+        "pricrumbs_website_followup_utility"
+      );
+    }
+
+    async function injectScenarioFollowupPrivacyWidget(target) {
+      const module = await import(browser.runtime.getURL("pricrumbs_scenario_familiarity.js"));
+      await module.injectScenarioFollowupWidget(
+        target,
+        "pricrumbs_website_followup_privacy_concerns"
+      );
+    }
+
     const elementMap = {
       "popup": { html: "popup.html", height: "600px" },
       "pricrumbs_popup_hidden": { html: "popup.html", height: "0px" },
@@ -992,6 +1190,10 @@ function normalizeActionTakenValue(value) {
       "pricrumbs_preferred_cookie_choices_advertising": { html: "pricrumbs_preferred_cookie_choices_advertising.html", height: "560px" },
       "pricrumbs_consent_history_top_websites": { html: "pricrumbs_consent_history_top_websites.html", height: "500px" },
       "pricrumbs_consent_history_bottom_websites": { html: "pricrumbs_consent_history_bottom_websites.html", height: "600px" },
+      "pricrumbs_website_familiarity_widget": { inject: injectScenarioFamiliarityWidget },
+      "pricrumbs_website_followup_trustworthiness_widget": { inject: injectScenarioFollowupTrustworthinessWidget },
+      "pricrumbs_website_followup_utility_widget": { inject: injectScenarioFollowupUtilityWidget },
+      "pricrumbs_website_followup_privacy_concerns_widget": { inject: injectScenarioFollowupPrivacyWidget },
       "pricrumbs_website_all_cookies_accepted": { js: getPricrumbsWebsiteAllCookiesAccept },
       "pricrumbs_website_all_cookies_rejected": { js: getPricrumbsWebsiteAllCookiesReject },
       "pricrumbs_website_advertising_cookies_rejected": { js: getPricrumbsWebsiteAllCookiesMixed },
@@ -1017,7 +1219,11 @@ function normalizeActionTakenValue(value) {
 
       try {
 
-        if (mapEntry.html) {
+        if (mapEntry.inject && typeof mapEntry.inject === "function") {
+          await mapEntry.inject(target);
+          return true;
+
+        } else if (mapEntry.html) {
 
           if (id === "pricrumbs_consent_history_top_websites") {
             const module = await import(browser.runtime.getURL("pricrumbs_consent_history.js"));
@@ -1133,8 +1339,11 @@ function normalizeActionTakenValue(value) {
 
   async function checkCategoryPreferences(category) {
     try {
-      // Get selected domains
-      const domainsResult = await ext.storage.local.get('selectedDomainsForHistory');
+      // Get selected domains and stored participant preferences directly from local storage.
+      const [domainsResult, prefsResult] = await Promise.all([
+        ext.storage.local.get("selectedDomainsForHistory"),
+        ext.storage.local.get("participantCookiesPreferences")
+      ]);
       const selectedDomains = domainsResult.selectedDomainsForHistory || [];
 
       if (selectedDomains.length === 0) {
@@ -1142,16 +1351,8 @@ function normalizeActionTakenValue(value) {
         return { isComplete: false, completedCount: 0, totalCount: 0 };
       }
 
-      // Get user preferences
-      const module = await import(browser.runtime.getURL("helper_functions.js"));
-      const userPreferences = await module.getParticipantCookiesPreferences();
-      // Convert preferences array to Map for faster lookups
-      const prefsMap = new Map(
-        userPreferences.map(pref => [pref.domain, {
-          functional: pref.functional,
-          performance: pref.performance,
-          advertising: pref.advertising
-        }])
+      const prefsMap = buildNormalizedPreferenceMap(
+        prefsResult?.participantCookiesPreferences
       );
 
       console.log(`Checking ${selectedDomains.length} domains for ${category} preferences`);
@@ -1161,7 +1362,7 @@ function normalizeActionTakenValue(value) {
       // Check each domain
       for (const domainObj of selectedDomains) {
         const domain = domainObj.originalDomain || domainObj.domain;
-        const prefs = prefsMap.get(domain);
+        const prefs = findPreferenceForDomain(domain, prefsMap);
 
         // Check if this category has a value set (not null/undefined)
         if (prefs && prefs[category] !== null && prefs[category] !== undefined) {
@@ -1416,77 +1617,93 @@ function normalizeActionTakenValue(value) {
 
   async function loadCookieDataAndSelectWebsites(categoryType) {
     try {
-      const { sendExtensionMessage } =
-        await import(browser.runtime.getURL("helper_functions.js"));
-
-      // Retrieve precomputed 3 domains per category from storage
-      const result = await sendExtensionMessage({
-        type: "STORAGE_GET",
-        key: "selectedCookieDomains",
-      });
-      const selectedCookieDomains = result?.selectedCookieDomains;
-
-      if (!selectedCookieDomains) {
-        console.error('[COOKIE] No stored selectedCookieDomains found.');
-        return;
+      const groupName = SCENARIO_GROUP_BY_CATEGORY_TYPE[categoryType];
+      if (!groupName) {
+        console.error("[COOKIE] Unknown category type:", categoryType);
+        return "";
       }
 
-      // Map your categoryType to the storage keys
-      const categoryMap = {
-        "accept-all": "accept-all",
-        "reject-all": "reject-all",
-        "mixed": "mixed",
-        "default": "default"
+      const storageResult = await ext.storage.local.get([
+        SCENARIO_FAMILIARITY_CANDIDATES_KEY,
+        SELECTED_SCENARIO_DOMAIN_HASHES_KEY
+      ]);
+      let candidatesByCondition = normalizeScenarioCandidatesByCondition(
+        storageResult?.[SCENARIO_FAMILIARITY_CANDIDATES_KEY]
+      );
+      const selectedScenarioDomainHashes = normalizeSelectedScenarioDomainHashes(
+        storageResult?.[SELECTED_SCENARIO_DOMAIN_HASHES_KEY]
+      );
+
+      if (SCENARIO_GROUP_NAMES.every((name) => (candidatesByCondition[name] || []).length === 0)) {
+        try {
+          const response = await ext.runtime.sendMessage({ action: "getScenarioFamiliarityCandidates" });
+          candidatesByCondition = normalizeScenarioCandidatesByCondition(response?.candidatesByCondition);
+        } catch (candidateError) {
+          console.warn("[COOKIE] Unable to fetch scenario familiarity candidates:", candidateError);
+        }
+      }
+
+      const selectedDomainHash = normalizeDomainHash(selectedScenarioDomainHashes[groupName]);
+      const website = (candidatesByCondition[groupName] || []).find(
+        (candidate) => normalizeDomainHash(candidate?.domainHash) === selectedDomainHash
+      ) || null;
+
+      const payload = {
+        websiteTypes: buildScenarioWebsiteFlags(selectedScenarioDomainHashes),
+        [groupName]: website ? {
+          domain: website.rawDomain,
+          originalDomain: website.rawDomain,
+          domainHash: website.domainHash
+        } : null
       };
 
-      const key = categoryMap[categoryType];
-      if (!key) {
-        console.error('[COOKIE] Unknown category type:', categoryType);
-        return;
-      }
-
-      const categoryArray = selectedCookieDomains[key] || [];
-      const website = categoryArray.length ? categoryArray[0] : null; // pick first or random
-
-      if (!website) {
-        console.warn(`[COOKIE] No website available for category: ${categoryType}`);
-        return;
-      }
-
-      // Prepare website data flags
-      const websiteData = {
-        hasAdvertisingRejected: (selectedCookieDomains.mixed?.length ?? 0) > 0,
-        hasAllAccepted: (selectedCookieDomains["accept-all"]?.length ?? 0) > 0,
-        hasAllRejected: (selectedCookieDomains["reject-all"]?.length ?? 0) > 0,
-        hasDefaultCookies: (selectedCookieDomains.default?.length ?? 0) > 0
-      };
-
-      // Send flags to survey or UI
       window.postMessage(
         {
           type: "WEBSITE_DATA",
-          payload: websiteData
+          payload
         },
         "*"
       );
 
-      console.log('[COOKIE] Sent WEBSITE_DATA:', websiteData);
+      if (!website) {
+        console.warn(`[COOKIE] No selected familiar website available for category: ${categoryType}`);
+        return `
+          <div style="padding:8px 0;">
+            <p style="margin:0;">No website available for this question.</p>
+          </div>
+        `;
+      }
 
-      // Return rendered HTML for selected website
+      let faviconSource = website.faviconDataUrl || "";
+      if (!faviconSource) {
+        try {
+          const { getFavicon } = await import(browser.runtime.getURL("helper_functions.js"));
+          faviconSource = await getFavicon(website.rawDomain);
+        } catch (_error) {
+          faviconSource = "";
+        }
+      }
+      faviconSource = faviconSource || SCENARIO_FALLBACK_FAVICON;
+      const displayDomain = website.displayDomain || website.rawDomain;
       return `
-      <div style="display:flex;align-items:center;gap:8px;">
-        <img 
-          src="${website.favicon}" 
-          alt="Favicon" 
-          style="width:32px;height:32px;object-fit:contain;"
-          onerror="this.style.display='none'">
-        <h3 style="margin:0;font-size:1.5rem;">${website.domain}</h3>
-      </div>
-    `;
+        <div style="display:flex;align-items:center;gap:8px;">
+          <img
+            src="${escapeHtml(faviconSource)}"
+            alt=""
+            aria-hidden="true"
+            style="width:32px;height:32px;object-fit:contain;border-radius:6px;flex:0 0 32px;"
+          >
+          <h3 style="margin:0;font-size:1.5rem;">${escapeHtml(displayDomain)}</h3>
+        </div>
+      `;
 
     } catch (error) {
-      console.error('[COOKIE] loadCookieDataAndSelectWebsites error:', error);
-      showError('An error occurred while loading data: ' + error.message);
+      console.error("[COOKIE] loadCookieDataAndSelectWebsites error:", error);
+      return `
+        <div style="padding:8px 0;">
+          <p style="margin:0;">Unable to load website information.</p>
+        </div>
+      `;
     }
   }
 
@@ -1524,15 +1741,23 @@ function normalizeActionTakenValue(value) {
 
     const { id, payload } = event.data;
 
-    ext.runtime.sendMessage(payload, (response) => {
-
-      window.postMessage({
-        type: "EXTENSION_MESSAGE_RESPONSE",
-        id,
-        response
-      }, "*");
-
-    });
+    Promise.resolve(ext.runtime.sendMessage(payload))
+      .then((response) => {
+        window.postMessage({
+          type: "EXTENSION_MESSAGE_RESPONSE",
+          id,
+          response
+        }, "*");
+      })
+      .catch((error) => {
+        window.postMessage({
+          type: "EXTENSION_MESSAGE_RESPONSE",
+          id,
+          response: {
+            error: error?.message || String(error)
+          }
+        }, "*");
+      });
 
   });
 
