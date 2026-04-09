@@ -1,6 +1,6 @@
 {
   "manifest_version": 2,
-  "name": "Cookie Checker3",
+  "name": "Cookie Consent Alignment Study",
   "version": "1.1",
   "permissions": [
     "cookies",
@@ -46,15 +46,24 @@
     "pricrumbs_website_all_cookies_default.html",
     "popup.html",
     "popup_welcome.html",
- "tcf_strings.json",
- "tcf_default_decoded_js.json",
- "tcf_no_store_before_interaction.json",
- "pricrumbs_websites_with_discripincies.html",
- "helper_functions.js",
- "pricrumbs_consent_history.js",
- "pricrumbs_scenario_familiarity.js"
-],
+    "tcf_strings.json",
+    "tcf_default_decoded_js.json",
+    "tcf_no_store_before_interaction.json",
+    "pricrumbs_websites_with_discripincies.html",
+    "helper_functions.js",
+    "pricrumbs_consent_history.js",
+    "pricrumbs_scenario_familiarity.js"
+  ],
   "browser_action": {
-    "default_title": "Cookie Checker3"
+    "default_title": "Cookie Consent Alignment Study"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "data_collection_permissions": {
+        "required": [
+          "websiteActivity"
+        ]
+      }
+    }
   }
 }
