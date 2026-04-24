@@ -13,8 +13,8 @@ const SCENARIO_GROUP_NAMES = [
 const FAMILIARITY_OPTIONS = [
     { value: 1, label: "1 - Not at all familiar" },
     { value: 2, label: "2 - Slightly familiar" },
-    { value: 3, label: "3 - Somewhat familiar" },
-    { value: 4, label: "4 - Moderately familiar" },
+    { value: 3, label: "3 - Moderately familiar" },
+    { value: 4, label: "4 - Very familiar" },
     { value: 5, label: "5 - Extremely familiar" }
 ];
 
