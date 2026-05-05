@@ -175,27 +175,38 @@ This project uses a unified codebase that works on both Chrome (MV3) and Firefox
 
 ## Build Guide
 
+Run the script from the repository root. Specify `chrome` or `firefox` as the target.
+
 ### Debug Build
-
-To build the extension, run the script from the repository root:
-
 ```
 ./build-extension.sh chrome
-# or
 ./build-extension.sh firefox
 ```
-
-By default, this creates a debug build.
+By default, this creates a debug build. Output is written to `build/chrome` or `build/firefox`.
 
 ### Production Build
-
-To generate a production build, add the --production flag:
-
 ```
 ./build-extension.sh chrome --production
-# or
 ./build-extension.sh firefox --production
 ```
+Production builds are automatically zipped. Output is written to `build/chrome.zip` or `build/firefox.zip`.
+
+### Production Build without Zip
+```
+./build-extension.sh chrome --production --no-zip
+./build-extension.sh firefox --production --no-zip
+```
+Use `--no-zip` to skip zipping and keep the raw output folder.
+
+### Zipping the Extension
+
+To zip the build output, add the `--zip` flag. This can be combined with any other flags:
+```
+./build-extension.sh chrome --production --zip
+# or
+./build-extension.sh firefox --production --zip
+```
+The zip file is written to `build/chrome.zip` or `build/firefox.zip`.
 
 ## Installation Guide
 
