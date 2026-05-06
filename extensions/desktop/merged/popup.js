@@ -1860,10 +1860,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       row.innerHTML = `
         <td>${cookie.domain || "Unknown"}</td>
         <td>${cookie.cmpName || "Unknown"}</td>
-        <td>${cookie.categories.necessary ? "Yes" : "No"}</td>
-        <td>${cookie.categories.functional ? "Yes" : "No"}</td>
-        <td>${cookie.categories.performance ? "Yes" : "No"}</td>
-        <td>${cookie.categories.advertising ? "Yes" : "No"}</td>
+        <td>${cookie.categories?.necessary ? "Yes" : "No"}</td>
+        <td>${cookie.categories?.functional ? "Yes" : "No"}</td>
+        <td>${cookie.categories?.performance ? "Yes" : "No"}</td>
+        <td>${cookie.categories?.advertising ? "Yes" : "No"}</td>
         <td>${cookie.timestamp || "Unknown"}</td>
         <td>${cookie.expiration || "Unknown"}</td>
         <td>${cookie.firstVisited || "Unknown"}</td>
@@ -1934,20 +1934,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         // Check if the background script returned any cookies
-        if (!response?.cookies?.length) {
-          console.error("No cookies received from background.js");
-          alert("No cookies received.");
-          return;
+        if (!response) {
+          throw new Error("No response from background script when trying to get cookies stored.");
         }
-
+        
         // Store all cookies fetched from background script
-        const allFetchedCookies = response.cookies;
+        const allFetchedCookies = response.cookies ?? [];
 
         // Set of helper cookies to ignore in processing
         const helperCookieSet = new Set(["OptanonAlertBoxClosed", "AEC", "SOCS"]);
 
         // Filter and transform cookies into consent objects
-        const fetchedCookies = allFetchedCookies.reduce((acc, cookie) => {
+        let fetchedCookies = allFetchedCookies.reduce((acc, cookie) => {
           // Keep cookies if their name is in cookieNameSet or matches consent regex
           // and exclude any helper cookies
           if ((cookieNameSet.has(cookie.name) || cmpConsentRegex.test(cookie.name)) &&
@@ -1960,6 +1958,20 @@ document.addEventListener('DOMContentLoaded', async () => {
           }
           return acc;
         }, []);
+
+        if (fetchedCookies.length === 0) {
+          // If no cookies found, set default dummy consent object
+          console.log("No cookies found matching criteria");
+          fetchedCookies = [{
+            domain: "nocookiesfoundinbrowser",
+            name: "nocookies",
+            value: "",
+            path: "/",
+            expires: Date.now() + 86400000, // +1 day
+            totalVisitCount: 0,
+            cmpName: "None", // must NOT be "Unknown" or it may get filtered elsewhere
+          }];
+        }
 
         // Log fetched consent objects for debugging
         console.log("Fetched Consent Objects:", fetchedCookies);
