@@ -201,8 +201,8 @@ async function findMatchingWebsites(cookieData) {
         cookie.actionTaken && cookie.actionTaken.toLowerCase() === 'no'
     );
 
-    console.log('Cookies with action taken:', actionTakenCookies.length);
-    console.log('Cookies with action taken = no:', noActionCookies.length);
+    console.log('[measure_factors_seperate_pages] Cookies with action taken:', actionTakenCookies.length);
+    console.log('[measure_factors_seperate_pages] Cookies with action taken = no:', noActionCookies.length);
 
 
     // STEP 2: Create an array of all domains with their preferences

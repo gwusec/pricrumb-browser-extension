@@ -1,6 +1,14 @@
 // popup.js
 import {
-  sendExtensionMessage
+  sendExtensionMessage,
+  storeCookiesAndDomainsInStorage,
+  getCookiesAndDomainsFromStorage,
+  getCookieData,
+  setCookieData,
+  getConsentRecords,
+  setConsentRecords,
+  getBrowsingHistory,
+  setBrowsingHistory
 } from './helper_functions.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -1503,6 +1511,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         return { tcfString: parsed.encodedConsentString, googleConsentGiven: parsed.googleConsentGiven ?? null };
       }
     } catch (e) { console.warn('[pricrumbs] extractTCFString fallback:', e.message); }
+    // If no JSON wrapper (causes warning above), proceed with direct decoding
     return { tcfString: rawValue, googleConsentGiven: null };
   }
 
@@ -1850,7 +1859,7 @@ document.addEventListener('DOMContentLoaded', async () => {
    * @param {Array} cookies - Array of consent objects.
    */
   function displayCookies(cookies) {
-    console.log(`[pricrumbs] Displaying ${cookies.length} cookies in the table.`);
+    console.debug(`[pricrumbs] Displaying ${cookies.length} cookies in the table.`);
 
     const tableBody = document.getElementById("cookieTableBody");
     tableBody.innerHTML = "";
@@ -1875,8 +1884,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       `;
       tableBody.appendChild(row);
     });
-
-    console.log("Cookies Displayed:", cookies);
   }
 
   /**
@@ -1937,7 +1944,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!response) {
           throw new Error("No response from background script when trying to get cookies stored.");
         }
-        
+
         // Store all cookies fetched from background script
         const allFetchedCookies = response.cookies ?? [];
 
@@ -2353,151 +2360,66 @@ document.addEventListener('DOMContentLoaded', async () => {
     return "unknown";
   }
 
-function buildDomainConsentRecords(cookies) {
-  const DOMAIN_HASH_PATTERN = /^[0-9a-f]{64}$/i;
-  const normalizeDomainHash = (value) => (typeof value === "string" ? value.trim().toLowerCase() : "");
-  const isValidDomainHash = (value) => DOMAIN_HASH_PATTERN.test(normalizeDomainHash(value));
-  const normalizeActionTakenValue = (value) => {
-    if (value === true) return "yes";
-    if (value === false) return "no";
-    if (typeof value === "number") {
-      if (value === 1) return "yes";
-      if (value === 0) return "no";
-    }
-    if (typeof value === "string") {
-      const normalized = value.trim().toLowerCase();
-      if (normalized === "yes" || normalized === "true" || normalized === "1") return "yes";
-      if (normalized === "no" || normalized === "false" || normalized === "0") return "no";
-      if (normalized.startsWith("yes")) return "yes";
-      if (normalized.startsWith("no")) return "no";
-    }
-    return "unknown";
-  };
-  const recordsByKey = new Map();
+  function buildDomainConsentRecords(cookies) {
+    const DOMAIN_HASH_PATTERN = /^[0-9a-f]{64}$/i;
+    const normalizeDomainHash = (value) => (typeof value === "string" ? value.trim().toLowerCase() : "");
+    const isValidDomainHash = (value) => DOMAIN_HASH_PATTERN.test(normalizeDomainHash(value));
+    const normalizeActionTakenValue = (value) => {
+      if (value === true) return "yes";
+      if (value === false) return "no";
+      if (typeof value === "number") {
+        if (value === 1) return "yes";
+        if (value === 0) return "no";
+      }
+      if (typeof value === "string") {
+        const normalized = value.trim().toLowerCase();
+        if (normalized === "yes" || normalized === "true" || normalized === "1") return "yes";
+        if (normalized === "no" || normalized === "false" || normalized === "0") return "no";
+        if (normalized.startsWith("yes")) return "yes";
+        if (normalized.startsWith("no")) return "no";
+      }
+      return "unknown";
+    };
+    const recordsByKey = new Map();
 
     cookies.forEach(cookie => {
       const domainHash = normalizeDomainHash(cookie.domainHash);
       if (!isValidDomainHash(domainHash)) return;
       const domainKey = domainHash;
 
-    const numberOfVisits = Number(cookie.totalVisitCount) || 0;
-    const dates = Array.isArray(cookie.visitedDates) ? cookie.visitedDates : [];
-    const actionTaken = normalizeActionTakenValue(cookie.actionTaken);
+      const numberOfVisits = Number(cookie.totalVisitCount) || 0;
+      const dates = Array.isArray(cookie.visitedDates) ? cookie.visitedDates : [];
+      const actionTaken = normalizeActionTakenValue(cookie.actionTaken);
 
-    if (!recordsByKey.has(domainKey)) {
-      recordsByKey.set(domainKey, {
-        domainHash,
-        domainRankRange: cookie.domainRankRange || null,
-        numberOfVisits,
-        dates: Array.from(new Set(dates)).sort(),
-        actionTaken,
-        consent: {
-          necessary: normalizeConsentValue(cookie.categories?.necessary),
-          functional: normalizeConsentValue(cookie.categories?.functional),
-          performance: normalizeConsentValue(cookie.categories?.performance),
-          advertising: normalizeConsentValue(cookie.categories?.advertising)
-        }
-      });
-      return;
-    }
+      if (!recordsByKey.has(domainKey)) {
+        recordsByKey.set(domainKey, {
+          domainHash,
+          domainRankRange: cookie.domainRankRange || null,
+          numberOfVisits,
+          dates: Array.from(new Set(dates)).sort(),
+          actionTaken,
+          consent: {
+            necessary: normalizeConsentValue(cookie.categories?.necessary),
+            functional: normalizeConsentValue(cookie.categories?.functional),
+            performance: normalizeConsentValue(cookie.categories?.performance),
+            advertising: normalizeConsentValue(cookie.categories?.advertising)
+          }
+        });
+        return;
+      }
 
-    const existing = recordsByKey.get(domainKey);
-    existing.numberOfVisits = Math.max(existing.numberOfVisits || 0, numberOfVisits);
-    existing.dates = Array.from(new Set([...(existing.dates || []), ...dates])).sort();
-    if (existing.actionTaken !== "yes" && actionTaken === "yes") {
-      existing.actionTaken = "yes";
-    } else if (existing.actionTaken === "unknown" && actionTaken !== "unknown") {
-      existing.actionTaken = actionTaken;
-    }
-  });
+      const existing = recordsByKey.get(domainKey);
+      existing.numberOfVisits = Math.max(existing.numberOfVisits || 0, numberOfVisits);
+      existing.dates = Array.from(new Set([...(existing.dates || []), ...dates])).sort();
+      if (existing.actionTaken !== "yes" && actionTaken === "yes") {
+        existing.actionTaken = "yes";
+      } else if (existing.actionTaken === "unknown" && actionTaken !== "unknown") {
+        existing.actionTaken = actionTaken;
+      }
+    });
 
     return Array.from(recordsByKey.values());
   }
-
-  // Store cookies and domains using extension storage
-async function storeCookiesAndDomainsInStorage(cookiesAndDomains) {
-  try {
-    await sendExtensionMessage({
-      type: "STORAGE_SET",
-      key: "cookiesAndDomains",
-      value: JSON.stringify(cookiesAndDomains) // serialize before storing
-    });
-    console.log("cookiesAndDomains successfully saved via STORAGE_SET");
-  } catch (error) {
-    console.error("Failed to store cookiesAndDomains via extension message:", error);
-  }
-}
-
-// Retrieve cookies and domains from extension storage
-async function getCookiesAndDomainsFromStorage() {
-  try {
-    const result = await sendExtensionMessage({
-      type: "STORAGE_GET",
-      key: "cookiesAndDomains"
-    });
-
-    if (!result || !result.cookiesAndDomains) {
-      console.log("No cookiesAndDomains found in storage");
-      return null;
-    }
-
-    return JSON.parse(result.cookiesAndDomains); // deserialize back to original structure
-  } catch (error) {
-    console.error("Failed to retrieve cookiesAndDomains via extension message:", error);
-    return null;
-  }
-}
-
-  // Cookies
-async function getCookieData() {
-    const result = await sendExtensionMessage({
-        type: "STORAGE_GET",
-        key: "cookieData"
-    });
-    return result?.cookieData || [];
-}
-
-async function setCookieData(cookies) {
-    await sendExtensionMessage({
-        type: "STORAGE_SET",
-        key: "cookieData",
-        value: cookies
-    });
-}
-
-// Consent records
-async function getConsentRecords() {
-    const result = await sendExtensionMessage({
-        type: "STORAGE_GET",
-        key: "consentDomainData"
-    });
-    return result?.consentDomainData || [];
-}
-
-async function setConsentRecords(records) {
-    await sendExtensionMessage({
-        type: "STORAGE_SET",
-        key: "consentDomainData",
-        value: records
-    });
-}
-
-// Browsing history
-async function getBrowsingHistory() {
-    const result = await sendExtensionMessage({
-        type: "STORAGE_GET",
-        key: "browsingHistoryData"
-    });
-    return result?.browsingHistoryData || [];
-}
-
-async function setBrowsingHistory(historyData) {
-    await sendExtensionMessage({
-        type: "STORAGE_SET",
-        key: "browsingHistoryData",
-        value: historyData
-    });
-}
 
   // Store cookies and derived data via extension messaging
   async function storeCookiesInStorage(cookies) {

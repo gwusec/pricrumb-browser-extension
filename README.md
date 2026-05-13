@@ -104,7 +104,7 @@ A website (e.g., the survey) communicates with the extension by posting messages
 	* Provides a full view of cookies.
 	* Called directly by [popup.js](extensions/desktop/merged/popup.js) to populate cookie table.
 	* Components:
-		* Calls ```getVisitedDomains()``` to build and cache a list of all sites visited in the last year.
+		* Calls ```getVisitedMainDomains()``` to build and cache a list of all sites visited in the last year.
 			* Domain set cached in ```visitedDomainsCache``` and history data per domain in ```historyCache```.
 		* Retrieves all cookies via ```ext.cookies.getAll()``` and filters out cookies from unvisited domains.
 		* For each remaining domain, looks up browsing history via ```ext.history.getVisits()```.

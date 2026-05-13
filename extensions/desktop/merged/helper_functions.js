@@ -20,7 +20,7 @@ export const STORAGE_KEYS = {
  * @param {Function} getSelectionStatusFunc - Function that returns the selection status element for a category
  * @returns {Promise<Array<HTMLTableRowElement>>} Array of <tr> elements
  */
-export async function generateWebsiteRows(domains, getFaviconFunc, getDiscrepancyInfoFunc, getSelectionStatusFunc) {
+export async function generateWebsiteRows(domains, getFaviconFunc, getDiscrepancyInfoFunc, getSelectionStatusFunc, showExpirationDate = false) {
 
     const rowPromises = domains.map(async (domain) => {
         const row = document.createElement('tr');
@@ -56,8 +56,7 @@ export async function generateWebsiteRows(domains, getFaviconFunc, getDiscrepanc
         // If a favicon function is provided, try to update the src
         if (getFaviconFunc) {
             try {
-                const realFavicon = await getFaviconFunc(formattedDomain);
-                if (realFavicon) favicon.src = realFavicon;
+                favicon.src = await getFaviconFunc(formattedDomain);
             } catch (e) {
                 console.warn("Failed to load favicon for", formattedDomain, e);
             }
@@ -97,11 +96,11 @@ export async function generateWebsiteRows(domains, getFaviconFunc, getDiscrepanc
         // -----------------------
         // Expiration Cell
         // -----------------------
-        const expirationCell = document.createElement('td');
-        expirationCell.textContent = (domain.expiration && domain.expiration !== "Session cookie")
-            ? calculateDaysRemaining(domain.expiration)
-            : "Session cookie";
-        row.appendChild(expirationCell);
+        if(showExpirationDate){
+            const expirationCell = document.createElement('td');
+            expirationCell.textContent =  calculateDaysRemaining(domain.expiration);
+            row.appendChild(expirationCell);
+        }
 
         return row;
     });
@@ -144,13 +143,21 @@ export function extractMainDomainName(domain) {
 }
 
 export function calculateDaysRemaining(expirationDate) {
-    if (!expirationDate || expirationDate === "Session cookie") return "Session cookie";
+    if (!expirationDate || expirationDate === "Session cookie") {
+        return "These settings usually do not expire and will stay saved unless you clear your browser data.";
+    }
     const expDate = new Date(expirationDate);
+
+    if (Number.isNaN(expDate.getTime())) {
+        return expirationDate;
+    }
+
     const diffMs = expDate - new Date();
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    if (diffDays < 0) return "Expired";
+
+    if (diffDays < 0) return "These settings have already expired.";
     if (diffDays === 0) return "Expires today";
-    if (diffDays === 1) return "1 day";
+    if (diffDays === 1) return "1 more day";
     return `${diffDays} more days`;
 }
 
@@ -558,6 +565,106 @@ export function formatDomainForDisplay(domain) {
     if (mainIndex === -1) return domain;
 
     // Everything after the main domain is the suffix (TLD or multi-part TLD)
+    const suffix = parts.slice(mainIndex + 1).join(".");
+
+    return suffix ? `${main}.${suffix}` : main;
+}
+
+// Store cookies and domains using extension storage
+export async function storeCookiesAndDomainsInStorage(cookiesAndDomains) {
+    try {
+        await sendExtensionMessage({
+            type: "STORAGE_SET",
+            key: "cookiesAndDomains",
+            value: JSON.stringify(cookiesAndDomains) // serialize before storing
+        });
+    } catch (error) {
+        console.error("Failed to store cookiesAndDomains via extension message:", error);
+    }
+}
+
+// Retrieve cookies and domains from extension storage
+export async function getCookiesAndDomainsFromStorage() {
+    try {
+        const result = await sendExtensionMessage({
+            type: "STORAGE_GET",
+            key: "cookiesAndDomains"
+        });
+
+        if (!result || !result.cookiesAndDomains) {
+            console.log("No cookiesAndDomains found in storage");
+            return null;
+        }
+
+        return JSON.parse(result.cookiesAndDomains); // deserialize back to original structure
+    } catch (error) {
+        console.error("Failed to retrieve cookiesAndDomains via extension message:", error);
+        return null;
+    }
+}
+
+// Cookies
+export async function getCookieData() {
+    const result = await sendExtensionMessage({
+        type: "STORAGE_GET",
+        key: "cookieData"
+    });
+    return result?.cookieData || [];
+}
+
+export async function setCookieData(cookies) {
+    await sendExtensionMessage({
+        type: "STORAGE_SET",
+        key: "cookieData",
+        value: cookies
+    });
+}
+
+// Consent records
+export async function getConsentRecords() {
+    const result = await sendExtensionMessage({
+        type: "STORAGE_GET",
+        key: "consentDomainData"
+    });
+    return result?.consentDomainData || [];
+}
+
+export async function setConsentRecords(records) {
+    await sendExtensionMessage({
+        type: "STORAGE_SET",
+        key: "consentDomainData",
+        value: records
+    });
+}
+
+// Browsing history
+export async function getBrowsingHistory() {
+    const result = await sendExtensionMessage({
+        type: "STORAGE_GET",
+        key: "browsingHistoryData"
+    });
+    return result?.browsingHistoryData || [];
+}
+
+export async function setBrowsingHistory(historyData) {
+    await sendExtensionMessage({
+        type: "STORAGE_SET",
+        key: "browsingHistoryData",
+        value: historyData
+    });
+}
+
+export function buildDomain(rawDomain) {
+    const parts = rawDomain.toLowerCase().split(".");
+
+    const main = extractMainDomainName(rawDomain);
+
+    const mainIndex = parts.lastIndexOf(main);
+
+    if (mainIndex === -1) {
+        return rawDomain.toLowerCase();
+    }
+
     const suffix = parts.slice(mainIndex + 1).join(".");
 
     return suffix ? `${main}.${suffix}` : main;

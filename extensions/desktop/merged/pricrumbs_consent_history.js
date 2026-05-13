@@ -28,7 +28,7 @@ import {
  *
  * @param {HTMLElement} target - The DOM element where the table will be injected.
  */
-export async function injectTopAndBottomFiveTable(target = null, tutorial = false, showDiscrepancies = false) {
+export async function injectTopAndBottomFiveTable(target = null, tutorial = false, showDiscrepancies = false, showExpirationDate = false) {
 
     // Find or create the container element for the shadow DOM
     let container = target.querySelector('.ext-injected-container');
@@ -87,10 +87,10 @@ export async function injectTopAndBottomFiveTable(target = null, tutorial = fals
 
     if (showDiscrepancies) {
         await findDiscrepanciesAndRender();
-        shadow.innerHTML = await createTopAndBottomFiveTableHTML(false, showDiscrepancies);
+        shadow.innerHTML = await createTopAndBottomFiveTableHTML(false, showDiscrepancies, showExpirationDate);
     } else {
         // Because favicons take long to render, we first get the table HTML without favicons from storage or generate it
-        shadow.innerHTML = await getTopAndBottomFiveTableHTML(false, showDiscrepancies);
+        shadow.innerHTML = await getTopAndBottomFiveTableHTML(false, false, showExpirationDate);
     }
 
     // Show tutorial if we want to
@@ -100,9 +100,9 @@ export async function injectTopAndBottomFiveTable(target = null, tutorial = fals
 
     // Then, retrieve or generate the table HTML with favicons and update the shadow DOM
     if (showDiscrepancies) {
-        shadow.innerHTML = await createTopAndBottomFiveTableHTML(true, showDiscrepancies);
+        shadow.innerHTML = await createTopAndBottomFiveTableHTML(true, showDiscrepancies, showExpirationDate);
     } else {
-        shadow.innerHTML = await getTopAndBottomFiveTableHTML(true, showDiscrepancies);
+        shadow.innerHTML = await getTopAndBottomFiveTableHTML(true, showDiscrepancies, showExpirationDate);
     }
 }
 
@@ -112,7 +112,7 @@ export async function injectTopAndBottomFiveTable(target = null, tutorial = fals
  * @param {boolean} includeFavIcons - Whether to include website favicons in the table.
  * @returns {Promise<string>} The full HTML string for the table, ready to inject into the page.
  */
-export async function createTopAndBottomFiveTableHTML(includeFavIcons, showDiscrepancies) {
+export async function createTopAndBottomFiveTableHTML(includeFavIcons, showDiscrepancies, showExpirationDate) {
 
     // Retrieve the value from storage
     const { STORAGE_KEYS } = await import(browser.runtime.getURL("helper_functions.js"));
@@ -127,7 +127,8 @@ export async function createTopAndBottomFiveTableHTML(includeFavIcons, showDiscr
         cookieHistory,
         includeFavIcons ? getFavicon : null,
         showDiscrepancies ? getDiscrepancyInfo : null,
-        getSelectionStatus
+        getSelectionStatus,
+        showExpirationDate
     );
 
     // Combine all rows into a single HTML string
@@ -155,7 +156,7 @@ export async function createTopAndBottomFiveTableHTML(includeFavIcons, showDiscr
           <th>Extra Functionality Cookies</th>
           <th>Performance Cookies</th>
           <th>Personalized Advertising Cookies</th>
-          <th>Cookie Settings Will Be Stored For:</th>
+          ${showExpirationDate ? "<th>Cookie Settings Will Be Stored For:</th>" : ""}
         </tr>
       </thead>
       <tbody>
@@ -166,14 +167,15 @@ export async function createTopAndBottomFiveTableHTML(includeFavIcons, showDiscr
 }
 
 // Setter: save table HTML and its configuration to storage
-export async function setTopAndBottomFiveTableHTML(html, includeFavIcons, showDiscrepancies) {
+export async function setTopAndBottomFiveTableHTML(html, includeFavIcons, showDiscrepancies, showExpirationDate) {
     return sendExtensionMessage({
         type: "STORAGE_SET",
         key: "topAndBottomFiveTableHTML",
         value: {
             html,
             includeFavIcons,
-            showDiscrepancies
+            showDiscrepancies, 
+            showExpirationDate
         }
     });
 }
@@ -189,7 +191,7 @@ export async function setTopAndBottomFiveTableHTML(html, includeFavIcons, showDi
  * @param {boolean} includeFavIcons - Whether to include website favicons in the table.
  * @returns {Promise<string>} The HTML string for the table.
  */
-export async function getTopAndBottomFiveTableHTML(includeFavIcons, showDiscrepancies) {
+export async function getTopAndBottomFiveTableHTML(includeFavIcons, showDiscrepancies, showExpirationDate) {
     try {
         const response = await sendExtensionMessage({
             type: "STORAGE_GET",
@@ -201,19 +203,21 @@ export async function getTopAndBottomFiveTableHTML(includeFavIcons, showDiscrepa
         const needsNewTable =
             !cached ||
             cached.includeFavIcons !== includeFavIcons ||
-            cached.showDiscrepancies !== showDiscrepancies;
+            cached.showDiscrepancies !== showDiscrepancies ||
+            cached.showExpirationDate !== showExpirationDate;
 
         let html;
 
         if (needsNewTable) {
-            console.log("[TableHTML] Creating table", { includeFavIcons, showDiscrepancies });
+            console.log("[TableHTML] Creating table", { includeFavIcons, showDiscrepancies, showExpirationDate });
 
-            html = await createTopAndBottomFiveTableHTML(includeFavIcons, showDiscrepancies);
+            html = await createTopAndBottomFiveTableHTML(includeFavIcons, showDiscrepancies, showExpirationDate);
 
             await setTopAndBottomFiveTableHTML(
                 html,
                 includeFavIcons,
-                showDiscrepancies
+                showDiscrepancies, 
+                showExpirationDate
             );
 
         } else {
@@ -226,12 +230,13 @@ export async function getTopAndBottomFiveTableHTML(includeFavIcons, showDiscrepa
     } catch (error) {
         console.warn("Failed to get table HTML from storage:", error);
 
-        const html = await createTopAndBottomFiveTableHTML(includeFavIcons, showDiscrepancies);
+        const html = await createTopAndBottomFiveTableHTML(includeFavIcons, showDiscrepancies, showExpirationDate);
 
         await setTopAndBottomFiveTableHTML(
             html,
             includeFavIcons,
-            showDiscrepancies
+            showDiscrepancies,
+            showExpirationDate
         );
 
         return html;
@@ -674,9 +679,7 @@ async function displayWebsitesWithDiscrepanciesOnly(domains, tableId) {
         });
 
         const expirationCell = document.createElement('td');
-        expirationCell.textContent = domain.expiration && domain.expiration !== "Session cookie"
-            ? calculateDaysRemaining(domain.expiration)
-            : "Session cookie";
+        expirationCell.textContent = calculateDaysRemaining(domain.expiration);
 
         row.appendChild(expirationCell);
         websitesList.appendChild(row);

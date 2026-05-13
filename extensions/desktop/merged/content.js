@@ -390,6 +390,7 @@ function normalizeActionTakenValue(value) {
     }
 
   if (event.data.payload?.action === "getConsentDomainData") {
+    console.info("[pricrumbs][content script] Received getConsentDomainData request");
     (async () => {
       try {
         const result = await ext.storage.local.get([
@@ -508,6 +509,7 @@ function normalizeActionTakenValue(value) {
     }
 
     if (event.data.payload?.action === "getBrowsingHistoryData") {
+      console.info("[pricrumbs][content script] Received getBrowsingHistoryData request");
       (async () => {
         try {
           const result = await ext.storage.local.get(["browsingHistoryData"]);
@@ -574,8 +576,8 @@ function normalizeActionTakenValue(value) {
           cookie.actionTaken && cookie.actionTaken.toLowerCase() === 'no'
         );
 
-        console.log('Cookies with action taken:', actionTakenCookies.length);
-        console.log('Cookies with action taken = no:', noActionCookies.length);
+        console.log('[content.js] Cookies with action taken:', actionTakenCookies.length);
+        console.log('[content.js] Cookies with action taken = no:', noActionCookies.length);
 
         // Arrays to store categorized domains
         const category1 = []; // Accept all (functional=true, performance=true, advertising=true)
@@ -1229,18 +1231,27 @@ function normalizeActionTakenValue(value) {
             const module = await import(browser.runtime.getURL("pricrumbs_consent_history.js"));
 
             if (target?.getAttribute('tutorial') === 'true') {
-              await module.injectTopAndBottomFiveTable(target, true);
+              await module.injectTopAndBottomFiveTable(target, true, false, false);
             } else {
-              await module.injectTopAndBottomFiveTable(target, false);
+              await module.injectTopAndBottomFiveTable(target, false, false, false);
             }
             return true;
           } else if (id === "pricrumbs_websites_with_discrepancies") {
             const module = await import(browser.runtime.getURL("pricrumbs_consent_history.js"));
 
             if (target?.getAttribute('tutorial') === 'true') {
-              await module.injectTopAndBottomFiveTable(target, true, true);
+              await module.injectTopAndBottomFiveTable(target, true, true, false);
             } else {
-              await module.injectTopAndBottomFiveTable(target, false, true);
+              await module.injectTopAndBottomFiveTable(target, false, true, false);
+            }
+            return true;
+          } else if (id === "pricrumbs_websites_with_discrepancies_expiration_date") {
+            const module = await import(browser.runtime.getURL("pricrumbs_consent_history.js"));
+
+            if (target?.getAttribute('tutorial') === 'true') {
+              await module.injectTopAndBottomFiveTable(target, true, true, true);
+            } else {
+              await module.injectTopAndBottomFiveTable(target, false, true, true);
             }
             return true;
           }

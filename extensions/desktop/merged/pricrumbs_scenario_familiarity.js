@@ -11,34 +11,38 @@ const SCENARIO_GROUP_NAMES = [
 ];
 
 const FAMILIARITY_OPTIONS = [
-    { value: 1, label: "1 - Not at all familiar" },
-    { value: 2, label: "2 - Slightly familiar" },
-    { value: 3, label: "3 - Moderately familiar" },
-    { value: 4, label: "4 - Very familiar" },
-    { value: 5, label: "5 - Extremely familiar" }
+    { value: 1, label: "(1) Not at all familiar" },
+    { value: 2, label: "(2) Slightly familiar" },
+    { value: 3, label: "(3) Somewhat familiar" },
+    { value: 4, label: "(4) Moderately familiar" },
+    { value: 5, label: "(5) Very familiar" },
+    { value: 6, label: "(6) Extremely familiar" }
 ];
 
 const SCENARIO_FOLLOWUP_OPTIONS_BY_FIELD = Object.freeze({
     pricrumbs_website_followup_trustworthiness: [
-        { value: "1 - Not at all trustworthy", label: "1 - Not at all trustworthy" },
-        { value: "2 - Slightly trustworthy", label: "2 - Slightly trustworthy" },
-        { value: "3 - Somewhat trustworthy", label: "3 - Somewhat trustworthy" },
-        { value: "4 - Moderately trustworthy", label: "4 - Moderately trustworthy" },
-        { value: "5 - Extremely trustworthy", label: "5 - Extremely trustworthy" }
+        { value: "1-not-at-all-trustworthy", label: "(1) Not at all trustworthy" },
+        { value: "2-slightly-trustworthy", label: "(2) Slightly trustworthy" },
+        { value: "3-somewhat-trustworthy", label: "(3) Somewhat trustworthy" },
+        { value: "4-moderately-trustworthy", label: "(4) Moderately trustworthy" },
+        { value: "5-very-trustworthy", label: "(5) Very trustworthy" },
+        { value: "6-extremely-trustworthy", label: "(6) Extremely trustworthy" }
     ],
     pricrumbs_website_followup_utility: [
-        { value: "1 - Not at all useful", label: "1 - Not at all useful" },
-        { value: "2 - Slightly useful", label: "2 - Slightly useful" },
-        { value: "3 - Somewhat useful", label: "3 - Somewhat useful" },
-        { value: "4 - Moderately useful", label: "4 - Moderately useful" },
-        { value: "5 - Extremely useful", label: "5 - Extremely useful" }
+        { value: "1-not-at-all-useful", label: "(1) Not at all useful" },
+        { value: "2-slightly-useful", label: "(2) Slightly useful" },
+        { value: "3-somewhat-useful", label: "(3) Somewhat useful" },
+        { value: "4-moderately-useful", label: "(4) Moderately useful" },
+        { value: "5-very-useful", label: "(5) Very useful" },
+        { value: "6-extremely-useful", label: "(6) Extremely useful" }
     ],
     pricrumbs_website_followup_privacy_concerns: [
-        { value: "1 - Not at all concerned", label: "1 - Not at all concerned" },
-        { value: "2 - Slightly concerned", label: "2 - Slightly concerned" },
-        { value: "3 - Somewhat concerned", label: "3 - Somewhat concerned" },
-        { value: "4 - Moderately concerned", label: "4 - Moderately concerned" },
-        { value: "5 - Extremely concerned", label: "5 - Extremely concerned" }
+        { value: "1-not-at-all-concerned", label: "(1) Not at all concerned" },
+        { value: "2-slightly-concerned", label: "(2) Slightly concerned" },
+        { value: "3-somewhat-concerned", label: "(3) Somewhat concerned" },
+        { value: "4-moderately-concerned", label: "(4) Moderately concerned" },
+        { value: "5-very-concerned", label: "(5) Very concerned" },
+        { value: "6-extremely-concerned", label: "(6) Extremely concerned" }
     ]
 });
 
@@ -284,7 +288,6 @@ function buildStyles() {
         }
 
         thead th.website-col {
-            width: 34%;
             text-align: left;
         }
 
@@ -368,8 +371,8 @@ function renderLoadingState(shadowRoot) {
             <table class="loading-table">
                 <thead>
                     <tr>
-                        <th class="website-col">Website domain</th>
-                        ${FAMILIARITY_OPTIONS.map((option) => `<th>${escapeHtml(option.label)}</th>`).join("")}
+                        <th class="website-col">Website</th>
+                        ${FAMILIARITY_OPTIONS.map((option) => `<th>${option.label}</th>`).join("")}
                     </tr>
                 </thead>
                 <tbody>
@@ -442,7 +445,7 @@ function renderScenarioFamiliarityTable(shadowRoot, state) {
             <table>
                 <thead>
                     <tr>
-                        <th class="website-col">Website domain</th>
+                        <th class="website-col">Website</th>
                         ${FAMILIARITY_OPTIONS.map((option) => `<th>${escapeHtml(option.label)}</th>`).join("")}
                     </tr>
                 </thead>
@@ -606,7 +609,7 @@ function renderScenarioFollowupLoadingState(shadowRoot, fieldName) {
             <table class="loading-table">
                 <thead>
                     <tr>
-                        <th class="website-col">Website domain</th>
+                        <th class="website-col">Website</th>
                         ${options.map((option) => `<th>${escapeHtml(option.label)}</th>`).join("")}
                     </tr>
                 </thead>
@@ -678,7 +681,7 @@ function renderScenarioFollowupTable(shadowRoot, state) {
             <table>
                 <thead>
                     <tr>
-                        <th class="website-col">Website domain</th>
+                        <th class="website-col">Website</th>
                         ${options.map((option) => `<th>${escapeHtml(option.label)}</th>`).join("")}
                     </tr>
                 </thead>
