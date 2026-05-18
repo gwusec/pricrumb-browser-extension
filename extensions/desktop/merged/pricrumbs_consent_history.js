@@ -67,7 +67,7 @@ export async function injectTopAndBottomFiveTable(target = null, tutorial = fals
                     <th>Extra Functionality Cookies</th>
                     <th>Performance Cookies</th>
                     <th>Personalized Advertising Cookies</th>
-                    <th>Cookie Settings Will Be Stored For:</th>
+                    <th>Cookie settings will be stored for:</th>
                 </tr>
             </thead>
             <tbody>
@@ -156,7 +156,7 @@ export async function createTopAndBottomFiveTableHTML(includeFavIcons, showDiscr
           <th>Extra Functionality Cookies</th>
           <th>Performance Cookies</th>
           <th>Personalized Advertising Cookies</th>
-          ${showExpirationDate ? "<th>Cookie Settings Will Be Stored For:</th>" : ""}
+          ${showExpirationDate ? "<th>Cookie settings will be stored for:</th>" : ""}
         </tr>
       </thead>
       <tbody>
@@ -707,7 +707,7 @@ function startTableTutorial(shadow) {
         { columnIndex: 1, content: "Here you see whether the website is currently allowed to use Extra Functionality Cookies." },
         { columnIndex: 2, content: "Here you see whether the website is currently allowed to use Performance Cookies." },
         { columnIndex: 3, content: "Here you see whether the website is currently allowed to use Personalized Advertising Cookies." },
-        { columnIndex: 4, content: "Here you see how long your choices for this website will be saved in your browser. Until then, the website will use cookies based on the current cookie consent settings stored in your browser." },
+        //{ columnIndex: 4, content: "Here you see how long your choices for this website will be saved in your browser. Until then, the website will use cookies based on the current cookie consent settings stored in your browser." },
         { type: 'table', content: "Please take a moment to review your past cookie choices before continuing." },
     ];
 

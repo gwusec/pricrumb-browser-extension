@@ -978,6 +978,7 @@ function normalizeActionTakenValue(value) {
     "pricrumbs_preferred_cookie_choices_functional",
     "pricrumbs_preferred_cookie_choices_performance",
     "pricrumbs_preferred_cookie_choices_advertising",
+    "pricrumbs_websites_with_discrepancies_expiration_date",
     "pricrumbs_consent_history_top_websites",
     "pricrumbs_websites_with_discrepancies",
     "pricrumbs_website_all_cookies_accepted",
@@ -990,73 +991,13 @@ function normalizeActionTakenValue(value) {
     "pricrumbs_preferred_cookie_choices_functional",
     "pricrumbs_preferred_cookie_choices_performance",
     "pricrumbs_preferred_cookie_choices_advertising",
+    "pricrumbs_websites_with_discrepancies_expiration_date",
     "pricrumbs_consent_history_top_websites",
     "pricrumbs_websites_with_discrepancies",
   ]);
 
   // Listen for messages from the background script
   ext.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    //   // Handle direct injection commands (background -> content -> DOM)
-    //   // Handle direct injection commands (background -> content -> DOM)
-    // if (request.action === "injectHTML") {
-
-    //   const { elementId, htmlFile, height } = request;
-
-    //   const targetElement = document.getElementById(elementId);
-
-    //   if (targetElement && !targetElement.querySelector(".ext-shadow-host")) {
-
-    //     const host = document.createElement("div");
-    //     host.className = "ext-shadow-host";
-    //     host.style.width = "100%";
-    //     host.style.height = height || "600px";
-
-    //     if (nonScrollableEmbedIds.has(elementId)) {
-    //       host.style.overflow = "hidden";
-    //     }
-
-    //     targetElement.appendChild(host);
-
-    //     const shadow = host.attachShadow({ mode: "open" });
-
-    //     (async () => {
-    //       try {
-    //         const url = ext.runtime.getURL(htmlFile);
-    //         const htmlText = await fetch(url).then(r => r.text());
-
-    //         const parser = new DOMParser();
-    //         const doc = parser.parseFromString(htmlText, "text/html");
-
-    //         /* move <style> tags */
-    //         doc.querySelectorAll("style").forEach(style => {
-    //           shadow.appendChild(style.cloneNode(true));
-    //         });
-
-    //         /* move body content */
-    //         const bodyWrapper = document.createElement("div");
-    //         bodyWrapper.innerHTML = doc.body.innerHTML;
-    //         shadow.appendChild(bodyWrapper);
-
-    //         /* load scripts */
-    //         doc.querySelectorAll("script[src]").forEach(script => {
-    //           const s = document.createElement("script");
-    //           s.src = ext.runtime.getURL(script.getAttribute("src"));
-    //           shadow.appendChild(s);
-    //         });
-
-    //         /* expose root if scripts need access */
-    //         window.__EXT_SHADOW_ROOT__ = shadow;
-
-    //         console.log(`Injected shadow DOM for ${htmlFile} into #${elementId}`);
-    //         sendResponse && sendResponse({ success: true });
-
-    //       } catch (err) {
-    //         console.error("Shadow injection failed:", err);
-    //         sendResponse && sendResponse({ success: false, error: "fetch-failed" });
-    //       }
-    //     })();
-
-    //   } else if (!targetElement) {
     // Request should include elementId, htmlFile, height
     // Handle direct injection commands (background -> content -> DOM)
     if (request.action === "injectHTML") {
@@ -1137,7 +1078,8 @@ function normalizeActionTakenValue(value) {
 
     const minHeight = (
       elementId === "pricrumbs_consent_history_top_websites" ||
-      elementId === "pricrumbs_websites_with_discrepancies"
+      elementId === "pricrumbs_websites_with_discrepancies" ||
+      elementId === "pricrumbs_websites_with_discrepancies_expiration_date"
     ) ? 180 : 360;
     const clampedHeight = Math.max(minHeight, Math.min(3000, Math.ceil(requestedHeight) + 8));
     iframe.style.height = `${clampedHeight}px`;
@@ -1190,6 +1132,7 @@ function normalizeActionTakenValue(value) {
       "pricrumbs_preferred_cookie_choices_functional": { html: "pricrumbs_preferred_cookie_choices_functional.html", height: "560px" },
       "pricrumbs_preferred_cookie_choices_performance": { html: "pricrumbs_preferred_cookie_choices_performance.html", height: "560px" },
       "pricrumbs_preferred_cookie_choices_advertising": { html: "pricrumbs_preferred_cookie_choices_advertising.html", height: "560px" },
+      "pricrumbs_websites_with_discrepancies_expiration_date": { html: "pricrumbs_websites_with_discrepancies_expiration_date.html", height: "500px" },
       "pricrumbs_consent_history_top_websites": { html: "pricrumbs_consent_history_top_websites.html", height: "500px" },
       "pricrumbs_consent_history_bottom_websites": { html: "pricrumbs_consent_history_bottom_websites.html", height: "600px" },
       "pricrumbs_website_familiarity_widget": { inject: injectScenarioFamiliarityWidget },

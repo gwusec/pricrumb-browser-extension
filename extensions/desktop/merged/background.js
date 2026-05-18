@@ -509,19 +509,31 @@ function compareScenarioCandidates(a, b) {
 
 async function fetchFaviconAsDataURL(url) {
   if (typeof url !== "string" || !url.trim()) return null;
+
   if (faviconDataUrlCache.has(url)) {
     return faviconDataUrlCache.get(url);
   }
 
   const fetchPromise = (async () => {
     try {
-      const response = await fetch(url);
+      const response = await fetch(url, { redirect: "follow" });
       if (!response.ok) return null;
+
+      const contentType = response.headers.get("content-type") || "";
+
+      // HARD FILTER: reject non-images
+      if (!contentType.startsWith("image/")) {
+        return null;
+      }
+
       const blob = await response.blob();
+
+      if (!blob || blob.size === 0) return null;
+
       return await new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onloadend = () => resolve(reader.result);
-        reader.onerror = reject;
+        reader.onerror = () => resolve(null);
         reader.readAsDataURL(blob);
       });
     } catch {
@@ -530,7 +542,15 @@ async function fetchFaviconAsDataURL(url) {
   })();
 
   faviconDataUrlCache.set(url, fetchPromise);
-  return fetchPromise;
+
+  const result = await fetchPromise;
+
+  // IMPORTANT: don’t cache failures permanently
+  if (!result) {
+    faviconDataUrlCache.delete(url);
+  }
+
+  return result;
 }
 
 async function withTimeout(promise, timeoutMs) {
@@ -548,47 +568,128 @@ async function withTimeout(promise, timeoutMs) {
   });
 }
 
+const faviconCache = new Map();
+
 async function resolveFaviconDataUrlForDomain(domain) {
   const canonicalDomain = canonicalizeDomain(domain);
   if (!canonicalDomain) return null;
 
+  // Cache
+  if (faviconCache.has(canonicalDomain)) {
+    return faviconCache.get(canonicalDomain);
+  }
+
+  const resultPromise = resolveFaviconInternal(canonicalDomain);
+  faviconCache.set(canonicalDomain, resultPromise);
+
+  try {
+    return await resultPromise;
+  } catch {
+    faviconCache.delete(canonicalDomain);
+    return null;
+  }
+}
+
+async function resolveFaviconInternal(domain) {
+  // 1. Existing browser tab favicon (fastest + best)
+  const tabFavicon = await getTabFavicon(domain);
+  if (tabFavicon) return tabFavicon;
+
+  // 2. Try common favicon locations first
+  const commonCandidates = [
+    `https://${domain}/favicon.ico`,
+    `https://${domain}/favicon.png`,
+    `https://${domain}/apple-touch-icon.png`,
+    `https://www.${domain}/favicon.ico`,
+    `https://www.${domain}/favicon.png`,
+    `https://www.${domain}/apple-touch-icon.png`,
+  ];
+
+  for (const url of commonCandidates) {
+    const icon = await fetchFaviconAsDataURL(url);
+    if (icon) return icon;
+  }
+
+  // 3. Parse homepage only if needed
+  const discoveredIcon = await discoverFaviconFromHtml(domain);
+  if (discoveredIcon) return discoveredIcon;
+
+  return null;
+}
+
+async function getTabFavicon(domain) {
   try {
     const tabs = await ext.tabs.query({});
-    const matchingTab = tabs.find((tab) => {
-      if (!tab?.url || !tab?.favIconUrl) return false;
+
+    for (const tab of tabs) {
+      if (!tab?.url || !tab?.favIconUrl) continue;
+
       try {
-        return canonicalizeDomain(new URL(tab.url).hostname) === canonicalDomain;
+        const tabDomain = canonicalizeDomain(
+          new URL(tab.url).hostname
+        );
+
+        if (tabDomain !== domain) continue;
+
+        const icon = await fetchFaviconAsDataURL(tab.favIconUrl);
+        if (icon) return icon;
       } catch {
-        return false;
+        // ignore invalid tab URL
       }
-    });
-    if (matchingTab?.favIconUrl) {
-      const faviconFromTab = await fetchFaviconAsDataURL(matchingTab.favIconUrl);
-      if (faviconFromTab) return faviconFromTab;
     }
-  } catch (_error) {
-    // Ignore tab query errors and continue with network fallbacks.
+  } catch {
+    // ignore extension API failures
   }
+
+  return null;
+}
+
+async function discoverFaviconFromHtml(domain) {
+  const controller = new AbortController();
+
+  const timeout = setTimeout(() => {
+    controller.abort();
+  }, 5000);
 
   try {
-    const response = await fetch(`https://${canonicalDomain}`);
-    if (response.ok) {
-      const html = await response.text();
-      const match = html.match(/<link[^>]+rel=["'](?:shortcut )?icon["'][^>]*>/i);
-      if (match) {
-        const hrefMatch = match[0].match(/href=["']([^"']+)["']/i);
-        if (hrefMatch) {
-          const iconUrl = new URL(hrefMatch[1], `https://${canonicalDomain}/`).toString();
-          const faviconFromMarkup = await fetchFaviconAsDataURL(iconUrl);
-          if (faviconFromMarkup) return faviconFromMarkup;
-        }
+    const response = await fetch(`https://${domain}`, {
+      signal: controller.signal,
+    });
+
+    if (!response.ok) return null;
+
+    const html = await response.text();
+
+    // Better favicon rel matching
+    const linkMatches = [
+      ...html.matchAll(
+        /<link[^>]+rel=["'][^"']*(icon|apple-touch-icon)[^"']*["'][^>]*href=["']([^"']+)["'][^>]*>/gi
+      ),
+    ];
+
+    for (const match of linkMatches) {
+      const href = match[2];
+
+      try {
+        const iconUrl = new URL(
+          href,
+          `https://${domain}/`
+        ).toString();
+
+        const icon = await fetchFaviconAsDataURL(iconUrl);
+
+        if (icon) return icon;
+      } catch {
+        // ignore malformed URL
       }
     }
-  } catch (_error) {
-    // Ignore fetch errors and continue to favicon.ico fallback.
+  } catch {
+    // ignore network/abort errors
+  } finally {
+    clearTimeout(timeout);
   }
 
-  return fetchFaviconAsDataURL(`https://${canonicalDomain}/favicon.ico`);
+  return null;
 }
 
 async function getScenarioCandidateSourceData() {

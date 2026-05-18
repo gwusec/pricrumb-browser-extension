@@ -38,7 +38,7 @@ export async function generateWebsiteRows(domains, getFaviconFunc, getDiscrepanc
 
         // Create favicon image
         const favicon = document.createElement('img');
-        favicon.alt = '?'; // placeholder alt
+        favicon.alt = '--'; // placeholder alt
         favicon.src = 'data:image/svg+xml;base64,' + btoa(`
         <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32">
             <rect width="32" height="32" fill="#ccc"/>
@@ -56,7 +56,8 @@ export async function generateWebsiteRows(domains, getFaviconFunc, getDiscrepanc
         // If a favicon function is provided, try to update the src
         if (getFaviconFunc) {
             try {
-                favicon.src = await getFaviconFunc(formattedDomain);
+                const fetchedFavicon = await getFaviconFunc(formattedDomain);
+                if (fetchedFavicon) favicon.src = fetchedFavicon;
             } catch (e) {
                 console.warn("Failed to load favicon for", formattedDomain, e);
             }
@@ -330,7 +331,7 @@ export async function getFavicon(domain) {
         domain
     });
 
-    return response?.favicon || `https://${domain}/favicon.ico`;
+    return response?.favicon || null;
 }
 
 export async function getDiscrepancyInfo(domain) {
