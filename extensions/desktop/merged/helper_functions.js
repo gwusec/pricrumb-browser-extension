@@ -1,3 +1,5 @@
+//helper_functions.js
+
 export const STORAGE_KEYS = {
     PREFS: "participantCookiesPreferences",
     COOKIE_DATA: "cookieData",

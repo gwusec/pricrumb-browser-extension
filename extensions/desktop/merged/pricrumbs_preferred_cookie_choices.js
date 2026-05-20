@@ -153,24 +153,42 @@ function buildDomainObject(cookie) {
 // ============================
 async function loadCookies(category) {
     try {
-        const result = await ext.storage.local.get(STORAGE_KEYS.COOKIE_DATA);
-        const cookies = result[STORAGE_KEYS.COOKIE_DATA] || [];
+        const result = await browser.runtime.sendMessage({ 
+            type: "STORAGE_GET", 
+            key: STORAGE_KEYS.COOKIE_DATA 
+        });
+        const cookies = result?.[STORAGE_KEYS.COOKIE_DATA] || [];
+
+        console.log(`[loadCookies] Retrieved ${cookies.length} cookies from storage`);
 
         if (!cookies.length) {
+            console.warn("[loadCookies] No cookie data found in storage");
             if (DOM.loading) DOM.loading.textContent = "No cookie data found.";
             return;
         }
 
         const domains = selectDomains(cookies);
-        const historyResult = await ext.storage.local.get(STORAGE_KEYS.DOMAIN_HISTORY);
+        console.log(`[loadCookies] selectDomains returned ${domains.length} domains`);
 
-        if (!historyResult[STORAGE_KEYS.DOMAIN_HISTORY]) {
-            await ext.storage.local.set({ [STORAGE_KEYS.DOMAIN_HISTORY]: domains });
+        const historyResult = await browser.runtime.sendMessage({ 
+            type: "STORAGE_GET", 
+            key: STORAGE_KEYS.DOMAIN_HISTORY 
+        });
+
+        if (!historyResult?.[STORAGE_KEYS.DOMAIN_HISTORY]) {
+            console.log("[loadCookies] No domain history found, saving new selection");
+            await browser.runtime.sendMessage({ 
+                type: "STORAGE_SET", 
+                key: STORAGE_KEYS.DOMAIN_HISTORY, 
+                value: domains 
+            });
             state.domains = shuffle(domains);
         } else {
+            console.log("[loadCookies] Existing domain history found, reusing it");
             state.domains = shuffle(historyResult[STORAGE_KEYS.DOMAIN_HISTORY]);
         }
 
+        console.log(`[loadCookies] Loaded ${state.domains.length} domains into state`);
         state.domains.forEach(d => state.domainLookup.set(d.domain, d));
 
         if (DOM.loading) DOM.loading.style.display = "none";
@@ -181,39 +199,57 @@ async function loadCookies(category) {
         void renderDomain(category);
 
     } catch (e) {
-        console.error("Failed to load cookies", e);
+        console.error("[loadCookies] Failed to load cookies:", e);
         if (DOM.loading) DOM.loading.textContent = "Error loading cookie data.";
     }
 }
 
 function selectDomains(cookies) {
-    const actionCookies = cookies.filter(c => (c.actionTaken || "").toLowerCase() === "yes");
-    const source = actionCookies.length >= 6 ? actionCookies : cookies;
+    const byCookies = (action) =>
+        cookies.filter(c => (c.actionTaken || "").toLowerCase() === action);
 
-    const sortedDesc = [...source].sort((a, b) => (b.totalVisitCount || 0) - (a.totalVisitCount || 0));
-    const sortedAsc = [...source].sort((a, b) => (a.totalVisitCount || 0) - (b.totalVisitCount || 0));
+    const yesCookies     = byCookies("yes");
+    const noCookies      = byCookies("no");
+    const unknownCookies = byCookies("unknown");
+
+    // Fallback pool
+    const fallbackCookies = [...noCookies, ...unknownCookies].sort(() => Math.random() - 0.5);
+
+    const sortDesc = (arr) => [...arr].sort((a, b) => (b.totalVisitCount || 0) - (a.totalVisitCount || 0));
+    const sortAsc  = (arr) => [...arr].sort((a, b) => (a.totalVisitCount || 0) - (b.totalVisitCount || 0));
 
     const seen = new Set();
-    const most = [];
+    const most  = [];
     const least = [];
 
-    for (const c of sortedDesc) {
-        const obj = buildDomainObject(c);
-        if (!seen.has(obj.mainDomain)) {
-            seen.add(obj.mainDomain);
-            most.push(obj);
+    const pickMost = (source) => {
+        for (const c of sortDesc(source)) {
+            if (most.length === 5) break;
+            const obj = buildDomainObject(c);
+            if (!seen.has(obj.mainDomain)) {
+                seen.add(obj.mainDomain);
+                most.push(obj);
+            }
         }
-        if (most.length === 5) break;
-    }
+    };
 
-    for (const c of sortedAsc) {
-        const obj = buildDomainObject(c);
-        if (!seen.has(obj.mainDomain)) {
-            seen.add(obj.mainDomain);
-            least.push(obj);
+    const pickLeast = (source) => {
+        for (const c of sortAsc(source)) {
+            if (least.length === 5) break;
+            const obj = buildDomainObject(c);
+            if (!seen.has(obj.mainDomain)) {
+                seen.add(obj.mainDomain);
+                least.push(obj);
+            }
         }
-        if (least.length === 5) break;
-    }
+    };
+
+    // Fill most/least from yes first, then fallback
+    pickMost(yesCookies);
+    if (most.length < 5) pickMost(fallbackCookies);
+
+    pickLeast(yesCookies);
+    if (least.length < 5) pickLeast(fallbackCookies);
 
     return [...most, ...least];
 }

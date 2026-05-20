@@ -99,3 +99,5 @@ const ext = (() => {
 
     throw new Error("Neither browser nor chrome APIs found. This script must run in an extension context.");
 })();
+
+globalThis.ext = ext;

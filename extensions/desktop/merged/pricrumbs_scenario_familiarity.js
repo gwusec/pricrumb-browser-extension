@@ -63,7 +63,7 @@ function isValidDomainHash(value) {
 
 function normalizeScenarioFamiliarityAnswer(value) {
     const parsed = typeof value === "number" ? value : Number(value);
-    return Number.isFinite(parsed) && parsed >= 1 && parsed <= 5 ? parsed : null;
+    return Number.isFinite(parsed) && parsed >= 1 && parsed <= 6 ? parsed : null;
 }
 
 function getScenarioFollowupOptions(fieldName) {
@@ -379,7 +379,7 @@ function renderLoadingState(shadowRoot) {
                     ${Array.from({ length: 4 }, () => `
                         <tr>
                             <td><span class="loading-pill"></span></td>
-                            ${Array.from({ length: 5 }, () => `<td><span class="loading-pill"></span></td>`).join("")}
+                            ${Array.from({ length: FAMILIARITY_OPTIONS.length }, () => `<td><span class="loading-pill"></span></td>`).join("")}
                         </tr>
                     `).join("")}
                 </tbody>

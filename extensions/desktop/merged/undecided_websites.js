@@ -89,7 +89,7 @@ async function loadCookiesAndFindUndecided() {
             // Refresh with fresh cookie categories
             const cookieDataResult = await ext.storage.local.get('cookieData');
             if (cookieDataResult && cookieDataResult.cookieData) {
-                const module = await import(browser.runtime.getURL("helper_functions.js"));
+                const module = await import(ext.runtime.getURL("helper_functions.js"));
                 domains = domains.map(domain => {
                     const freshCookie = cookieDataResult.cookieData.find(c =>
                         c.domain === domain.domain ||
@@ -138,7 +138,7 @@ async function findUndecidedWebsites(domains, userPreferences) {
     for (const domain of domains) {
         if (!domain.domain) continue;
 
-        const module = await import(browser.runtime.getURL("helper_functions.js"));
+        const module = await import(ext.runtime.getURL("helper_functions.js"));
         const formattedDomain = module.extractMainDomainName(domain.domain);
 
         // Try to find matching user preference using domain variations
@@ -199,7 +199,7 @@ async function findUndecidedWebsites(domains, userPreferences) {
 }
 
 async function getUndecidedInfo(domain) {
-    const module = await import(browser.runtime.getURL("helper_functions.js"));
+    const module = await import(ext.runtime.getURL("helper_functions.js"));
     const formattedDomain = module.extractMainDomainName(domain);
 
     return websitesUndecided.find(d =>
@@ -235,7 +235,7 @@ function displayUndecidedWebsites(domains) {
         // Website cell
         const domainCell = document.createElement('td');
         domainCell.className = 'website-cell';
-        const module = await import(browser.runtime.getURL("helper_functions.js"));
+        const module = await import(ext.runtime.getURL("helper_functions.js"));
         const formattedDomain = module.extractMainDomainName(domain.domain);
 
         const favicon = document.createElement('img');

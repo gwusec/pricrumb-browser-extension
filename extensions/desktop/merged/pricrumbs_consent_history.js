@@ -50,7 +50,7 @@ export async function injectTopAndBottomFiveTable(target = null, tutorial = fals
     // Load the CSS file for the table from the extension
     let cssContent = "";
     try {
-        const cssURL = browser.runtime.getURL("css/button-toggle.css");
+        const cssURL = ext.runtime.getURL("css/button-toggle.css");
         const response = await fetch(cssURL);
         cssContent = await response.text();
     } catch (err) {
@@ -115,7 +115,7 @@ export async function injectTopAndBottomFiveTable(target = null, tutorial = fals
 export async function createTopAndBottomFiveTableHTML(includeFavIcons, showDiscrepancies, showExpirationDate) {
 
     // Retrieve the value from storage
-    const { STORAGE_KEYS } = await import(browser.runtime.getURL("helper_functions.js"));
+    const { STORAGE_KEYS } = await import(ext.runtime.getURL("helper_functions.js"));
     const result = await sendExtensionMessage({
         type: "STORAGE_GET",
         key: STORAGE_KEYS.DOMAIN_HISTORY
@@ -139,7 +139,7 @@ export async function createTopAndBottomFiveTableHTML(includeFavIcons, showDiscr
     // Load the table CSS from the extension
     let cssContent = "";
     try {
-        const cssURL = browser.runtime.getURL("css/button-toggle.css");
+        const cssURL = ext.runtime.getURL("css/button-toggle.css");
         const response = await fetch(cssURL);
         cssContent = await response.text();
     } catch (err) {

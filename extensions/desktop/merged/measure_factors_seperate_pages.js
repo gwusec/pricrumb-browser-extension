@@ -213,7 +213,7 @@ async function findMatchingWebsites(cookieData) {
     for (const cookie of actionTakenCookies) {
         if (!cookie.domain) continue;
 
-        const module = await import(browser.runtime.getURL("helper_functions.js"));
+        const module = await import(ext.runtime.getURL("helper_functions.js"));
         const formattedDomain = module.extractMainDomainName(cookie.domain);
         let preferences = null;
 
@@ -262,7 +262,7 @@ async function findMatchingWebsites(cookieData) {
     for (const cookie of noActionCookies) {
         if (!cookie.domain) continue;
 
-        const module = await import(browser.runtime.getURL("helper_functions.js"));
+        const module = await import(ext.runtime.getURL("helper_functions.js"));
         const formattedDomain = module.extractMainDomainName(cookie.domain);
 
         noActionDomains.push({

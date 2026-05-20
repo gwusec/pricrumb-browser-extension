@@ -1,12 +1,8 @@
 // background.js
 
 // Load polyfill and shim in MV3 background service worker
-try {
-  console.log("Importing shims");
-  importScripts("ext-shim.js", "browser-polyfill.min.js");
-} catch (e) {
-  console.warn("Could not import shims, may already be included.");
-}
+import "./ext-shim.js";
+import { buildDomain, getCookieData } from "./helper_functions.js";
 
 async function listAllStorageKeys() {
   try {
@@ -717,7 +713,7 @@ async function getScenarioCandidateSourceData() {
 }
 
 async function buildScenarioFamiliarityCandidates() {
-  const module = await import(browser.runtime.getURL("helper_functions.js"));
+
   const { cookieData, browsingHistoryData } = await getScenarioCandidateSourceData();
   const visitCountByHash = new Map(
     (Array.isArray(browsingHistoryData) ? browsingHistoryData : [])
@@ -759,7 +755,7 @@ async function buildScenarioFamiliarityCandidates() {
     if (!isHexDomainHash(domainHash, [64])) return;
 
     const visitCount = Math.max(entry.visitCount, visitCountByHash.get(domainHash) || 0);
-    const displayDomain = module.buildDomain(entry.rawDomain);
+    const displayDomain = buildDomain(entry.rawDomain);
     if (!displayDomain) return;
 
     const normalizedEntry = {
@@ -817,7 +813,7 @@ async function getScenarioFamiliarityStateResponse(forceRefresh = false) {
       candidatesByCondition = cachedCandidates;
     }
   }
-
+  
   if (!hasScenarioFamiliarityCandidates(candidatesByCondition)) {
     candidatesByCondition = await buildScenarioFamiliarityCandidates();
   }
@@ -885,8 +881,6 @@ async function getVisitedMainDomains() {
     return Array.from(visitedDomainsCache);
   }
 
-  const module = await import(browser.runtime.getURL("helper_functions.js"));
-
   visitedDomainsCache.clear();
   const cutoff = Date.now() - LOOKBACK_MS;
   let endTime = Date.now();
@@ -913,7 +907,7 @@ async function getVisitedMainDomains() {
         if (!canonicalDomain) continue;
 
         // Strip subdomains but keep TLD (e.g. mail.google.com → google.com)
-        const mainDomain = module.buildDomain(canonicalDomain);
+        const mainDomain = buildDomain(canonicalDomain);
         if (!mainDomain) continue;
 
         visitedDomainsCache.add(mainDomain);
@@ -1417,11 +1411,8 @@ async function getBrowsingHistoryData(forceRefresh = false) {
     } catch { continue; }
     if (!canonicalDomain) continue;
 
-    // Load helper once at the top
-    const module = await import(browser.runtime.getURL("helper_functions.js"));
-
     // Strip subdomains but keep TLD (e.g. mail.google.com → google.com, mail.google.co.uk → google.co.uk)
-    const mainDomain = module.buildDomain(canonicalDomain);
+    const mainDomain = buildDomain(canonicalDomain);
 
     if (!domainStats.has(mainDomain)) {
       domainStats.set(mainDomain, {
@@ -1476,11 +1467,9 @@ ext.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 
 // Listen for messages from the popup.js or content.js
 ext.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  // Load helper once at the top
-  const module = import(browser.runtime.getURL("helper_functions.js"));
 
   if (request.action === "getCookieData") {
-    module.getCookieData().then(sendResponse);
+    getCookieData().then(sendResponse);
     return true;
   } else if (request.action === 'checkCookies') {
     console.log(`[pricrumbs] checkCookies`);
@@ -1735,12 +1724,13 @@ ext.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   if (request.action === "getScenarioFamiliarityCandidates") {
+    console.debug("[background.js][getScenarioFamiliarityCandidates]");
     (async () => {
       try {
         const familiarityState = await getScenarioFamiliarityStateResponse(Boolean(request.forceRefresh));
         sendResponse({ candidatesByCondition: familiarityState.candidatesByCondition });
       } catch (error) {
-        console.error("Failed to build scenario familiarity candidates:", error);
+        console.error("background.js][getScenarioFamiliarityCandidates] Failed to build scenario familiarity candidates:", error);
         const stored = await ext.storage.local.get(SCENARIO_FAMILIARITY_CANDIDATES_KEY);
         sendResponse({
           candidatesByCondition:

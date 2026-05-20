@@ -1,6 +1,7 @@
 {
-  "manifest_version": 2,
+  "manifest_version": 3,
   "name": "Cookie Consent Alignment Study",
+  "description": "This extension collects cookie consent data across visited sites to support an IRB-approved research study.",
   "version": "1.2",
   "permissions": [
     "cookies",
@@ -10,59 +11,59 @@
     "downloads",
     "tabs",
     "management",
+    "scripting"
+  ],
+  "host_permissions": [
     "<all_urls>"
   ],
   "background": {
-    "scripts": [
-      "ext-shim.js",
-      "browser-polyfill.min.js",
-      "background.js"
-    ],
-    "persistent": false
+    "scripts": ["background.js"],
+    "service_worker": "background.js",
+    "type": "module"
   },
   "content_scripts": [
     {
-      "matches": [
-        "<all_urls>"
-      ],
+      "matches": ["<all_urls>"],
       "js": [
         "ext-shim.js",
-        "browser-polyfill.min.js",
         "content.js",
         "tracking.js"
       ],
-      "run_at": "document_start"
+      "run_at": "document_idle"
     }
   ],
   "web_accessible_resources": [
-    "pricrumbs_preferred_cookie_choices_functional.html",
-    "pricrumbs_preferred_cookie_choices_performance.html",
-    "pricrumbs_preferred_cookie_choices_advertising.html",
-    "pricrumbs_consent_history_top_websites.html",
-    "pricrumbs_consent_history_bottom_websites.html",
-    "pricrumbs_website_all_cookies_accepted.html",
-    "pricrumbs_website_all_cookies_rejected.html",
-    "pricrumbs_website_advertising_cookies_rejected.html",
-    "pricrumbs_website_all_cookies_default.html",
-    "popup.html",
-    "popup_welcome.html",
-    "tcf_strings.json",
-    "tcf_default_decoded_js.json",
-    "tcf_no_store_before_interaction.json",
-    "pricrumbs_websites_with_discripincies.html",
-    "helper_functions.js",
-    "pricrumbs_consent_history.js",
-    "pricrumbs_scenario_familiarity.js"
+    {
+      "resources": [
+        "pricrumbs_preferred_cookie_choices_functional.html",
+        "pricrumbs_preferred_cookie_choices_performance.html",
+        "pricrumbs_preferred_cookie_choices_advertising.html",
+        "pricrumbs_consent_history_top_websites.html",
+        "pricrumbs_consent_history_bottom_websites.html",
+        "pricrumbs_website_all_cookies_accepted.html",
+        "pricrumbs_website_all_cookies_rejected.html",
+        "pricrumbs_website_advertising_cookies_rejected.html",
+        "pricrumbs_website_all_cookies_default.html",
+        "popup.html",
+        "popup_welcome.html",
+        "tcf_strings.json",
+        "tcf_default_decoded_js.json",
+        "tcf_no_store_before_interaction.json",
+        "pricrumbs_websites_with_discripincies.html",
+        "helper_functions.js",
+        "pricrumbs_consent_history.js",
+        "pricrumbs_scenario_familiarity.js"
+      ],
+      "matches": ["<all_urls>"]
+    }
   ],
-  "browser_action": {
+  "action": {
     "default_title": "Cookie Consent Alignment Study"
   },
   "browser_specific_settings": {
     "gecko": {
       "data_collection_permissions": {
-        "required": [
-          "websiteActivity"
-        ]
+        "required": ["websiteActivity"]
       }
     }
   }

@@ -36,28 +36,34 @@ if (window.location.hostname === "localhost" || window.location.hostname === "ne
   };
   const SCENARIO_FALLBACK_FAVICON = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiI+PHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0iI2QxZDVkYiIvPjx0ZXh0IHg9IjE2IiB5PSIyMSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIxNiIgZmlsbD0iIzExMTgyNyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIj4/PC90ZXh0Pjwvc3ZnPg==";
 
-function normalizeConsentValue(value) {
-  if (value === true || value === "yes" || value === "Yes") return "yes";
-  if (value === false || value === "no" || value === "No") return "no";
-  return "unknown";
-}
+  function normalizeConsentValue(value) {
+    if (value === true || value === "yes" || value === "Yes") return "yes";
+    if (value === false || value === "no" || value === "No") return "no";
+    return "unknown";
+  }
 
-function normalizeActionTakenValue(value) {
-  if (value === true) return "yes";
-  if (value === false) return "no";
-  if (typeof value === "number") {
-    if (value === 1) return "yes";
-    if (value === 0) return "no";
+  /**
+   * Converts various consent values to standardized
+   * values for consistent reporting.
+   * @param {any} value - The raw consent value
+   * @returns {string} Normalized value ("yes", "no", or "unknown")
+   * */
+  function normalizeActionTakenValue(value) {
+    if (value === true) return "yes";
+    if (value === false) return "no";
+    if (typeof value === "number") {
+      if (value === 1) return "yes";
+      if (value === 0) return "no";
+    }
+    if (typeof value === "string") {
+      const normalized = value.trim().toLowerCase();
+      if (normalized === "yes" || normalized === "true" || normalized === "1") return "yes";
+      if (normalized === "no" || normalized === "false" || normalized === "0") return "no";
+      if (normalized.startsWith("yes")) return "yes";
+      if (normalized.startsWith("no")) return "no";
+    }
+    return "unknown";
   }
-  if (typeof value === "string") {
-    const normalized = value.trim().toLowerCase();
-    if (normalized === "yes" || normalized === "true" || normalized === "1") return "yes";
-    if (normalized === "no" || normalized === "false" || normalized === "0") return "no";
-    if (normalized.startsWith("yes")) return "yes";
-    if (normalized.startsWith("no")) return "no";
-  }
-  return "unknown";
-}
 
   function normalizeDomainHash(value) {
     return typeof value === "string" ? value.trim().toLowerCase() : "";
@@ -127,36 +133,36 @@ function normalizeActionTakenValue(value) {
       const domainHash = normalizeDomainHash(cookie?.domainHash);
       if (!isValidDomainHash(domainHash)) return;
 
-    const numberOfVisits = Number(cookie?.totalVisitCount) || 0;
-    const dates = Array.isArray(cookie?.visitedDates) ? cookie.visitedDates : [];
-    const actionTaken = normalizeActionTakenValue(cookie?.actionTaken);
+      const numberOfVisits = Number(cookie?.totalVisitCount) || 0;
+      const dates = Array.isArray(cookie?.visitedDates) ? cookie.visitedDates : [];
+      const actionTaken = normalizeActionTakenValue(cookie?.actionTaken);
 
-    if (!recordsByHash.has(domainHash)) {
-      recordsByHash.set(domainHash, {
-        domainHash,
-        domainRankRange: cookie?.domainRankRange || null,
-        numberOfVisits,
-        dates: Array.from(new Set(dates)).sort(),
-        actionTaken,
-        consent: {
-          necessary: normalizeConsentValue(cookie?.categories?.necessary),
-          functional: normalizeConsentValue(cookie?.categories?.functional),
-          performance: normalizeConsentValue(cookie?.categories?.performance),
-          advertising: normalizeConsentValue(cookie?.categories?.advertising),
-        }
-      });
-      return;
-    }
+      if (!recordsByHash.has(domainHash)) {
+        recordsByHash.set(domainHash, {
+          domainHash,
+          domainRankRange: cookie?.domainRankRange || null,
+          numberOfVisits,
+          dates: Array.from(new Set(dates)).sort(),
+          actionTaken,
+          consent: {
+            necessary: normalizeConsentValue(cookie?.categories?.necessary),
+            functional: normalizeConsentValue(cookie?.categories?.functional),
+            performance: normalizeConsentValue(cookie?.categories?.performance),
+            advertising: normalizeConsentValue(cookie?.categories?.advertising),
+          }
+        });
+        return;
+      }
 
-    const existing = recordsByHash.get(domainHash);
-    existing.numberOfVisits = Math.max(existing.numberOfVisits || 0, numberOfVisits);
-    existing.dates = Array.from(new Set([...(existing.dates || []), ...dates])).sort();
-    if (existing.actionTaken !== "yes" && actionTaken === "yes") {
-      existing.actionTaken = "yes";
-    } else if (existing.actionTaken === "unknown" && actionTaken !== "unknown") {
-      existing.actionTaken = actionTaken;
-    }
-  });
+      const existing = recordsByHash.get(domainHash);
+      existing.numberOfVisits = Math.max(existing.numberOfVisits || 0, numberOfVisits);
+      existing.dates = Array.from(new Set([...(existing.dates || []), ...dates])).sort();
+      if (existing.actionTaken !== "yes" && actionTaken === "yes") {
+        existing.actionTaken = "yes";
+      } else if (existing.actionTaken === "unknown" && actionTaken !== "unknown") {
+        existing.actionTaken = actionTaken;
+      }
+    });
 
     return Array.from(recordsByHash.values());
   }
@@ -389,66 +395,66 @@ function normalizeActionTakenValue(value) {
       return;
     }
 
-  if (event.data.payload?.action === "getConsentDomainData") {
-    console.info("[pricrumbs][content script] Received getConsentDomainData request");
-    (async () => {
-      try {
-        const result = await ext.storage.local.get([
-          "consentDomainData",
-          "cookieData",
-          "browsingHistoryData",
-          "hasDiscrepancies",
-          "hasDiscrepanciesCheckedAt"
-        ]);
-        const cookieData = Array.isArray(result.cookieData) ? result.cookieData : [];
-        const consentDomainDataFromStorage = Array.isArray(result.consentDomainData)
-          ? result.consentDomainData
-          : [];
-        const consentDomainDataFromCookies = buildDomainConsentRecords(cookieData);
-        let consentDomainData = consentDomainDataFromStorage.length > 0
-          ? consentDomainDataFromStorage
-          : consentDomainDataFromCookies;
+    if (event.data.payload?.action === "getConsentDomainData") {
+      console.info("[pricrumbs][content script] Received getConsentDomainData request");
+      (async () => {
+        try {
+          const result = await ext.storage.local.get([
+            "consentDomainData",
+            "cookieData",
+            "browsingHistoryData",
+            "hasDiscrepancies",
+            "hasDiscrepanciesCheckedAt"
+          ]);
+          const cookieData = Array.isArray(result.cookieData) ? result.cookieData : [];
+          const consentDomainDataFromStorage = Array.isArray(result.consentDomainData)
+            ? result.consentDomainData
+            : [];
+          const consentDomainDataFromCookies = buildDomainConsentRecords(cookieData);
+          let consentDomainData = consentDomainDataFromStorage.length > 0
+            ? consentDomainDataFromStorage
+            : consentDomainDataFromCookies;
 
-        // Backfill actionTaken for older consentDomainData entries that were stored before
-        // this field was included in the per-domain record schema.
-        if (consentDomainData.length > 0 && consentDomainDataFromCookies.length > 0) {
-          const actionTakenByHash = new Map();
-          consentDomainDataFromCookies.forEach((record) => {
-            const hash = normalizeDomainHash(record?.domainHash);
-            if (!hash) return;
-            actionTakenByHash.set(hash, normalizeActionTakenValue(record?.actionTaken));
-          });
-
-          let updatedActionTakenCount = 0;
-          consentDomainData = consentDomainData.map((record) => {
-            if (!record || typeof record !== "object") return record;
-            const currentActionTaken = normalizeActionTakenValue(record.actionTaken);
-            if (currentActionTaken !== "unknown") return record;
-
-            const hash = normalizeDomainHash(record.domainHash);
-            const fallbackActionTaken = actionTakenByHash.get(hash);
-            if (!fallbackActionTaken || fallbackActionTaken === "unknown") return record;
-
-            updatedActionTakenCount += 1;
-            return {
-              ...record,
-              actionTaken: fallbackActionTaken
-            };
-          });
-
-          if (updatedActionTakenCount > 0) {
-            await ext.storage.local.set({
-              consentDomainData: sanitizeDomainRecordList(consentDomainData)
+          // Backfill actionTaken for older consentDomainData entries that were stored before
+          // this field was included in the per-domain record schema.
+          if (consentDomainData.length > 0 && consentDomainDataFromCookies.length > 0) {
+            const actionTakenByHash = new Map();
+            consentDomainDataFromCookies.forEach((record) => {
+              const hash = normalizeDomainHash(record?.domainHash);
+              if (!hash) return;
+              actionTakenByHash.set(hash, normalizeActionTakenValue(record?.actionTaken));
             });
+
+            let updatedActionTakenCount = 0;
+            consentDomainData = consentDomainData.map((record) => {
+              if (!record || typeof record !== "object") return record;
+              const currentActionTaken = normalizeActionTakenValue(record.actionTaken);
+              if (currentActionTaken !== "unknown") return record;
+
+              const hash = normalizeDomainHash(record.domainHash);
+              const fallbackActionTaken = actionTakenByHash.get(hash);
+              if (!fallbackActionTaken || fallbackActionTaken === "unknown") return record;
+
+              updatedActionTakenCount += 1;
+              return {
+                ...record,
+                actionTaken: fallbackActionTaken
+              };
+            });
+
+            if (updatedActionTakenCount > 0) {
+              await ext.storage.local.set({
+                consentDomainData: sanitizeDomainRecordList(consentDomainData)
+              });
+            }
           }
-        }
-        let browsingHistoryData = Array.isArray(result.browsingHistoryData) ? result.browsingHistoryData : [];
-        const hasDiscrepancies =
-          typeof result.hasDiscrepancies === "boolean" ? result.hasDiscrepancies : null;
-        const hasDiscrepanciesCheckedAt =
-          typeof result.hasDiscrepanciesCheckedAt === "string"
-            ? result.hasDiscrepanciesCheckedAt
-            : null;
+          let browsingHistoryData = Array.isArray(result.browsingHistoryData) ? result.browsingHistoryData : [];
+          const hasDiscrepancies =
+            typeof result.hasDiscrepancies === "boolean" ? result.hasDiscrepancies : null;
+          const hasDiscrepanciesCheckedAt =
+            typeof result.hasDiscrepanciesCheckedAt === "string"
+              ? result.hasDiscrepanciesCheckedAt
+              : null;
 
           if (browsingHistoryData.length === 0) {
             try {
@@ -550,34 +556,31 @@ function normalizeActionTakenValue(value) {
 
     //this part is for eligibility check (if users have 10 or more unique websites where action taken = yes):
     if (event.data.payload?.action === "checkEligibility") {
-      console.log("Content script: Received eligibility check request");
+      console.debug("[content.js] checkEligibility");
 
-      const isActionTakenYes = (value) =>
-        typeof value === "string" && value.trim().toLowerCase() === "yes";
-
-
-
-      if (event.data.payload?.action === "injectIframeAndReadLocalStorage") {
-        const url = event.data.payload.url;
-        injectIframeAndRead(url);
-        return;
-      }
+      // const isActionTakenYes = (value) =>
+      //   typeof value === "string" && value.trim().toLowerCase() === "yes";
 
       // Helper function to categorize websites based on preferences
       function categorizeWebsites(cookieData) {
-        console.log('Categorizing websites, total cookies:', cookieData.length);
+        console.log(`[content.js][categorizeWebsites] Categorizing ${cookieData.length} cookies`);
 
         // Filter for cookies where actionTaken = "Yes"
         const actionTakenCookies = cookieData.filter(cookie =>
-          cookie.actionTaken && cookie.actionTaken.toLowerCase() === 'yes'
+          normalizeActionTakenValue(cookie.actionTaken) === 'yes'
         );
         // Filter for websites where action taken is "No"
         const noActionCookies = cookieData.filter(cookie =>
-          cookie.actionTaken && cookie.actionTaken.toLowerCase() === 'no'
+          normalizeActionTakenValue(cookie.actionTaken) === 'no'
+        );
+        // Filter for cookies where actionTaken is neither "yes" nor "no"
+        const unknownActionCookies = cookieData.filter(cookie =>
+          normalizeActionTakenValue(cookie.actionTaken) === 'unknown'
         );
 
-        console.log('[content.js] Cookies with action taken:', actionTakenCookies.length);
+        console.log('[content.js] Cookies with action taken = yes:', actionTakenCookies.length);
         console.log('[content.js] Cookies with action taken = no:', noActionCookies.length);
+        console.log('[content.js] Cookies with action taken = unknown:', unknownActionCookies.length);
 
         // Arrays to store categorized domains
         const category1 = []; // Accept all (functional=true, performance=true, advertising=true)
@@ -647,20 +650,26 @@ function normalizeActionTakenValue(value) {
             result.fetchedCookies ||
             [];
 
-          const eligibleSites = cookieData.filter(site =>
-            isActionTakenYes(site?.actionTaken)
-          );
+          // const eligibleSites = cookieData.filter(site =>
+          //   isActionTakenYes(site?.actionTaken)
+          // );
 
           const uniqueDomains = new Set();
           const { extractMainDomainName } =
-            await import(browser.runtime.getURL("helper_functions.js"));
+            await import(ext.runtime.getURL("helper_functions.js"));
 
-          for (let i = 0; i < eligibleSites.length; i++) {
-            const domain = eligibleSites[i].domain;
+          for (let i = 0; i < cookieData.length; i++) {
+            const domain = cookieData[i].domain;
             if (!domain) continue;
 
             const mainDomain = extractMainDomainName(domain);
-            if (mainDomain) uniqueDomains.add(mainDomain);
+            if (mainDomain) {
+              const sizeBefore = uniqueDomains.size;
+              uniqueDomains.add(mainDomain);
+              if (uniqueDomains.size > sizeBefore) {
+                console.info("[PRICRUMB][content.js] Unique domain added:", mainDomain);
+              }
+            }
           }
 
           const uniqueDomainsArray = Array.from(uniqueDomains);
@@ -722,7 +731,7 @@ function normalizeActionTakenValue(value) {
             ext.storage.local.get(["cookieData", "selectedDomainsForHistory"])
           ]);
 
-          const module = await import(browser.runtime.getURL("helper_functions.js"));
+          const module = await import(ext.runtime.getURL("helper_functions.js"));
           const userPreferences = await module.getParticipantCookiesPreferences();
 
           // Extract stored values with fallbacks
@@ -766,7 +775,7 @@ function normalizeActionTakenValue(value) {
           const domainsToCheck =
             selectedDomains.length > 0
               ? selectedDomains
-              : cookieData.filter(site => site.actionTaken === "Yes");
+              : cookieData.filter(site => normalizeActionTakenValue(site.actionTaken) === "yes");
 
           console.log("Content script: Domains selected for checking:", domainsToCheck.length);
 
@@ -1097,12 +1106,12 @@ function normalizeActionTakenValue(value) {
     window.__pricrumbs_checker_installed = true;
 
     async function injectScenarioFamiliarityWidget(target) {
-      const module = await import(browser.runtime.getURL("pricrumbs_scenario_familiarity.js"));
+      const module = await import(ext.runtime.getURL("pricrumbs_scenario_familiarity.js"));
       await module.injectScenarioFamiliarityWidget(target);
     }
 
     async function injectScenarioFollowupTrustworthinessWidget(target) {
-      const module = await import(browser.runtime.getURL("pricrumbs_scenario_familiarity.js"));
+      const module = await import(ext.runtime.getURL("pricrumbs_scenario_familiarity.js"));
       await module.injectScenarioFollowupWidget(
         target,
         "pricrumbs_website_followup_trustworthiness"
@@ -1110,7 +1119,7 @@ function normalizeActionTakenValue(value) {
     }
 
     async function injectScenarioFollowupUtilityWidget(target) {
-      const module = await import(browser.runtime.getURL("pricrumbs_scenario_familiarity.js"));
+      const module = await import(ext.runtime.getURL("pricrumbs_scenario_familiarity.js"));
       await module.injectScenarioFollowupWidget(
         target,
         "pricrumbs_website_followup_utility"
@@ -1118,7 +1127,7 @@ function normalizeActionTakenValue(value) {
     }
 
     async function injectScenarioFollowupPrivacyWidget(target) {
-      const module = await import(browser.runtime.getURL("pricrumbs_scenario_familiarity.js"));
+      const module = await import(ext.runtime.getURL("pricrumbs_scenario_familiarity.js"));
       await module.injectScenarioFollowupWidget(
         target,
         "pricrumbs_website_followup_privacy_concerns"
@@ -1171,7 +1180,7 @@ function normalizeActionTakenValue(value) {
         } else if (mapEntry.html) {
 
           if (id === "pricrumbs_consent_history_top_websites") {
-            const module = await import(browser.runtime.getURL("pricrumbs_consent_history.js"));
+            const module = await import(ext.runtime.getURL("pricrumbs_consent_history.js"));
 
             if (target?.getAttribute('tutorial') === 'true') {
               await module.injectTopAndBottomFiveTable(target, true, false, false);
@@ -1180,7 +1189,7 @@ function normalizeActionTakenValue(value) {
             }
             return true;
           } else if (id === "pricrumbs_websites_with_discrepancies") {
-            const module = await import(browser.runtime.getURL("pricrumbs_consent_history.js"));
+            const module = await import(ext.runtime.getURL("pricrumbs_consent_history.js"));
 
             if (target?.getAttribute('tutorial') === 'true') {
               await module.injectTopAndBottomFiveTable(target, true, true, false);
@@ -1189,7 +1198,7 @@ function normalizeActionTakenValue(value) {
             }
             return true;
           } else if (id === "pricrumbs_websites_with_discrepancies_expiration_date") {
-            const module = await import(browser.runtime.getURL("pricrumbs_consent_history.js"));
+            const module = await import(ext.runtime.getURL("pricrumbs_consent_history.js"));
 
             if (target?.getAttribute('tutorial') === 'true') {
               await module.injectTopAndBottomFiveTable(target, true, true, true);
@@ -1378,124 +1387,101 @@ function normalizeActionTakenValue(value) {
   }
 
   async function buildAndStoreThreePerCategory() {
-  try {
-    const cookieData = await getCookieData();
-    if (!cookieData || cookieData.length === 0) {
-      console.error('[STORE] No cookie data available.');
-      return;
-    }
+    try {
+      const cookieData = await getCookieData();
+      if (!cookieData || cookieData.length === 0) {
+        console.error('[content.js] No cookie data available.');
+        return;
+      }
 
-    const { formatDomainForDisplay, getFavicon, sendExtensionMessage } =
-      await import(browser.runtime.getURL("helper_functions.js"));
+      const { formatDomainForDisplay, getFavicon, sendExtensionMessage } =
+        await import(ext.runtime.getURL("helper_functions.js"));
 
-    const categories = {
-      category1: [], // Accept all
-      category2: [], // Reject all
-      category3: [], // Accept, Accept, Reject
-      category4: []  // Action taken = No
-    };
+      const categories = {
+        category1: [], // Accept all
+        category2: [], // Reject all
+        category3: [], // Accept, Accept, Reject
+        category4: []  // Action taken = No
+      };
 
-    const allValidEntries = [];
+      const allValidEntries = [];
 
-    // Prepare favicon promises concurrently
-    const faviconPromises = cookieData.map(async (cookie) => {
-      if (!cookie.domain) return null;
+      // Prepare favicon promises concurrently
+      const faviconPromises = cookieData.map(async (cookie) => {
+        if (!cookie.domain) return null;
 
-      const action = cookie.actionTaken?.toLowerCase();
-      const formattedDomain = formatDomainForDisplay(cookie.domain);
+        const action = normalizeActionTakenValue(cookie.actionTaken);
+        const formattedDomain = formatDomainForDisplay(cookie.domain);
+        const favicon = await getFavicon(formattedDomain, cookie, { actionTaken: action });
+        if (!favicon) return null;
 
-      const favicon = await getFavicon(formattedDomain, cookie, { actionTaken: action || "Unknown" });
+        const cats = cookie.categories ?? cookie;
+        const prefs = {
+          functional: normalizeConsentValue(cats.functional) === "yes",
+          performance: normalizeConsentValue(cats.performance) === "yes",
+          advertising: normalizeConsentValue(cats.advertising) === "yes"
+        };
 
-      if (!favicon) return null; // Skip if favicon not found
+        const entry = { domain: formattedDomain, originalDomain: cookie.domain, favicon, cookie, preferences: prefs };
+        allValidEntries.push(entry);
 
-      let preferences = null;
-      if (action === "yes") {
-        if (cookie.categories && typeof cookie.categories === "object") {
-          preferences = {
-            functional: cookie.categories.functional === true,
-            performance: cookie.categories.performance === true,
-            advertising: cookie.categories.advertising === true
-          };
-        } else if ("functional" in cookie && "performance" in cookie && "advertising" in cookie) {
-          preferences = {
-            functional: cookie.functional === "Yes" || cookie.functional === true,
-            performance: cookie.performance === "Yes" || cookie.performance === true,
-            advertising: cookie.advertising === "Yes" || cookie.advertising === true
-          };
+        if (action === "no") categories.category4.push(entry);
+        else if (action === "yes") {
+          if (prefs.functional && prefs.performance && prefs.advertising) categories.category1.push(entry);
+          else if (!prefs.functional && !prefs.performance && !prefs.advertising) categories.category2.push(entry);
+          else if (prefs.functional && prefs.performance && !prefs.advertising) categories.category3.push(entry);
+        }
+      });
+
+      await Promise.all(faviconPromises);
+
+      // Pick up to 3 random domains per category
+      const pickThree = (arr) => {
+        if (!arr || arr.length === 0) return [];
+        const shuffled = [...arr].sort(() => 0.5 - Math.random());
+        return shuffled.slice(0, 3);
+      };
+
+      let arrayToStore = {
+        "accept-all": pickThree(categories.category1),
+        "reject-all": pickThree(categories.category2),
+        "mixed": pickThree(categories.category3),
+        "default": pickThree(categories.category4)
+      };
+
+      // Fill categories with random entries if fewer than 3 found
+      for (const key of ["accept-all", "reject-all", "mixed", "default"]) {
+        const current = arrayToStore[key];
+        if (current.length < 3) {
+          const missing = 3 - current.length;
+          const extras = allValidEntries
+            .filter(e => !current.includes(e))
+            .sort(() => 0.5 - Math.random())
+            .slice(0, missing);
+          arrayToStore[key] = [...current, ...extras];
         }
       }
 
-      const entryBase = {
-        domain: formattedDomain,
-        originalDomain: cookie.domain,
-        favicon,
-        cookie
-      };
+      // Store via your extension messaging
+      await sendExtensionMessage({
+        type: "STORAGE_SET",
+        key: "selectedCookieDomains",
+        value: arrayToStore
+      });
 
-      allValidEntries.push(entryBase);
+      console.log('[STORE] Stored three domains per category:', arrayToStore);
 
-      if (action === "no") {
-        categories.category4.push({ ...entryBase, actionTaken: "No" });
-      } else if (action === "yes" && preferences) {
-        const p = preferences;
-        const entry = { ...entryBase, preferences: p };
-        if (p.functional && p.performance && p.advertising) categories.category1.push(entry);
-        else if (!p.functional && !p.performance && !p.advertising) categories.category2.push(entry);
-        else if (p.functional && p.performance && !p.advertising) categories.category3.push(entry);
-      }
-
-      return null;
-    });
-
-    await Promise.all(faviconPromises);
-
-    // Pick up to 3 random domains per category
-    const pickThree = (arr) => {
-      if (!arr || arr.length === 0) return [];
-      const shuffled = [...arr].sort(() => 0.5 - Math.random());
-      return shuffled.slice(0, 3);
-    };
-
-    let arrayToStore = {
-      "accept-all": pickThree(categories.category1),
-      "reject-all": pickThree(categories.category2),
-      "mixed": pickThree(categories.category3),
-      "default": pickThree(categories.category4)
-    };
-
-    // Fill categories with random entries if fewer than 3 found
-    for (const key of ["accept-all", "reject-all", "mixed", "default"]) {
-      const current = arrayToStore[key];
-      if (current.length < 3) {
-        const missing = 3 - current.length;
-        const extras = allValidEntries
-          .filter(e => !current.includes(e))
-          .sort(() => 0.5 - Math.random())
-          .slice(0, missing);
-        arrayToStore[key] = [...current, ...extras];
-      }
+    } catch (error) {
+      console.error('[STORE] Error building category domains:', error);
     }
-
-    // Store via your extension messaging
-    await sendExtensionMessage({
-      type: "STORAGE_SET",
-      key: "selectedCookieDomains",
-      value: arrayToStore
-    });
-
-    console.log('[STORE] Stored three domains per category:', arrayToStore);
-
-  } catch (error) {
-    console.error('[STORE] Error building category domains:', error);
   }
-}
 
   // Find websites matching each criteria based only on cookie data
   async function findMatchingWebsites(cookieData) {
     console.log('[MATCH] All cookies count:', cookieData.length);
 
     const { formatDomainForDisplay, getFavicon } =
-      await import(browser.runtime.getURL("helper_functions.js"));
+      await import(ext.runtime.getURL("helper_functions.js"));
 
     const categories = {
       category1: [], // Accept all
@@ -1508,7 +1494,7 @@ function normalizeActionTakenValue(value) {
     const faviconPromises = cookieData.map(async (cookie) => {
       if (!cookie.domain) return null;
 
-      const action = cookie.actionTaken?.toLowerCase();
+      const action = normalizeActionTakenValue(cookie.actionTaken);
       const formattedDomain = formatDomainForDisplay(cookie.domain);
 
       // Prepare favicon promise without blocking loop
@@ -1570,6 +1556,7 @@ function normalizeActionTakenValue(value) {
   }
 
   async function loadCookieDataAndSelectWebsites(categoryType) {
+    console.debug("[content.js] loadCookieDataAndSelectWebsites");
     try {
       const groupName = SCENARIO_GROUP_BY_CATEGORY_TYPE[categoryType];
       if (!groupName) {
@@ -1631,7 +1618,7 @@ function normalizeActionTakenValue(value) {
       let faviconSource = website.faviconDataUrl || "";
       if (!faviconSource) {
         try {
-          const { getFavicon } = await import(browser.runtime.getURL("helper_functions.js"));
+          const { getFavicon } = await import(ext.runtime.getURL("helper_functions.js"));
           faviconSource = await getFavicon(website.rawDomain);
         } catch (_error) {
           faviconSource = "";
