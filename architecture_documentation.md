@@ -51,8 +51,8 @@ The extension compares "stated" vs. "actual" consent:
 
 ### Survey <-> Extension
 The survey webpage communicates with the extension via `window.postMessage`.
-1. **Eligibility Check**: The survey asks if the user has visited enough unique websites (the current threshold is **10 or more** unique domains) where they've taken action.
-2. **Preference Sync**: The survey sends the user's 5-point scale preferences to the extension for storage.
+1. **Eligibility Check**: The survey asks if the user has visited enough unique websites (the current threshold is **10 or more** unique domains).
+2. **Preference Sync**: The survey sends the user's 6-point scale preferences to the extension for storage.
 3. **Disclosure**: The extension provides the list of websites, visit counts, and discrepancy flags back to the survey for display.
 
 ### Background <-> Content Script

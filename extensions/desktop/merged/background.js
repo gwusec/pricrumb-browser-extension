@@ -392,11 +392,11 @@ function normalizeSelectedScenarioDomainHashes(value) {
 
 function normalizeScenarioFamiliarityAnswerValue(value) {
   if (typeof value === "number" && Number.isFinite(value)) {
-    return value >= 1 && value <= 5 ? value : null;
+    return value >= 1 && value <= 6 ? value : null;
   }
   if (typeof value === "string" && value.trim() !== "") {
     const parsed = Number(value);
-    return Number.isFinite(parsed) && parsed >= 1 && parsed <= 5 ? parsed : null;
+    return Number.isFinite(parsed) && parsed >= 1 && parsed <= 6 ? parsed : null;
   }
   return null;
 }
