@@ -394,10 +394,6 @@ function findDiscrepancyWebsites(cookieData, userPreferences) {
 
     console.debug(`${TAG} Starting discrepancy detection. Cookies to check: ${cookieData.length}, User prefs: ${userPreferences.length}`);
 
-    // Only cookies with actionTaken = "Yes"
-    const actionTakenCookies = cookieData.filter(c => c.actionTaken?.toLowerCase() === 'yes');
-    console.debug(`${TAG} Cookies with action taken: ${actionTakenCookies.length}`);
-
     const userPrefMap = new Map(
         userPreferences
             .map((preference) => {
@@ -407,7 +403,7 @@ function findDiscrepancyWebsites(cookieData, userPreferences) {
             .filter(Boolean)
     );
 
-    for (const cookie of actionTakenCookies) {
+    for (const cookie of cookieData) {
         const originalDomain = cookie.originalDomain || cookie.domain;
         const canonicalDomain = normalizeDomainForMatching(originalDomain);
         if (!originalDomain || !canonicalDomain) {
