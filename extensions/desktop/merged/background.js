@@ -2,7 +2,7 @@
 
 // Load polyfill and shim in MV3 background service worker
 import "./ext-shim.js";
-import { buildDomain, getCookieData } from "./helper_functions.js";
+import { buildDomain, extractMainDomainName, getCookieData } from "./helper_functions.js";
 
 async function listAllStorageKeys() {
   try {
@@ -37,6 +37,7 @@ const DEFAULT_DOMAIN_HASH_SERVICE_PATH = "/postsurvey/hash-domains";
 const SCENARIO_FAMILIARITY_CANDIDATES_KEY = "scenarioFamiliarityCandidates";
 const SCENARIO_FAMILIARITY_ANSWERS_KEY = "scenarioFamiliarityAnswers";
 const SELECTED_SCENARIO_DOMAIN_HASHES_KEY = "selectedScenarioDomainHashes";
+const SCENARIO_FAMILIARITY_CANDIDATES_DEDUPE_VERSION = 2;
 const SCENARIO_GROUP_NAMES = [
   "all_cookies_accepted",
   "all_cookies_rejected",
@@ -323,6 +324,10 @@ function normalizeScenarioDomainHash(value) {
   return typeof value === "string" ? value.trim().toLowerCase() : "";
 }
 
+function getScenarioRootDomainKey(domain) {
+  return extractMainDomainName(domain);
+}
+
 function createEmptyScenarioCandidateMap() {
   return Object.fromEntries(SCENARIO_GROUP_NAMES.map((groupName) => [groupName, []]));
 }
@@ -333,6 +338,15 @@ function isValidScenarioFamiliarityCandidateEntry(entry) {
   const displayDomain = typeof entry?.displayDomain === "string" ? entry.displayDomain.trim() : "";
   if (!isHexDomainHash(domainHash, [64]) || !rawDomain || !displayDomain) return false;
   return canonicalizeScenarioDisplayDomain(rawDomain) === displayDomain;
+}
+
+function getScenarioFamiliarityCandidateVersion(candidatesByCondition) {
+  const version = Number(candidatesByCondition?.__dedupeVersion);
+  return Number.isInteger(version) ? version : 0;
+}
+
+function setScenarioFamiliarityCandidateVersion(candidatesByCondition) {
+  candidatesByCondition.__dedupeVersion = SCENARIO_FAMILIARITY_CANDIDATES_DEDUPE_VERSION;
 }
 
 function hasScenarioFamiliarityCandidates(candidatesByCondition) {
@@ -360,7 +374,9 @@ function hasScenarioFamiliarityCandidates(candidatesByCondition) {
     });
   });
 
-  return hasValidShape && hasAnyCandidates;
+  return hasValidShape &&
+    hasAnyCandidates &&
+    getScenarioFamiliarityCandidateVersion(candidatesByCondition) === SCENARIO_FAMILIARITY_CANDIDATES_DEDUPE_VERSION;
 }
 
 function parseStoredCookieArray(value) {
@@ -748,7 +764,7 @@ async function buildScenarioFamiliarityCandidates() {
   const missingHashMap = missingHashDomains.size > 0
     ? await hashDomains(Array.from(missingHashDomains), { strict: false }).catch(() => new Map())
     : new Map();
-  const dedupedGlobalByDisplayDomain = new Map();
+  const dedupedGlobalByRootDomain = new Map();
 
   pendingEntries.forEach((entry) => {
     const domainHash = entry.domainHash || missingHashMap.get(entry.rawDomain) || "";
@@ -757,6 +773,8 @@ async function buildScenarioFamiliarityCandidates() {
     const visitCount = Math.max(entry.visitCount, visitCountByHash.get(domainHash) || 0);
     const displayDomain = buildDomain(entry.rawDomain);
     if (!displayDomain) return;
+    const rootDomainKey = getScenarioRootDomainKey(entry.rawDomain);
+    if (!rootDomainKey) return;
 
     const normalizedEntry = {
       groupName: entry.groupName,
@@ -767,16 +785,16 @@ async function buildScenarioFamiliarityCandidates() {
       visitCount
     };
 
-    const existingEntry = dedupedGlobalByDisplayDomain.get(displayDomain);
+    const existingEntry = dedupedGlobalByRootDomain.get(rootDomainKey);
     if (!existingEntry || compareScenarioCandidates(normalizedEntry, existingEntry) < 0) {
-      dedupedGlobalByDisplayDomain.set(displayDomain, normalizedEntry);
+      dedupedGlobalByRootDomain.set(rootDomainKey, normalizedEntry);
     }
   });
 
   const dedupedByGroup = Object.fromEntries(
     SCENARIO_GROUP_NAMES.map((groupName) => [groupName, []])
   );
-  dedupedGlobalByDisplayDomain.forEach((entry) => {
+  dedupedGlobalByRootDomain.forEach((entry) => {
     if (dedupedByGroup[entry.groupName]) {
       dedupedByGroup[entry.groupName].push(entry);
     }
@@ -795,6 +813,7 @@ async function buildScenarioFamiliarityCandidates() {
         faviconDataUrl: null
       }));
   });
+  setScenarioFamiliarityCandidateVersion(candidatesByCondition);
 
   await ext.storage.local.set({
     [SCENARIO_FAMILIARITY_CANDIDATES_KEY]: candidatesByCondition

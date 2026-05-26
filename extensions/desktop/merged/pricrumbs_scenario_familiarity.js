@@ -263,19 +263,19 @@ function buildStyles() {
         }
 
         thead th { text-align: center; border-bottom: 1px solid #d1d5db; padding: 12px 8px; }
-        thead th.website-col { text-align: left; }
+        thead th.website-col { text-align: left; width: 190px; }
 
         tbody tr:nth-child(odd) { background: #f8fafc; }
 
         td { border-bottom: 1px solid #e5e7eb; padding: 14px 8px; text-align: center; vertical-align: middle; }
-        td.website-cell { text-align: left; padding-left: 12px; }
+        td.website-cell { text-align: left; padding-left: 12px; width: 190px; }
 
         .website-label { display: inline-flex; align-items: center; gap: 10px; min-width: 0; }
         .website-label img {
             width: 24px; height: 24px; border-radius: 4px;
             object-fit: contain; flex: 0 0 24px; background: #f3f4f6;
         }
-        .website-label span { overflow-wrap: anywhere; word-break: break-word; }
+        .website-label span { white-space: nowrap; overflow-wrap: normal; word-break: normal; }
 
         .radio-option { display: inline-flex; align-items: center; justify-content: center; width: 100%; }
         input[type="radio"] { width: 18px; height: 18px; margin: 0; cursor: pointer; }
