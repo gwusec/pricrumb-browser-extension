@@ -32,7 +32,7 @@ const domainHashCache = new Map();
 let browsingHistoryDataCache = null;
 let browsingHistoryDataCacheLastUpdated = 0;
 const DOMAIN_HASH_REQUEST_TIMEOUT_MS = 10000;
-const DEFAULT_SURVEY_API_BASE_URL = "https://nets.gwusec.seas.gwu.edu";
+const DEFAULT_SURVEY_API_BASE_URL = "https://survey.example.org";
 const DEFAULT_DOMAIN_HASH_SERVICE_PATH = "/postsurvey/hash-domains";
 const SCENARIO_FAMILIARITY_CANDIDATES_KEY = "scenarioFamiliarityCandidates";
 const SCENARIO_FAMILIARITY_ANSWERS_KEY = "scenarioFamiliarityAnswers";
@@ -71,7 +71,7 @@ browser.runtime.onInstalled.addListener(async () => {
   const tabs = await browser.tabs.query({
     url: [
       "http://localhost:*/*",
-      "*://gwuaddressatsomepoint/*"
+      "*://survey.example.org/*"
     ]
   });
 

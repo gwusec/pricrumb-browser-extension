@@ -9,7 +9,7 @@
 //     return;
 // }
 
-if (window.location.hostname === "localhost" || window.location.hostname === "nets.gwusec.seas.gwu.edu") {
+if (window.location.hostname === "localhost" || window.location.hostname === "survey.example.org") {
   console.log("[pricrumbs] content script successfully injected");
 
   // Notify that content script is ready

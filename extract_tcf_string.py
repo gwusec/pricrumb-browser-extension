@@ -5,8 +5,6 @@ import undetected_chromedriver as uc
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 
-# https://www.dropbox.com/scl/fo/neb233zdc6zsr60ivl24c/AE6QqvZGAEBN6gAMax8GPAM?e=1&preview=websites_violation_no_option.csv&rlkey=m3viiy9mrpkgb8ijx8ir2jccm
-
 # IMPORTANT:
 #
 # From https://github.com/InteractiveAdvertisingBureau/GDPR-Transparency-and-Consent-Framework/blob/master/TCFv2/IAB%20Tech%20Lab%20-%20CMP%20API%20v2.md
