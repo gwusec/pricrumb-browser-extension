@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Undecided Cookie Preferences</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #333;
+            padding: 0;
+            margin: 0;
+            line-height: 1.6;
+            background-color: transparent;
+        }
+        .container {
+            width: 100%;
+            max-width: 100%;
+            margin: 0;
+            background-color: #fff;
+            border-radius: 0;
+            box-shadow: none;
+            padding: 0;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 12px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        button:not(.toggle-btn) {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            margin: 0 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .actions {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        /* Center content in table cells */
+        td {
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        /* Website cell styling with favicon */
+        .website-cell {
+            text-align: left;
+            font-weight: bold;
+        }
+        .website-cell img {
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        img.favicon-error {
+            display: none;
+        }
+
+        /* Toggle container and selection container */
+        .toggle-container, .selection-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0 auto;
+            gap: 10px;
+        }
+
+        /* Read-only toggle buttons */
+        .toggle-btn {
+            width: 63px;
+            height: 40px;
+            border-radius: 10%;
+            border: 2px solid #919291;
+            background-color: transparent;
+            color: #666966;
+            margin: 5px;
+            outline: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            cursor: default;
+            pointer-events: none;
+        }
+        .toggle-btn.accept.selected {
+            background-color: #4c7aaf !important;
+            color: white !important;
+            border-color: #4c7aaf !important;
+        }
+        .toggle-btn.reject.selected {
+            background-color: #919291 !important;
+            color: white !important;
+            border-color: #919291 !important;
+        }
+
+        /* Table section headers */
+        .table-header {
+            background-color: #f3e8f8;
+            padding: 7px;
+            margin-top: 10px;
+            text-align: center;
+            border-radius: 5px;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .selection-container {
+            position: relative;
+        }
+
+        /* === Undecided Marker Tooltip (purple) === */
+        .undecided-marker {
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            width: 20px;
+            height: 20px;
+            background-color: #9c27b0;   /* purple */
+            color: white;
+            font-weight: bold;
+            font-size: 13px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10;
+        }
+
+        .undecided-tooltiptext {
+            visibility: hidden;
+            width: 220px;
+            background-color: #4a148c;   /* dark purple */
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 7px 10px;
+            font-size: 12px;
+            font-weight: normal;
+            position: absolute;
+            z-index: 100;
+            top: -5px;
+            left: 130%;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        /* Arrow pointing left toward the ! */
+        .undecided-tooltiptext::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            right: 100%;
+            transform: translateY(-50%);
+            border: 5px solid transparent;
+            border-right-color: #4a148c;
+        }
+
+        .undecided-marker:hover .undecided-tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+
+        <div id="loading">Loading your cookie preference data...</div>
+
+        <div id="page1">
+            <!-- Disclaimer banner -->
+            <div style="padding: 10px; margin-bottom: 15px; text-align: center;">
+                <span style="font-size: 15px;">The </span>
+                <span style="color: #9c27b0; font-weight: bold; font-size: 20px;">!</span>
+                <span style="font-size: 15px;"> next to a choice indicates you indicated <strong>no preference</strong> about this category, but a consent decision was already stored in your browser history.</span>
+            </div>
+
+            <div id="noUndecidedMessage" style="display: none; text-align: center; padding: 20px; background-color: #f3e8f8; border-radius: 5px; margin: 20px 0;">
+                <p style="font-size: 18px; color: #9c27b0; font-weight: bold;">No undecided websites found!</p>
+                <p style="font-size: 16px; color: #666;">You have a clear preference for all cookie categories on your visited websites.</p>
+            </div>
+
+            <table id="undecidedTable" style="display: none;">
+                <thead>
+                    <tr>
+                        <th class="website-cell">Website</th>
+                        <th>Extra Functionality Cookies</th>
+                        <th>Performance Cookies</th>
+                        <th>Personalized Advertising Cookies</th>
+                        <th>Cookie Settings Will Expire in:</th>
+                    </tr>
+                </thead>
+                <tbody id="undecidedWebsitesList">
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+
+    <script src="ext-shim.js"></script>
+    <script src="undecided_websites.js"></script>
+</body>
+</html>

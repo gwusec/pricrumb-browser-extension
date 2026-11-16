@@ -1,0 +1,4597 @@
+{
+    "websites": [
+        {
+            "domain": "1001pneus.fr"
+        },
+        {
+            "domain": "10elotto5.it"
+        },
+        {
+            "domain": "12gebrauchtwagen.de"
+        },
+        {
+            "domain": "12neuwagen.de"
+        },
+        {
+            "domain": "24kurier.pl"
+        },
+        {
+            "domain": "24wspolnota.pl"
+        },
+        {
+            "domain": "4ka.sk"
+        },
+        {
+            "domain": "5min.at"
+        },
+        {
+            "domain": "7comunionline.it"
+        },
+        {
+            "domain": "90minuten.at"
+        },
+        {
+            "domain": "aaaep.fr"
+        },
+        {
+            "domain": "aamuset.fi"
+        },
+        {
+            "domain": "abbonamenti.it"
+        },
+        {
+            "domain": "abcnyheter.no"
+        },
+        {
+            "domain": "abczdrowie.pl"
+        },
+        {
+            "domain": "abitare.it"
+        },
+        {
+            "domain": "abounderrattelser.fi"
+        },
+        {
+            "domain": "abra.eu"
+        },
+        {
+            "domain": "absatzwirtschaft.de"
+        },
+        {
+            "domain": "absolventa.de"
+        },
+        {
+            "domain": "academyinvictus.it"
+        },
+        {
+            "domain": "accordiespartiti.it"
+        },
+        {
+            "domain": "active24.nl"
+        },
+        {
+            "domain": "ad-italia.it"
+        },
+        {
+            "domain": "ad-magazin.de"
+        },
+        {
+            "domain": "administrator.de"
+        },
+        {
+            "domain": "adresowa.pl"
+        },
+        {
+            "domain": "adsfac.eu"
+        },
+        {
+            "domain": "adverfly.de"
+        },
+        {
+            "domain": "agipronews.it"
+        },
+        {
+            "domain": "agrigentonotizie.it"
+        },
+        {
+            "domain": "agrigentooggi.it"
+        },
+        {
+            "domain": "aide-scrabble.fr"
+        },
+        {
+            "domain": "airport.de"
+        },
+        {
+            "domain": "ak-kurier.de"
+        },
+        {
+            "domain": "akademische.de"
+        },
+        {
+            "domain": "aktienwelt360.de"
+        },
+        {
+            "domain": "alasatakunta.fi"
+        },
+        {
+            "domain": "alfa.lt"
+        },
+        {
+            "domain": "aliaserviziambientali.it"
+        },
+        {
+            "domain": "alice.it"
+        },
+        {
+            "domain": "alidicarta.it"
+        },
+        {
+            "domain": "alingsastidning.se"
+        },
+        {
+            "domain": "alkas.lt"
+        },
+        {
+            "domain": "all-in.de"
+        },
+        {
+            "domain": "allaguida.it"
+        },
+        {
+            "domain": "allatvkanaler.se"
+        },
+        {
+            "domain": "allehanda.se"
+        },
+        {
+            "domain": "allgamestaff.it"
+        },
+        {
+            "domain": "allianceonline.co.uk"
+        },
+        {
+            "domain": "allmusicitalia.it"
+        },
+        {
+            "domain": "almaajo.fi"
+        },
+        {
+            "domain": "alt.dk"
+        },
+        {
+            "domain": "altaformazionemusicale.it"
+        },
+        {
+            "domain": "altinget.dk"
+        },
+        {
+            "domain": "alytusplius.lt"
+        },
+        {
+            "domain": "amazona.de"
+        },
+        {
+            "domain": "americanacademy.de"
+        },
+        {
+            "domain": "amnotizie.it"
+        },
+        {
+            "domain": "an.no"
+        },
+        {
+            "domain": "ana.it"
+        },
+        {
+            "domain": "anconatoday.it"
+        },
+        {
+            "domain": "andoveradvertiser.co.uk"
+        },
+        {
+            "domain": "androidworld.it"
+        },
+        {
+            "domain": "anexia.at"
+        },
+        {
+            "domain": "angolotesti.it"
+        },
+        {
+            "domain": "anna.fi"
+        },
+        {
+            "domain": "annabelle.ch"
+        },
+        {
+            "domain": "anteprimavolantino.it"
+        },
+        {
+            "domain": "aol.co.uk"
+        },
+        {
+            "domain": "aol.de"
+        },
+        {
+            "domain": "aol.fr"
+        },
+        {
+            "domain": "aol.it"
+        },
+        {
+            "domain": "approdocalabria.it"
+        },
+        {
+            "domain": "aprende-facil.es"
+        },
+        {
+            "domain": "apuestas-deportivas.es"
+        },
+        {
+            "domain": "arbetarbladet.se"
+        },
+        {
+            "domain": "arboe.at"
+        },
+        {
+            "domain": "arezzonotizie.it"
+        },
+        {
+            "domain": "arla.dk"
+        },
+        {
+            "domain": "armeriaregina.it"
+        },
+        {
+            "domain": "arte.it"
+        },
+        {
+            "domain": "artigianoinfiera.it"
+        },
+        {
+            "domain": "asromalive.it"
+        },
+        {
+            "domain": "astegiudiziarie.it"
+        },
+        {
+            "domain": "astidocg.it"
+        },
+        {
+            "domain": "atento.es"
+        },
+        {
+            "domain": "atlantico.fr"
+        },
+        {
+            "domain": "atleticanotizie.it"
+        },
+        {
+            "domain": "attoricasting.it"
+        },
+        {
+            "domain": "augsburger-allgemeine.de"
+        },
+        {
+            "domain": "auto24.de"
+        },
+        {
+            "domain": "autobazar.sk"
+        },
+        {
+            "domain": "autobelle.it"
+        },
+        {
+            "domain": "autoblog.it"
+        },
+        {
+            "domain": "autocentrum.pl"
+        },
+        {
+            "domain": "autojerry.fi"
+        },
+        {
+            "domain": "autokult.pl"
+        },
+        {
+            "domain": "automoto.it"
+        },
+        {
+            "domain": "automotorinews.it"
+        },
+        {
+            "domain": "autoplenum.de"
+        },
+        {
+            "domain": "autoracer.it"
+        },
+        {
+            "domain": "autorai.nl"
+        },
+        {
+            "domain": "autoscout24.at"
+        },
+        {
+            "domain": "autoscout24.bg"
+        },
+        {
+            "domain": "autoscout24.cz"
+        },
+        {
+            "domain": "autoscout24.de"
+        },
+        {
+            "domain": "autoscout24.es"
+        },
+        {
+            "domain": "autoscout24.hr"
+        },
+        {
+            "domain": "autoscout24.it"
+        },
+        {
+            "domain": "autoscout24.lu"
+        },
+        {
+            "domain": "autoscout24.nl"
+        },
+        {
+            "domain": "autoscout24.pl"
+        },
+        {
+            "domain": "autoscout24.se"
+        },
+        {
+            "domain": "autotrader.nl"
+        },
+        {
+            "domain": "avans.nl"
+        },
+        {
+            "domain": "ave.it"
+        },
+        {
+            "domain": "avellinotoday.it"
+        },
+        {
+            "domain": "avisen.dk"
+        },
+        {
+            "domain": "avocatnet.ro"
+        },
+        {
+            "domain": "avvenire.it"
+        },
+        {
+            "domain": "axi-card.es"
+        },
+        {
+            "domain": "axi-card.ro"
+        },
+        {
+            "domain": "az-pneu.sk"
+        },
+        {
+            "domain": "azzurrasport.eu"
+        },
+        {
+            "domain": "ba.no"
+        },
+        {
+            "domain": "babyboom.pl"
+        },
+        {
+            "domain": "bamboom.it"
+        },
+        {
+            "domain": "bandypuls.se"
+        },
+        {
+            "domain": "bankmonitor.hu"
+        },
+        {
+            "domain": "barcode-generator.de"
+        },
+        {
+            "domain": "baritoday.it"
+        },
+        {
+            "domain": "barometern.se"
+        },
+        {
+            "domain": "bb.lv"
+        },
+        {
+            "domain": "bblat.se"
+        },
+        {
+            "domain": "bbmbonnier.se"
+        },
+        {
+            "domain": "belfastmet.ac.uk"
+        },
+        {
+            "domain": "benchmark.pl"
+        },
+        {
+            "domain": "benzinpreis.de"
+        },
+        {
+            "domain": "bergspezl.at"
+        },
+        {
+            "domain": "bergtour-online.de"
+        },
+        {
+            "domain": "berlin-airport.de"
+        },
+        {
+            "domain": "berlingske.dk"
+        },
+        {
+            "domain": "bern-ost.ch"
+        },
+        {
+            "domain": "bestmovie.it"
+        },
+        {
+            "domain": "betersport.nl"
+        },
+        {
+            "domain": "bezhladoveni.cz"
+        },
+        {
+            "domain": "bianalisi.it"
+        },
+        {
+            "domain": "biblionetka.pl"
+        },
+        {
+            "domain": "bigodino.it"
+        },
+        {
+            "domain": "bigorbitcards.co.uk"
+        },
+        {
+            "domain": "bih.de"
+        },
+        {
+            "domain": "bikehotels.it"
+        },
+        {
+            "domain": "billedbladet.dk"
+        },
+        {
+            "domain": "bilweb.se"
+        },
+        {
+            "domain": "biologiepagina.nl"
+        },
+        {
+            "domain": "blogsicilia.it"
+        },
+        {
+            "domain": "blt.se"
+        },
+        {
+            "domain": "bluebaytravel.co.uk"
+        },
+        {
+            "domain": "bmcleasing.dk"
+        },
+        {
+            "domain": "boards.ie"
+        },
+        {
+            "domain": "bobet.it"
+        },
+        {
+            "domain": "bodensee.de"
+        },
+        {
+            "domain": "boersennews.de"
+        },
+        {
+            "domain": "bohuslaningen.se"
+        },
+        {
+            "domain": "bolanarede.pt"
+        },
+        {
+            "domain": "bold.dk"
+        },
+        {
+            "domain": "boliga.dk"
+        },
+        {
+            "domain": "bolognatoday.it"
+        },
+        {
+            "domain": "bonedo.de"
+        },
+        {
+            "domain": "bonniernews.se"
+        },
+        {
+            "domain": "bonniernewslocal.se"
+        },
+        {
+            "domain": "bonometti.it"
+        },
+        {
+            "domain": "boop.pl"
+        },
+        {
+            "domain": "boosted.dk"
+        },
+        {
+            "domain": "boote-forum.de"
+        },
+        {
+            "domain": "borlangetidning.se"
+        },
+        {
+            "domain": "bornibyen.dk"
+        },
+        {
+            "domain": "borsaitaliana.it"
+        },
+        {
+            "domain": "boulevardbulgaria.bg"
+        },
+        {
+            "domain": "bowl.hu"
+        },
+        {
+            "domain": "bravotours.dk"
+        },
+        {
+            "domain": "breex.be"
+        },
+        {
+            "domain": "bresciaoggi.it"
+        },
+        {
+            "domain": "bresciatoday.it"
+        },
+        {
+            "domain": "bricofer.it"
+        },
+        {
+            "domain": "brindisireport.it"
+        },
+        {
+            "domain": "bt.se"
+        },
+        {
+            "domain": "btv.de"
+        },
+        {
+            "domain": "bucurestifm.ro"
+        },
+        {
+            "domain": "budapestinfo.hu"
+        },
+        {
+            "domain": "buonissimo.it"
+        },
+        {
+            "domain": "burgls.at"
+        },
+        {
+            "domain": "business.dk"
+        },
+        {
+            "domain": "businessinsider.com.pl"
+        },
+        {
+            "domain": "businesspeople.it"
+        },
+        {
+            "domain": "businessplus.ie"
+        },
+        {
+            "domain": "buttalapasta.it"
+        },
+        {
+            "domain": "buziaczek.pl"
+        },
+        {
+            "domain": "bvz.at"
+        },
+        {
+            "domain": "bytomski.pl"
+        },
+        {
+            "domain": "cafcisl.it"
+        },
+        {
+            "domain": "cagliaripad.it"
+        },
+        {
+            "domain": "cajaruraldelsur.es"
+        },
+        {
+            "domain": "calcioefinanza.it"
+        },
+        {
+            "domain": "calciomercato.it"
+        },
+        {
+            "domain": "calcionapoli1926.it"
+        },
+        {
+            "domain": "calculette-mauricette.fr"
+        },
+        {
+            "domain": "caleba.it"
+        },
+        {
+            "domain": "calendariopodismo.it"
+        },
+        {
+            "domain": "camille-ambiance-nature.fr"
+        },
+        {
+            "domain": "caminteresse.fr"
+        },
+        {
+            "domain": "campingtrend.nl"
+        },
+        {
+            "domain": "canalcar.es"
+        },
+        {
+            "domain": "canalcocina.es"
+        },
+        {
+            "domain": "capital.it"
+        },
+        {
+            "domain": "capitanhostino.it"
+        },
+        {
+            "domain": "capmo.de"
+        },
+        {
+            "domain": "caraffinity.es"
+        },
+        {
+            "domain": "caraffinity.it"
+        },
+        {
+            "domain": "cardiffcityforum.co.uk"
+        },
+        {
+            "domain": "carelearning.org.uk"
+        },
+        {
+            "domain": "carfinance247.co.uk"
+        },
+        {
+            "domain": "casablanca.at"
+        },
+        {
+            "domain": "casadaprivato.it"
+        },
+        {
+            "domain": "casertanews.it"
+        },
+        {
+            "domain": "castedduonline.it"
+        },
+        {
+            "domain": "castelvetranonews.it"
+        },
+        {
+            "domain": "cataniatoday.it"
+        },
+        {
+            "domain": "cellbes.fi"
+        },
+        {
+            "domain": "cellulari.it"
+        },
+        {
+            "domain": "centercasa.it"
+        },
+        {
+            "domain": "centershop.de"
+        },
+        {
+            "domain": "cercacasa.it"
+        },
+        {
+            "domain": "certasenergy.co.uk"
+        },
+        {
+            "domain": "cervera.se"
+        },
+        {
+            "domain": "cesenatoday.it"
+        },
+        {
+            "domain": "character-generator.org.uk"
+        },
+        {
+            "domain": "checkmybus.co.uk"
+        },
+        {
+            "domain": "checkmybus.it"
+        },
+        {
+            "domain": "chedonna.it"
+        },
+        {
+            "domain": "chieseromanichesardegna.it"
+        },
+        {
+            "domain": "chietitoday.it"
+        },
+        {
+            "domain": "chimagazine.it"
+        },
+        {
+            "domain": "cibotoday.it"
+        },
+        {
+            "domain": "ciclismoaldia.es"
+        },
+        {
+            "domain": "cicloweb.it"
+        },
+        {
+            "domain": "ciekawostkihistoryczne.pl"
+        },
+        {
+            "domain": "cinedom.de"
+        },
+        {
+            "domain": "cinema.de"
+        },
+        {
+            "domain": "cinematographe.it"
+        },
+        {
+            "domain": "cineplex.de"
+        },
+        {
+            "domain": "citiservi.es"
+        },
+        {
+            "domain": "cittadelsole.it"
+        },
+        {
+            "domain": "cittanuova.it"
+        },
+        {
+            "domain": "citynow.it"
+        },
+        {
+            "domain": "cityrumors.it"
+        },
+        {
+            "domain": "cityrumorsabruzzo.it"
+        },
+        {
+            "domain": "clipfish.de"
+        },
+        {
+            "domain": "clubalfa.it"
+        },
+        {
+            "domain": "cntraveller.de"
+        },
+        {
+            "domain": "codicefiscale.it"
+        },
+        {
+            "domain": "como.fi"
+        },
+        {
+            "domain": "comozero.it"
+        },
+        {
+            "domain": "computerbase.de"
+        },
+        {
+            "domain": "comundi.fr"
+        },
+        {
+            "domain": "comuni-italiani.it"
+        },
+        {
+            "domain": "condenast.co.uk"
+        },
+        {
+            "domain": "connectfibre.co.uk"
+        },
+        {
+            "domain": "conosceremilano.it"
+        },
+        {
+            "domain": "controcampus.it"
+        },
+        {
+            "domain": "controradio.it"
+        },
+        {
+            "domain": "cookingwithmykids.co.uk"
+        },
+        {
+            "domain": "coolibri.de"
+        },
+        {
+            "domain": "corrierealpi.it"
+        },
+        {
+            "domain": "corrieredinovara.it"
+        },
+        {
+            "domain": "corrieredisciacca.it"
+        },
+        {
+            "domain": "corriereromagna.it"
+        },
+        {
+            "domain": "corrieresalentino.it"
+        },
+        {
+            "domain": "cosepercrescere.it"
+        },
+        {
+            "domain": "countryandtownhouse.co.uk"
+        },
+        {
+            "domain": "cozadzien.pl"
+        },
+        {
+            "domain": "cpduk.co.uk"
+        },
+        {
+            "domain": "cpop.it"
+        },
+        {
+            "domain": "cremaoggi.it"
+        },
+        {
+            "domain": "cremonaoggi.it"
+        },
+        {
+            "domain": "crn.de"
+        },
+        {
+            "domain": "crocieristi.it"
+        },
+        {
+            "domain": "cronachedellacampania.it"
+        },
+        {
+            "domain": "cronachemaceratesi.it"
+        },
+        {
+            "domain": "cronachenuoresi.it"
+        },
+        {
+            "domain": "crypto.it"
+        },
+        {
+            "domain": "csodasmagyarorszag.hu"
+        },
+        {
+            "domain": "cuoiotoscano.it"
+        },
+        {
+            "domain": "cupido.no"
+        },
+        {
+            "domain": "curved.de"
+        },
+        {
+            "domain": "czary.pl"
+        },
+        {
+            "domain": "dabonline.de"
+        },
+        {
+            "domain": "dackskiftarna.se"
+        },
+        {
+            "domain": "dagelijksestandaard.nl"
+        },
+        {
+            "domain": "dagens.dk"
+        },
+        {
+            "domain": "dalademokraten.se"
+        },
+        {
+            "domain": "danhostel.dk"
+        },
+        {
+            "domain": "daninseries.it"
+        },
+        {
+            "domain": "dansk.de"
+        },
+        {
+            "domain": "daswetter.at"
+        },
+        {
+            "domain": "data.si"
+        },
+        {
+            "domain": "dataservices.it"
+        },
+        {
+            "domain": "davidemaggio.it"
+        },
+        {
+            "domain": "dcu.dk"
+        },
+        {
+            "domain": "ddbelchatow.pl"
+        },
+        {
+            "domain": "deejay.it"
+        },
+        {
+            "domain": "delfi.lt"
+        },
+        {
+            "domain": "demokraatti.fi"
+        },
+        {
+            "domain": "descopera.ro"
+        },
+        {
+            "domain": "desjoyaux.fr"
+        },
+        {
+            "domain": "destadamersfoort.nl"
+        },
+        {
+            "domain": "detgladekjokken.no"
+        },
+        {
+            "domain": "dexerto.fr"
+        },
+        {
+            "domain": "dicodusport.fr"
+        },
+        {
+            "domain": "didactic.ro"
+        },
+        {
+            "domain": "diepta.de"
+        },
+        {
+            "domain": "digicatapult.org.uk"
+        },
+        {
+            "domain": "dilei.it"
+        },
+        {
+            "domain": "dinavis.dk"
+        },
+        {
+            "domain": "dino.co.uk"
+        },
+        {
+            "domain": "dinside.no"
+        },
+        {
+            "domain": "dire.it"
+        },
+        {
+            "domain": "directchannel.it"
+        },
+        {
+            "domain": "direttagoal.it"
+        },
+        {
+            "domain": "diritto.it"
+        },
+        {
+            "domain": "discounto.de"
+        },
+        {
+            "domain": "disneyphile.fr"
+        },
+        {
+            "domain": "dizionario-italiano.it"
+        },
+        {
+            "domain": "dmove.it"
+        },
+        {
+            "domain": "dn-static.se"
+        },
+        {
+            "domain": "dobredomy.pl"
+        },
+        {
+            "domain": "dobrenoviny.sk"
+        },
+        {
+            "domain": "dobreprogramy.pl"
+        },
+        {
+            "domain": "docca.hu"
+        },
+        {
+            "domain": "dogsitter.it"
+        },
+        {
+            "domain": "domiporta.pl"
+        },
+        {
+            "domain": "domodi.pl"
+        },
+        {
+            "domain": "domoweklimaty.pl"
+        },
+        {
+            "domain": "domusweb.it"
+        },
+        {
+            "domain": "domy.pl"
+        },
+        {
+            "domain": "donnaglamour.it"
+        },
+        {
+            "domain": "donnapop.it"
+        },
+        {
+            "domain": "dotykacka.cz"
+        },
+        {
+            "domain": "doublesens.fr"
+        },
+        {
+            "domain": "dpd.ch"
+        },
+        {
+            "domain": "dpd.com.pl"
+        },
+        {
+            "domain": "dpd.cz"
+        },
+        {
+            "domain": "dpd.lt"
+        },
+        {
+            "domain": "dpd.lv"
+        },
+        {
+            "domain": "dpd.nl"
+        },
+        {
+            "domain": "dpd.pt"
+        },
+        {
+            "domain": "dpd.ro"
+        },
+        {
+            "domain": "dpdgroup.co.uk"
+        },
+        {
+            "domain": "dreamlab.pl"
+        },
+        {
+            "domain": "drivek.es"
+        },
+        {
+            "domain": "drivek.fr"
+        },
+        {
+            "domain": "drivek.it"
+        },
+        {
+            "domain": "drrose.hu"
+        },
+        {
+            "domain": "druzina.si"
+        },
+        {
+            "domain": "dumaszinhaz.hu"
+        },
+        {
+            "domain": "dust2.dk"
+        },
+        {
+            "domain": "dzieciochatki.pl"
+        },
+        {
+            "domain": "e-architect.co.uk"
+        },
+        {
+            "domain": "e-kolo.pl"
+        },
+        {
+            "domain": "e-kontakti.fi"
+        },
+        {
+            "domain": "eb.dk"
+        },
+        {
+            "domain": "echo-news.co.uk"
+        },
+        {
+            "domain": "eckert-schulen.de"
+        },
+        {
+            "domain": "eclavoro.it"
+        },
+        {
+            "domain": "ecodibergamo.it"
+        },
+        {
+            "domain": "ecospa.pl"
+        },
+        {
+            "domain": "edf.fr"
+        },
+        {
+            "domain": "edidomus.it"
+        },
+        {
+            "domain": "ediltecnico.it"
+        },
+        {
+            "domain": "efarma.nl"
+        },
+        {
+            "domain": "egstada.it"
+        },
+        {
+            "domain": "ehandel.se"
+        },
+        {
+            "domain": "einfachtierisch.de"
+        },
+        {
+            "domain": "electomania.es"
+        },
+        {
+            "domain": "elinstallatoren.se"
+        },
+        {
+            "domain": "elle.dk"
+        },
+        {
+            "domain": "elmirondesoria.es"
+        },
+        {
+            "domain": "eluban.pl"
+        },
+        {
+            "domain": "emarinella.eu"
+        },
+        {
+            "domain": "emma.de"
+        },
+        {
+            "domain": "engage.it"
+        },
+        {
+            "domain": "engie.ro"
+        },
+        {
+            "domain": "epicurien.be"
+        },
+        {
+            "domain": "episodi.fi"
+        },
+        {
+            "domain": "erectacloud.it"
+        },
+        {
+            "domain": "esce.fr"
+        },
+        {
+            "domain": "eska.pl"
+        },
+        {
+            "domain": "eskarock.pl"
+        },
+        {
+            "domain": "estetica.it"
+        },
+        {
+            "domain": "ethic.es"
+        },
+        {
+            "domain": "etrend.sk"
+        },
+        {
+            "domain": "eurekakids.es"
+        },
+        {
+            "domain": "euroman.dk"
+        },
+        {
+            "domain": "euronics.hu"
+        },
+        {
+            "domain": "europages.de"
+        },
+        {
+            "domain": "europages.dk"
+        },
+        {
+            "domain": "europages.fr"
+        },
+        {
+            "domain": "europages.it"
+        },
+        {
+            "domain": "europages.nl"
+        },
+        {
+            "domain": "evenstadmusikk.no"
+        },
+        {
+            "domain": "evergreenlife.it"
+        },
+        {
+            "domain": "everyeye.it"
+        },
+        {
+            "domain": "everymum.ie"
+        },
+        {
+            "domain": "expedia.dk"
+        },
+        {
+            "domain": "expressen.se"
+        },
+        {
+            "domain": "exterioo.be"
+        },
+        {
+            "domain": "extradom.pl"
+        },
+        {
+            "domain": "fagersta-posten.se"
+        },
+        {
+            "domain": "faillissementsdossier.nl"
+        },
+        {
+            "domain": "fair-news.de"
+        },
+        {
+            "domain": "fajnegotowanie.pl"
+        },
+        {
+            "domain": "falelokikoki.pl"
+        },
+        {
+            "domain": "falkopingstidning.se"
+        },
+        {
+            "domain": "falukuriren.se"
+        },
+        {
+            "domain": "familiejournal.dk"
+        },
+        {
+            "domain": "familienleben.ch"
+        },
+        {
+            "domain": "fantamagic.it"
+        },
+        {
+            "domain": "farmaciadarrabida.pt"
+        },
+        {
+            "domain": "farmacialoreto.it"
+        },
+        {
+            "domain": "farmacievigorito.it"
+        },
+        {
+            "domain": "fastbet.it"
+        },
+        {
+            "domain": "fastenergy.at"
+        },
+        {
+            "domain": "fastenergy.de"
+        },
+        {
+            "domain": "fastighetsvarlden.se"
+        },
+        {
+            "domain": "fcaugsburg.de"
+        },
+        {
+            "domain": "fczforum.ch"
+        },
+        {
+            "domain": "feast-magazine.co.uk"
+        },
+        {
+            "domain": "feltet.dk"
+        },
+        {
+            "domain": "ffb.de"
+        },
+        {
+            "domain": "ffnef.de"
+        },
+        {
+            "domain": "fidelity.co.uk"
+        },
+        {
+            "domain": "fidelity.de"
+        },
+        {
+            "domain": "fidelityhouse.eu"
+        },
+        {
+            "domain": "fiestacredito.es"
+        },
+        {
+            "domain": "film.it"
+        },
+        {
+            "domain": "filmtv.it"
+        },
+        {
+            "domain": "filmweb.no"
+        },
+        {
+            "domain": "finance-magazin.de"
+        },
+        {
+            "domain": "financescout24.de"
+        },
+        {
+            "domain": "finans.dk"
+        },
+        {
+            "domain": "finanswatch.dk"
+        },
+        {
+            "domain": "fine-arts-museum.be"
+        },
+        {
+            "domain": "finipay.es"
+        },
+        {
+            "domain": "firemail.de"
+        },
+        {
+            "domain": "firenzetoday.it"
+        },
+        {
+            "domain": "fisioscience.it"
+        },
+        {
+            "domain": "fitinn.at"
+        },
+        {
+            "domain": "fitp.it"
+        },
+        {
+            "domain": "flexibee.eu"
+        },
+        {
+            "domain": "flexmail.eu"
+        },
+        {
+            "domain": "flo-joe.co.uk"
+        },
+        {
+            "domain": "flxml.eu"
+        },
+        {
+            "domain": "fnaim.fr"
+        },
+        {
+            "domain": "focusjunior.it"
+        },
+        {
+            "domain": "fof.se"
+        },
+        {
+            "domain": "foggiatoday.it"
+        },
+        {
+            "domain": "folkeskolen.dk"
+        },
+        {
+            "domain": "folkracepuls.se"
+        },
+        {
+            "domain": "footballticketnet.it"
+        },
+        {
+            "domain": "forbes.pl"
+        },
+        {
+            "domain": "foreca.fi"
+        },
+        {
+            "domain": "forlitoday.it"
+        },
+        {
+            "domain": "formula1.it"
+        },
+        {
+            "domain": "fornarisport.it"
+        },
+        {
+            "domain": "forum-macchine.it"
+        },
+        {
+            "domain": "fotoblogia.pl"
+        },
+        {
+            "domain": "fowlersparts.co.uk"
+        },
+        {
+            "domain": "fpp.co.uk"
+        },
+        {
+            "domain": "fragrantica.cz"
+        },
+        {
+            "domain": "franceverif.fr"
+        },
+        {
+            "domain": "frankrijk.nl"
+        },
+        {
+            "domain": "frasicelebri.it"
+        },
+        {
+            "domain": "frattinauto.it"
+        },
+        {
+            "domain": "free.it"
+        },
+        {
+            "domain": "frifagbevegelse.no"
+        },
+        {
+            "domain": "friidrott.se"
+        },
+        {
+            "domain": "futuranet.it"
+        },
+        {
+            "domain": "fymasauctions.dk"
+        },
+        {
+            "domain": "gadzetomania.pl"
+        },
+        {
+            "domain": "galaxyclub.nl"
+        },
+        {
+            "domain": "galwaybayfm.ie"
+        },
+        {
+            "domain": "gamberorosso.it"
+        },
+        {
+            "domain": "gameroom.lt"
+        },
+        {
+            "domain": "gamesurf.it"
+        },
+        {
+            "domain": "gameswelt.de"
+        },
+        {
+            "domain": "garbo.ro"
+        },
+        {
+            "domain": "gazetabilgoraj.pl"
+        },
+        {
+            "domain": "gazzettadalba.it"
+        },
+        {
+            "domain": "gazzettadimantova.it"
+        },
+        {
+            "domain": "gazzettadimodena.it"
+        },
+        {
+            "domain": "gazzettadiparma.it"
+        },
+        {
+            "domain": "gazzettadireggio.it"
+        },
+        {
+            "domain": "gazzettadisiena.it"
+        },
+        {
+            "domain": "gazzettino.it"
+        },
+        {
+            "domain": "gazzettinodelchianti.it"
+        },
+        {
+            "domain": "gazzettinonline.it"
+        },
+        {
+            "domain": "gd.se"
+        },
+        {
+            "domain": "gds.it"
+        },
+        {
+            "domain": "gearnews.de"
+        },
+        {
+            "domain": "gebrauchtwagen.at"
+        },
+        {
+            "domain": "geizhals.eu"
+        },
+        {
+            "domain": "genialne.pl"
+        },
+        {
+            "domain": "genovatoday.it"
+        },
+        {
+            "domain": "gentside.de"
+        },
+        {
+            "domain": "gesas.it"
+        },
+        {
+            "domain": "giardiniblog.it"
+        },
+        {
+            "domain": "gioconews.it"
+        },
+        {
+            "domain": "giodicart.it"
+        },
+        {
+            "domain": "giornaledelcilento.it"
+        },
+        {
+            "domain": "giornaledibrescia.it"
+        },
+        {
+            "domain": "giornaledicardiologia.it"
+        },
+        {
+            "domain": "giornalone.it"
+        },
+        {
+            "domain": "givi.it"
+        },
+        {
+            "domain": "glacierexpress.ch"
+        },
+        {
+            "domain": "glami.cz"
+        },
+        {
+            "domain": "glamour.es"
+        },
+        {
+            "domain": "glamourmagazine.co.uk"
+        },
+        {
+            "domain": "globelife.it"
+        },
+        {
+            "domain": "gls-info.nl"
+        },
+        {
+            "domain": "go.pl"
+        },
+        {
+            "domain": "godstart.dk"
+        },
+        {
+            "domain": "gold-preisvergleich.de"
+        },
+        {
+            "domain": "goldreporter.de"
+        },
+        {
+            "domain": "golf-land.fr"
+        },
+        {
+            "domain": "golfpost.de"
+        },
+        {
+            "domain": "golftoday.co.uk"
+        },
+        {
+            "domain": "goobox.fr"
+        },
+        {
+            "domain": "good.is"
+        },
+        {
+            "domain": "gostynska.pl"
+        },
+        {
+            "domain": "gowork.pl"
+        },
+        {
+            "domain": "gp.se"
+        },
+        {
+            "domain": "gpkingdom.it"
+        },
+        {
+            "domain": "gptnederlands.nl"
+        },
+        {
+            "domain": "gq-magazine.co.uk"
+        },
+        {
+            "domain": "gqitalia.it"
+        },
+        {
+            "domain": "graiulsalajului.ro"
+        },
+        {
+            "domain": "grandangoloagrigento.it"
+        },
+        {
+            "domain": "grandtouritalia.it"
+        },
+        {
+            "domain": "gratka.pl"
+        },
+        {
+            "domain": "grazia.nl"
+        },
+        {
+            "domain": "greenaqua.hu"
+        },
+        {
+            "domain": "greenreport.it"
+        },
+        {
+            "domain": "gript.ie"
+        },
+        {
+            "domain": "grokiskis.lt"
+        },
+        {
+            "domain": "groweb.it"
+        },
+        {
+            "domain": "grundschule-arbeitsblaetter.de"
+        },
+        {
+            "domain": "grundschulkoenig.de"
+        },
+        {
+            "domain": "grupazpr.pl"
+        },
+        {
+            "domain": "gruppocdt.ch"
+        },
+        {
+            "domain": "gutscheinsammler.de"
+        },
+        {
+            "domain": "gvmp.de"
+        },
+        {
+            "domain": "hablemosdebelleza.es"
+        },
+        {
+            "domain": "hairstore.fr"
+        },
+        {
+            "domain": "hallandsposten.se"
+        },
+        {
+            "domain": "hamburg-airport.de"
+        },
+        {
+            "domain": "hausarbeiten.de"
+        },
+        {
+            "domain": "hdblog.it"
+        },
+        {
+            "domain": "hdmotori.it"
+        },
+        {
+            "domain": "heartbeats.dk"
+        },
+        {
+            "domain": "heizoel24.de"
+        },
+        {
+            "domain": "heizpellets24.de"
+        },
+        {
+            "domain": "hellotaste.ro"
+        },
+        {
+            "domain": "helmi.gr"
+        },
+        {
+            "domain": "heycar.co.uk"
+        },
+        {
+            "domain": "hintaseuranta.fi"
+        },
+        {
+            "domain": "historylearningsite.co.uk"
+        },
+        {
+            "domain": "hitta.se"
+        },
+        {
+            "domain": "hl-live.de"
+        },
+        {
+            "domain": "hn.se"
+        },
+        {
+            "domain": "hockeyettan.se"
+        },
+        {
+            "domain": "hockeygm.fi"
+        },
+        {
+            "domain": "hoekschnieuws.nl"
+        },
+        {
+            "domain": "holisticrecruiters.uk"
+        },
+        {
+            "domain": "hollandfestival.nl"
+        },
+        {
+            "domain": "home-tex.dk"
+        },
+        {
+            "domain": "hoover.co.uk"
+        },
+        {
+            "domain": "horizoom-panel.de"
+        },
+        {
+            "domain": "horoskop-tarot.sk"
+        },
+        {
+            "domain": "horseandhound.co.uk"
+        },
+        {
+            "domain": "hostingpalvelu.fi"
+        },
+        {
+            "domain": "hotfrog.co.uk"
+        },
+        {
+            "domain": "houseandgarden.co.uk"
+        },
+        {
+            "domain": "housepricesintheuk.co.uk"
+        },
+        {
+            "domain": "housesforsaletorent.co.uk"
+        },
+        {
+            "domain": "ht.se"
+        },
+        {
+            "domain": "html.it"
+        },
+        {
+            "domain": "huffingtonpost.fr"
+        },
+        {
+            "domain": "huurzone.nl"
+        },
+        {
+            "domain": "hwupgrade.it"
+        },
+        {
+            "domain": "hymy.fi"
+        },
+        {
+            "domain": "i-nex.de"
+        },
+        {
+            "domain": "i-ticket.it"
+        },
+        {
+            "domain": "iagua.es"
+        },
+        {
+            "domain": "ica.se"
+        },
+        {
+            "domain": "icrush.de"
+        },
+        {
+            "domain": "iepp.es"
+        },
+        {
+            "domain": "iexprofs.nl"
+        },
+        {
+            "domain": "igryfino.pl"
+        },
+        {
+            "domain": "il.fi"
+        },
+        {
+            "domain": "ilcittadino.it"
+        },
+        {
+            "domain": "ildispariquotidiano.it"
+        },
+        {
+            "domain": "ilfattonisseno.it"
+        },
+        {
+            "domain": "ilfattoquotidiano.it"
+        },
+        {
+            "domain": "ilfoglio.it"
+        },
+        {
+            "domain": "ilgiornaledelcibo.it"
+        },
+        {
+            "domain": "ilgiornaledivicenza.it"
+        },
+        {
+            "domain": "ilkkapohjalainen.fi"
+        },
+        {
+            "domain": "ilmattino.it"
+        },
+        {
+            "domain": "ilmessaggero.it"
+        },
+        {
+            "domain": "ilnordest.it"
+        },
+        {
+            "domain": "ilpescara.it"
+        },
+        {
+            "domain": "ilpiacenza.it"
+        },
+        {
+            "domain": "ilpiccolo.it"
+        },
+        {
+            "domain": "ilsecoloxix.it"
+        },
+        {
+            "domain": "ilsoftware.it"
+        },
+        {
+            "domain": "iltelegrafolivorno.it"
+        },
+        {
+            "domain": "ilvicolodellenews.it"
+        },
+        {
+            "domain": "in1soloclick.it"
+        },
+        {
+            "domain": "in2thebeach.es"
+        },
+        {
+            "domain": "inbagno.it"
+        },
+        {
+            "domain": "inferno.fi"
+        },
+        {
+            "domain": "infinitytv.it"
+        },
+        {
+            "domain": "infodifesa.it"
+        },
+        {
+            "domain": "information.dk"
+        },
+        {
+            "domain": "innebandymagazinet.se"
+        },
+        {
+            "domain": "inran.it"
+        },
+        {
+            "domain": "inrybar.cz"
+        },
+        {
+            "domain": "inshop.cz"
+        },
+        {
+            "domain": "insidemarketing.it"
+        },
+        {
+            "domain": "institutdelors.eu"
+        },
+        {
+            "domain": "interlive.it"
+        },
+        {
+            "domain": "internapoli.it"
+        },
+        {
+            "domain": "internazionale.it"
+        },
+        {
+            "domain": "internimagazine.it"
+        },
+        {
+            "domain": "interpretation-reve.fr"
+        },
+        {
+            "domain": "interrisk.de"
+        },
+        {
+            "domain": "intopic.it"
+        },
+        {
+            "domain": "inx.lv"
+        },
+        {
+            "domain": "iqb.es"
+        },
+        {
+            "domain": "irwradio.de"
+        },
+        {
+            "domain": "isabellas.dk"
+        },
+        {
+            "domain": "ispacnr.it"
+        },
+        {
+            "domain": "it-connect.fr"
+        },
+        {
+            "domain": "itacanotizie.it"
+        },
+        {
+            "domain": "itsrugby.fr"
+        },
+        {
+            "domain": "jakdojade.pl"
+        },
+        {
+            "domain": "jamieolivereats.co.uk"
+        },
+        {
+            "domain": "jardideco.fr"
+        },
+        {
+            "domain": "jarocinska.pl"
+        },
+        {
+            "domain": "jasbee.de"
+        },
+        {
+            "domain": "jastrzabpost.pl"
+        },
+        {
+            "domain": "jhl.fi"
+        },
+        {
+            "domain": "jimpix.co.uk"
+        },
+        {
+            "domain": "jornaldocentro.pt"
+        },
+        {
+            "domain": "journal.hr"
+        },
+        {
+            "domain": "journaldufreenaute.fr"
+        },
+        {
+            "domain": "jp.dk"
+        },
+        {
+            "domain": "jp.se"
+        },
+        {
+            "domain": "jurvansanomat.fi"
+        },
+        {
+            "domain": "jyllands-posten.dk"
+        },
+        {
+            "domain": "k-gen.fr"
+        },
+        {
+            "domain": "ka-news.de"
+        },
+        {
+            "domain": "kafeteria.pl"
+        },
+        {
+            "domain": "kainuunsanomat.fi"
+        },
+        {
+            "domain": "kaksplus.fi"
+        },
+        {
+            "domain": "kalevamedia.fi"
+        },
+        {
+            "domain": "kami-labs.fr"
+        },
+        {
+            "domain": "kampas.lt"
+        },
+        {
+            "domain": "karmek.it"
+        },
+        {
+            "domain": "kb.pl"
+        },
+        {
+            "domain": "kefaloniapress.gr"
+        },
+        {
+            "domain": "kennelliit.ee"
+        },
+        {
+            "domain": "kentia.gr"
+        },
+        {
+            "domain": "keskipohjanmaa.fi"
+        },
+        {
+            "domain": "kfetele.ro"
+        },
+        {
+            "domain": "kidsproof.nl"
+        },
+        {
+            "domain": "kinderkraft.de"
+        },
+        {
+            "domain": "kink.nl"
+        },
+        {
+            "domain": "kino.dk"
+        },
+        {
+            "domain": "kissfm.ro"
+        },
+        {
+            "domain": "kisskissnapoli.it"
+        },
+        {
+            "domain": "klara.be"
+        },
+        {
+            "domain": "klassekampen.no"
+        },
+        {
+            "domain": "kliknieuws.nl"
+        },
+        {
+            "domain": "knaustabbert.de"
+        },
+        {
+            "domain": "kochenjetzt.de"
+        },
+        {
+            "domain": "kociewiak.pl"
+        },
+        {
+            "domain": "koeln.de"
+        },
+        {
+            "domain": "koillissanomat.fi"
+        },
+        {
+            "domain": "komorkomania.pl"
+        },
+        {
+            "domain": "kompass.de"
+        },
+        {
+            "domain": "komputerswiat.pl"
+        },
+        {
+            "domain": "konii.de"
+        },
+        {
+            "domain": "kopfhoerer.de"
+        },
+        {
+            "domain": "korso.pl"
+        },
+        {
+            "domain": "korsokolbuszowskie.pl"
+        },
+        {
+            "domain": "korsosanockie.pl"
+        },
+        {
+            "domain": "kotiliesi.fi"
+        },
+        {
+            "domain": "krebsgesellschaft.de"
+        },
+        {
+            "domain": "kreuzwortraetsellexikon.de"
+        },
+        {
+            "domain": "kristeligt-dagblad.dk"
+        },
+        {
+            "domain": "kristianstadsbladet.se"
+        },
+        {
+            "domain": "krotoszynska.pl"
+        },
+        {
+            "domain": "kundenservice.de"
+        },
+        {
+            "domain": "kungalvsposten.se"
+        },
+        {
+            "domain": "kutno.net.pl"
+        },
+        {
+            "domain": "kvalster.se"
+        },
+        {
+            "domain": "kw1c.nl"
+        },
+        {
+            "domain": "labtestsonline.it"
+        },
+        {
+            "domain": "lachiesa.it"
+        },
+        {
+            "domain": "laconceria.it"
+        },
+        {
+            "domain": "lacucinaitaliana.it"
+        },
+        {
+            "domain": "lacuisinedegeraldine.fr"
+        },
+        {
+            "domain": "laendleanzeiger.at"
+        },
+        {
+            "domain": "laendleimmo.at"
+        },
+        {
+            "domain": "laendlejob.at"
+        },
+        {
+            "domain": "lagazzettadelmezzogiorno.it"
+        },
+        {
+            "domain": "laikas.lt"
+        },
+        {
+            "domain": "laleggepertutti.it"
+        },
+        {
+            "domain": "lalucedimaria.it"
+        },
+        {
+            "domain": "lamoda.pl"
+        },
+        {
+            "domain": "landliebe.ch"
+        },
+        {
+            "domain": "laneperfumy.pl"
+        },
+        {
+            "domain": "lanuovasardegna.it"
+        },
+        {
+            "domain": "lapinamk.fi"
+        },
+        {
+            "domain": "lapinkansa.fi"
+        },
+        {
+            "domain": "lapressa.it"
+        },
+        {
+            "domain": "lapresse.it"
+        },
+        {
+            "domain": "laprovinciadicomo.it"
+        },
+        {
+            "domain": "laprovinciadivarese.it"
+        },
+        {
+            "domain": "laprovinciaunicatv.it"
+        },
+        {
+            "domain": "laregione.ch"
+        },
+        {
+            "domain": "larena.it"
+        },
+        {
+            "domain": "larousse.fr"
+        },
+        {
+            "domain": "lasourisglobe-trotteuse.fr"
+        },
+        {
+            "domain": "latinatoday.it"
+        },
+        {
+            "domain": "lauralaurentiu.ro"
+        },
+        {
+            "domain": "lav.it"
+        },
+        {
+            "domain": "lavie.fr"
+        },
+        {
+            "domain": "lavoce.hr"
+        },
+        {
+            "domain": "leaderdoors.co.uk"
+        },
+        {
+            "domain": "leaderfloors.co.uk"
+        },
+        {
+            "domain": "leadersnet.at"
+        },
+        {
+            "domain": "lealkudtuk.hu"
+        },
+        {
+            "domain": "leaseweb.nl"
+        },
+        {
+            "domain": "leasingtime.de"
+        },
+        {
+            "domain": "leccenews24.it"
+        },
+        {
+            "domain": "lecceprima.it"
+        },
+        {
+            "domain": "leccotoday.it"
+        },
+        {
+            "domain": "lefrecce.it"
+        },
+        {
+            "domain": "legalblink.it"
+        },
+        {
+            "domain": "leggioggi.it"
+        },
+        {
+            "domain": "lehrerfreund.de"
+        },
+        {
+            "domain": "lesepicesrient.fr"
+        },
+        {
+            "domain": "lesimprimantes3d.fr"
+        },
+        {
+            "domain": "lesindesradios.fr"
+        },
+        {
+            "domain": "lesinguliersete.fr"
+        },
+        {
+            "domain": "lestropeziennes.fr"
+        },
+        {
+            "domain": "lexa.nl"
+        },
+        {
+            "domain": "lidl-connect.de"
+        },
+        {
+            "domain": "lidl.de"
+        },
+        {
+            "domain": "lidlplus.de"
+        },
+        {
+            "domain": "lidlplus.pl"
+        },
+        {
+            "domain": "lighthouseclothing.co.uk"
+        },
+        {
+            "domain": "ligos.lt"
+        },
+        {
+            "domain": "liigaporssi.fi"
+        },
+        {
+            "domain": "linguee.de"
+        },
+        {
+            "domain": "linguee.es"
+        },
+        {
+            "domain": "linguee.fr"
+        },
+        {
+            "domain": "linguee.it"
+        },
+        {
+            "domain": "linguee.nl"
+        },
+        {
+            "domain": "linguee.pl"
+        },
+        {
+            "domain": "linguee.pt"
+        },
+        {
+            "domain": "liveradio.ie"
+        },
+        {
+            "domain": "liverpoolecho.co.uk"
+        },
+        {
+            "domain": "liverpoolway.co.uk"
+        },
+        {
+            "domain": "livesicilia.it"
+        },
+        {
+            "domain": "livornotoday.it"
+        },
+        {
+            "domain": "ljusdalsposten.se"
+        },
+        {
+            "domain": "ljusnan.se"
+        },
+        {
+            "domain": "lkz.de"
+        },
+        {
+            "domain": "llevatilde.es"
+        },
+        {
+            "domain": "lnu.se"
+        },
+        {
+            "domain": "locamoi.fr"
+        },
+        {
+            "domain": "lofotposten.no"
+        },
+        {
+            "domain": "lokalavisen.dk"
+        },
+        {
+            "domain": "lokalna24.pl"
+        },
+        {
+            "domain": "londonmuseum.org.uk"
+        },
+        {
+            "domain": "londonnorthwesternrailway.co.uk"
+        },
+        {
+            "domain": "loopia.se"
+        },
+        {
+            "domain": "lt.se"
+        },
+        {
+            "domain": "lto-karriere.de"
+        },
+        {
+            "domain": "lto.de"
+        },
+        {
+            "domain": "ltz.se"
+        },
+        {
+            "domain": "lubimyczytac.pl"
+        },
+        {
+            "domain": "lublin24.pl"
+        },
+        {
+            "domain": "lucake.it"
+        },
+        {
+            "domain": "lui.cz"
+        },
+        {
+            "domain": "luxurylondon.co.uk"
+        },
+        {
+            "domain": "m2o.it"
+        },
+        {
+            "domain": "macitynet.it"
+        },
+        {
+            "domain": "madeinbocholt.de"
+        },
+        {
+            "domain": "maedchenflohmarkt.de"
+        },
+        {
+            "domain": "maestraanita.it"
+        },
+        {
+            "domain": "maggiesfarm.it"
+        },
+        {
+            "domain": "magicfm.ro"
+        },
+        {
+            "domain": "magro.hu"
+        },
+        {
+            "domain": "mailonsunday.co.uk"
+        },
+        {
+            "domain": "mainpost.de"
+        },
+        {
+            "domain": "mal-alt-werden.de"
+        },
+        {
+            "domain": "mammafelice.it"
+        },
+        {
+            "domain": "manoukis.lt"
+        },
+        {
+            "domain": "manualslib.de"
+        },
+        {
+            "domain": "manualslib.fr"
+        },
+        {
+            "domain": "marcacorona.it"
+        },
+        {
+            "domain": "mariskavos.nl"
+        },
+        {
+            "domain": "masco.it"
+        },
+        {
+            "domain": "match.it"
+        },
+        {
+            "domain": "materialguru.de"
+        },
+        {
+            "domain": "matosvelo.fr"
+        },
+        {
+            "domain": "mattinopadova.it"
+        },
+        {
+            "domain": "mattressonline.co.uk"
+        },
+        {
+            "domain": "maxi-pieces-50.fr"
+        },
+        {
+            "domain": "maxmagazine.nl"
+        },
+        {
+            "domain": "mconverter.eu"
+        },
+        {
+            "domain": "mediawatch.dk"
+        },
+        {
+            "domain": "medicept.pl"
+        },
+        {
+            "domain": "medonet.pl"
+        },
+        {
+            "domain": "medwatch.dk"
+        },
+        {
+            "domain": "meetic.be"
+        },
+        {
+            "domain": "meetic.es"
+        },
+        {
+            "domain": "mehr-tanken.de"
+        },
+        {
+            "domain": "meine-ernte.de"
+        },
+        {
+            "domain": "mensadviceline.org.uk"
+        },
+        {
+            "domain": "meridionews.it"
+        },
+        {
+            "domain": "messaggeroveneto.it"
+        },
+        {
+            "domain": "messinatoday.it"
+        },
+        {
+            "domain": "metalocus.es"
+        },
+        {
+            "domain": "meteoweb.eu"
+        },
+        {
+            "domain": "metropolisweb.it"
+        },
+        {
+            "domain": "mightygadget.co.uk"
+        },
+        {
+            "domain": "milanlive.it"
+        },
+        {
+            "domain": "milanotoday.it"
+        },
+        {
+            "domain": "milanoweekend.it"
+        },
+        {
+            "domain": "miljuschka.nl"
+        },
+        {
+            "domain": "mimmis.no"
+        },
+        {
+            "domain": "mirapodo.de"
+        },
+        {
+            "domain": "miresi.es"
+        },
+        {
+            "domain": "mister-auto.de"
+        },
+        {
+            "domain": "mitti.se"
+        },
+        {
+            "domain": "mll.fi"
+        },
+        {
+            "domain": "mm.dk"
+        },
+        {
+            "domain": "modenatoday.it"
+        },
+        {
+            "domain": "modsims4.fr"
+        },
+        {
+            "domain": "moduli.it"
+        },
+        {
+            "domain": "mohd.it"
+        },
+        {
+            "domain": "moltofood.it"
+        },
+        {
+            "domain": "moneteasy.pl"
+        },
+        {
+            "domain": "money.it"
+        },
+        {
+            "domain": "money.pl"
+        },
+        {
+            "domain": "monitorulcj.ro"
+        },
+        {
+            "domain": "monzatoday.it"
+        },
+        {
+            "domain": "moottori.fi"
+        },
+        {
+            "domain": "moratidning.se"
+        },
+        {
+            "domain": "morizon.pl"
+        },
+        {
+            "domain": "mostrapopbeat.it"
+        },
+        {
+            "domain": "motoblog.it"
+        },
+        {
+            "domain": "motoplanete.es"
+        },
+        {
+            "domain": "motor.es"
+        },
+        {
+            "domain": "motori.it"
+        },
+        {
+            "domain": "motorisumotori.it"
+        },
+        {
+            "domain": "motorradonline.de"
+        },
+        {
+            "domain": "moviezine.se"
+        },
+        {
+            "domain": "mrw.it"
+        },
+        {
+            "domain": "multicedi.it"
+        },
+        {
+            "domain": "mummypages.ie"
+        },
+        {
+            "domain": "mundigiochi.it"
+        },
+        {
+            "domain": "mundijeux.fr"
+        },
+        {
+            "domain": "murator.pl"
+        },
+        {
+            "domain": "muratordom.pl"
+        },
+        {
+            "domain": "muratorplus.pl"
+        },
+        {
+            "domain": "musee-magritte-museum.be"
+        },
+        {
+            "domain": "museumoflondon.org.uk"
+        },
+        {
+            "domain": "musikguru.de"
+        },
+        {
+            "domain": "mx.dk"
+        },
+        {
+            "domain": "my-gate.eu"
+        },
+        {
+            "domain": "my-personaltrainer.it"
+        },
+        {
+            "domain": "myclaimgroup.co.uk"
+        },
+        {
+            "domain": "mycomics.it"
+        },
+        {
+            "domain": "mygiftcard.it"
+        },
+        {
+            "domain": "mytoys.de"
+        },
+        {
+            "domain": "myvalley.it"
+        },
+        {
+            "domain": "nachhaltigleben.ch"
+        },
+        {
+            "domain": "nakolei.pl"
+        },
+        {
+            "domain": "nannytax.co.uk"
+        },
+        {
+            "domain": "nanopress.it"
+        },
+        {
+            "domain": "napolidavivere.it"
+        },
+        {
+            "domain": "napolike.it"
+        },
+        {
+            "domain": "napolitoday.it"
+        },
+        {
+            "domain": "nasza-klasa.pl"
+        },
+        {
+            "domain": "nationalgallery.org.uk"
+        },
+        {
+            "domain": "nationalgeographic.it"
+        },
+        {
+            "domain": "ndz.de"
+        },
+        {
+            "domain": "neckermann.de"
+        },
+        {
+            "domain": "netdoktor.dk"
+        },
+        {
+            "domain": "netdoktor.se"
+        },
+        {
+            "domain": "neue.at"
+        },
+        {
+            "domain": "neutech.fi"
+        },
+        {
+            "domain": "neveitalia.it"
+        },
+        {
+            "domain": "newsandmedia.sk"
+        },
+        {
+            "domain": "newsbucovina.ro"
+        },
+        {
+            "domain": "newsicilia.it"
+        },
+        {
+            "domain": "newsweek.pl"
+        },
+        {
+            "domain": "nexon.hu"
+        },
+        {
+            "domain": "nexths.it"
+        },
+        {
+            "domain": "nhi.no"
+        },
+        {
+            "domain": "ni.dk"
+        },
+        {
+            "domain": "niiinis.se"
+        },
+        {
+            "domain": "nirvam.it"
+        },
+        {
+            "domain": "nk.pl"
+        },
+        {
+            "domain": "nmhmedia.sk"
+        },
+        {
+            "domain": "nmm.ac.uk"
+        },
+        {
+            "domain": "noen.at"
+        },
+        {
+            "domain": "noizz.pl"
+        },
+        {
+            "domain": "nonsprecare.it"
+        },
+        {
+            "domain": "nordbayern.de"
+        },
+        {
+            "domain": "norrteljetidning.se"
+        },
+        {
+            "domain": "northernrailway.co.uk"
+        },
+        {
+            "domain": "nostrofiglio.it"
+        },
+        {
+            "domain": "notebookcheck.pl"
+        },
+        {
+            "domain": "novaratoday.it"
+        },
+        {
+            "domain": "novotic.es"
+        },
+        {
+            "domain": "nrwz.de"
+        },
+        {
+            "domain": "nsk.se"
+        },
+        {
+            "domain": "nsoft.it"
+        },
+        {
+            "domain": "nurmijarvenuutiset.fi"
+        },
+        {
+            "domain": "nurse24.it"
+        },
+        {
+            "domain": "nvp.se"
+        },
+        {
+            "domain": "nyaludvikatidning.se"
+        },
+        {
+            "domain": "nynashamnsposten.se"
+        },
+        {
+            "domain": "o2.pl"
+        },
+        {
+            "domain": "obermain.de"
+        },
+        {
+            "domain": "ocrcl.ch"
+        },
+        {
+            "domain": "ofdb.de"
+        },
+        {
+            "domain": "ofeminin.pl"
+        },
+        {
+            "domain": "oggiintv.eu"
+        },
+        {
+            "domain": "oggitreviso.it"
+        },
+        {
+            "domain": "oglaszamy24.pl"
+        },
+        {
+            "domain": "oglioponews.it"
+        },
+        {
+            "domain": "ohmymag.co.uk"
+        },
+        {
+            "domain": "okmugello.it"
+        },
+        {
+            "domain": "okokorecepten.nl"
+        },
+        {
+            "domain": "olandsbladet.se"
+        },
+        {
+            "domain": "ole.gr"
+        },
+        {
+            "domain": "olybet.es"
+        },
+        {
+            "domain": "ondarock.it"
+        },
+        {
+            "domain": "oneblockdown.it"
+        },
+        {
+            "domain": "onetime.nl"
+        },
+        {
+            "domain": "oozo.nl"
+        },
+        {
+            "domain": "op.pl"
+        },
+        {
+            "domain": "op.se"
+        },
+        {
+            "domain": "opapisa.it"
+        },
+        {
+            "domain": "opineo.pl"
+        },
+        {
+            "domain": "opinion-assurances.fr"
+        },
+        {
+            "domain": "opinioni.it"
+        },
+        {
+            "domain": "orange.co.uk"
+        },
+        {
+            "domain": "oreficerialupetta.it"
+        },
+        {
+            "domain": "oristanonoi.it"
+        },
+        {
+            "domain": "ortodacoltivare.it"
+        },
+        {
+            "domain": "oslobors.no"
+        },
+        {
+            "domain": "ostalbkreis.de"
+        },
+        {
+            "domain": "ostrowmaz24.pl"
+        },
+        {
+            "domain": "ostsee-zeitung.de"
+        },
+        {
+            "domain": "ot11ot2.it"
+        },
+        {
+            "domain": "otavamedia.fi"
+        },
+        {
+            "domain": "otto-gourmet.de"
+        },
+        {
+            "domain": "otto-payments.de"
+        },
+        {
+            "domain": "otto.de"
+        },
+        {
+            "domain": "overdrive.fi"
+        },
+        {
+            "domain": "paccofacile.it"
+        },
+        {
+            "domain": "padovaoggi.it"
+        },
+        {
+            "domain": "paesionline.it"
+        },
+        {
+            "domain": "paginebianche.it"
+        },
+        {
+            "domain": "paginegialle.it"
+        },
+        {
+            "domain": "palermotoday.it"
+        },
+        {
+            "domain": "panamajack.es"
+        },
+        {
+            "domain": "panda.ie"
+        },
+        {
+            "domain": "panele.lt"
+        },
+        {
+            "domain": "paperconcept.pl"
+        },
+        {
+            "domain": "parenting.pl"
+        },
+        {
+            "domain": "parklot.pl"
+        },
+        {
+            "domain": "parmatoday.it"
+        },
+        {
+            "domain": "passionandcar.fr"
+        },
+        {
+            "domain": "passioneastronomia.it"
+        },
+        {
+            "domain": "patentati.it"
+        },
+        {
+            "domain": "pazienti.it"
+        },
+        {
+            "domain": "pcformat.pl"
+        },
+        {
+            "domain": "pelaaja.fi"
+        },
+        {
+            "domain": "pelit.fi"
+        },
+        {
+            "domain": "pensioniefisco.it"
+        },
+        {
+            "domain": "pensionist.dk"
+        },
+        {
+            "domain": "pentoleprofessionali.it"
+        },
+        {
+            "domain": "personalwirtschaft.de"
+        },
+        {
+            "domain": "perugiatoday.it"
+        },
+        {
+            "domain": "petitchef.ro"
+        },
+        {
+            "domain": "petmania.ie"
+        },
+        {
+            "domain": "pforpelion.gr"
+        },
+        {
+            "domain": "pgcasa.it"
+        },
+        {
+            "domain": "pianetamamma.it"
+        },
+        {
+            "domain": "pianetamountainbike.it"
+        },
+        {
+            "domain": "pianetaserieb.it"
+        },
+        {
+            "domain": "pinkpanda.hr"
+        },
+        {
+            "domain": "pinkpanda.hu"
+        },
+        {
+            "domain": "pinkpanda.it"
+        },
+        {
+            "domain": "pinkpanda.ro"
+        },
+        {
+            "domain": "pisatoday.it"
+        },
+        {
+            "domain": "placetel.de"
+        },
+        {
+            "domain": "plasticker.de"
+        },
+        {
+            "domain": "player.it"
+        },
+        {
+            "domain": "playnostalgie.be"
+        },
+        {
+            "domain": "pluska.sk"
+        },
+        {
+            "domain": "poem-generator.org.uk"
+        },
+        {
+            "domain": "polishexpress.eu"
+        },
+        {
+            "domain": "politiken.dk"
+        },
+        {
+            "domain": "pollster.pl"
+        },
+        {
+            "domain": "polyfab3d.fr"
+        },
+        {
+            "domain": "polygamia.pl"
+        },
+        {
+            "domain": "poradnikzdrowie.pl"
+        },
+        {
+            "domain": "portalplock.pl"
+        },
+        {
+            "domain": "portoroz.si"
+        },
+        {
+            "domain": "poscigi.pl"
+        },
+        {
+            "domain": "postmodern.ro"
+        },
+        {
+            "domain": "pourfemme.it"
+        },
+        {
+            "domain": "preisvergleich.de"
+        },
+        {
+            "domain": "pressgazette.co.uk"
+        },
+        {
+            "domain": "pricerunner.dk"
+        },
+        {
+            "domain": "primabergamo.it"
+        },
+        {
+            "domain": "primabrescia.it"
+        },
+        {
+            "domain": "primacomo.it"
+        },
+        {
+            "domain": "primalamartesana.it"
+        },
+        {
+            "domain": "primalariviera.it"
+        },
+        {
+            "domain": "primalavaltellina.it"
+        },
+        {
+            "domain": "primalecco.it"
+        },
+        {
+            "domain": "primamilanoovest.it"
+        },
+        {
+            "domain": "primaonline.it"
+        },
+        {
+            "domain": "primapavia.it"
+        },
+        {
+            "domain": "primatreviglio.it"
+        },
+        {
+            "domain": "prime-energie-edf.fr"
+        },
+        {
+            "domain": "primero.lv"
+        },
+        {
+            "domain": "primochef.it"
+        },
+        {
+            "domain": "privatassistenza.it"
+        },
+        {
+            "domain": "proiezionidiborsa.it"
+        },
+        {
+            "domain": "promain.co.uk"
+        },
+        {
+            "domain": "propertyreporter.co.uk"
+        },
+        {
+            "domain": "prosport.ro"
+        },
+        {
+            "domain": "protv.ro"
+        },
+        {
+            "domain": "protvplus.ro"
+        },
+        {
+            "domain": "przegladsportowy.pl"
+        },
+        {
+            "domain": "psy.pl"
+        },
+        {
+            "domain": "publi24.ro"
+        },
+        {
+            "domain": "pudelek.pl"
+        },
+        {
+            "domain": "punkt.ch"
+        },
+        {
+            "domain": "punto-informatico.it"
+        },
+        {
+            "domain": "pysznosci.pl"
+        },
+        {
+            "domain": "qlibri.it"
+        },
+        {
+            "domain": "qp-on.it"
+        },
+        {
+            "domain": "qsalute.it"
+        },
+        {
+            "domain": "quadro-forum.de"
+        },
+        {
+            "domain": "qualescegliere.it"
+        },
+        {
+            "domain": "quickgold.es"
+        },
+        {
+            "domain": "quicomo.it"
+        },
+        {
+            "domain": "quicosenza.it"
+        },
+        {
+            "domain": "quifattura.it"
+        },
+        {
+            "domain": "quifinanza.it"
+        },
+        {
+            "domain": "quilivorno.it"
+        },
+        {
+            "domain": "quintopotere.it"
+        },
+        {
+            "domain": "quotidianocanavese.it"
+        },
+        {
+            "domain": "quotidianodipuglia.it"
+        },
+        {
+            "domain": "qx.se"
+        },
+        {
+            "domain": "radio1.hu"
+        },
+        {
+            "domain": "radio24syv.dk"
+        },
+        {
+            "domain": "radiocluj.ro"
+        },
+        {
+            "domain": "radioforum.nl"
+        },
+        {
+            "domain": "radiofreak.nl"
+        },
+        {
+            "domain": "radiogold.it"
+        },
+        {
+            "domain": "radioiasi.ro"
+        },
+        {
+            "domain": "radioplus.pl"
+        },
+        {
+            "domain": "radioradio.it"
+        },
+        {
+            "domain": "radiosei.it"
+        },
+        {
+            "domain": "radiosienatv.it"
+        },
+        {
+            "domain": "radioswh.lv"
+        },
+        {
+            "domain": "radiovlna.sk"
+        },
+        {
+            "domain": "ragusaoggi.it"
+        },
+        {
+            "domain": "rallit.fi"
+        },
+        {
+            "domain": "ranking-oczyszczaczy.pl"
+        },
+        {
+            "domain": "rankingmasters.nl"
+        },
+        {
+            "domain": "raskakcija.lt"
+        },
+        {
+            "domain": "raspaid.pl"
+        },
+        {
+            "domain": "ratkojat.fi"
+        },
+        {
+            "domain": "rau.ac.uk"
+        },
+        {
+            "domain": "ravennatoday.it"
+        },
+        {
+            "domain": "ravennawebtv.it"
+        },
+        {
+            "domain": "rawicz24.pl"
+        },
+        {
+            "domain": "rbfa.be"
+        },
+        {
+            "domain": "rds.it"
+        },
+        {
+            "domain": "reaktoropinii.pl"
+        },
+        {
+            "domain": "rechtschreibpruefung24.de"
+        },
+        {
+            "domain": "recupel.be"
+        },
+        {
+            "domain": "redacon.it"
+        },
+        {
+            "domain": "reggiotoday.it"
+        },
+        {
+            "domain": "regionline.fi"
+        },
+        {
+            "domain": "registroaziende.it"
+        },
+        {
+            "domain": "reino-minerales.es"
+        },
+        {
+            "domain": "relation-client-edf.fr"
+        },
+        {
+            "domain": "rendeljkinait.hu"
+        },
+        {
+            "domain": "rentandtravel.de"
+        },
+        {
+            "domain": "rentola.be"
+        },
+        {
+            "domain": "rentola.co.uk"
+        },
+        {
+            "domain": "rentola.cz"
+        },
+        {
+            "domain": "rentola.de"
+        },
+        {
+            "domain": "rentola.es"
+        },
+        {
+            "domain": "rentola.fi"
+        },
+        {
+            "domain": "rentola.it"
+        },
+        {
+            "domain": "rentola.nl"
+        },
+        {
+            "domain": "rentola.pt"
+        },
+        {
+            "domain": "reppa.de"
+        },
+        {
+            "domain": "restless.co.uk"
+        },
+        {
+            "domain": "rete8.it"
+        },
+        {
+            "domain": "retesport.it"
+        },
+        {
+            "domain": "revistaad.es"
+        },
+        {
+            "domain": "revistavanityfair.es"
+        },
+        {
+            "domain": "ricambimoto2000.it"
+        },
+        {
+            "domain": "ricettaqubi.it"
+        },
+        {
+            "domain": "ricettasprint.it"
+        },
+        {
+            "domain": "riminitoday.it"
+        },
+        {
+            "domain": "ringblad.no"
+        },
+        {
+            "domain": "rinka.lt"
+        },
+        {
+            "domain": "ripetizioni.it"
+        },
+        {
+            "domain": "riza.it"
+        },
+        {
+            "domain": "rmg.co.uk"
+        },
+        {
+            "domain": "rnd.de"
+        },
+        {
+            "domain": "roadtvitalia.it"
+        },
+        {
+            "domain": "rockfm.ro"
+        },
+        {
+            "domain": "rockit.it"
+        },
+        {
+            "domain": "rollercoaster.ie"
+        },
+        {
+            "domain": "rollingstone.it"
+        },
+        {
+            "domain": "romatoday.it"
+        },
+        {
+            "domain": "romics.it"
+        },
+        {
+            "domain": "rompipallone.it"
+        },
+        {
+            "domain": "rouleur-electrique.fr"
+        },
+        {
+            "domain": "royalcollectionshop.co.uk"
+        },
+        {
+            "domain": "ruck.co.uk"
+        },
+        {
+            "domain": "ruhrnachrichten.de"
+        },
+        {
+            "domain": "ruma.co.uk"
+        },
+        {
+            "domain": "rumba.fi"
+        },
+        {
+            "domain": "running-addict.fr"
+        },
+        {
+            "domain": "russoraffaele.it"
+        },
+        {
+            "domain": "ryakos.it"
+        },
+        {
+            "domain": "saechsische.de"
+        },
+        {
+            "domain": "salamancartvaldia.es"
+        },
+        {
+            "domain": "salernotoday.it"
+        },
+        {
+            "domain": "samvirke.dk"
+        },
+        {
+            "domain": "sante.nl"
+        },
+        {
+            "domain": "santiebeati.it"
+        },
+        {
+            "domain": "sarabackmo.se"
+        },
+        {
+            "domain": "satkurier.pl"
+        },
+        {
+            "domain": "savecart.pl"
+        },
+        {
+            "domain": "scarpamondo.it"
+        },
+        {
+            "domain": "scattidigusto.it"
+        },
+        {
+            "domain": "schaatsen.nl"
+        },
+        {
+            "domain": "schlagerprofis.de"
+        },
+        {
+            "domain": "scotchwhiskyexperience.co.uk"
+        },
+        {
+            "domain": "scrabblemania.de"
+        },
+        {
+            "domain": "scrabblemania.fr"
+        },
+        {
+            "domain": "scrabblemania.pl"
+        },
+        {
+            "domain": "scribbr.es"
+        },
+        {
+            "domain": "se.pl"
+        },
+        {
+            "domain": "secoloditalia.it"
+        },
+        {
+            "domain": "seiseralm.it"
+        },
+        {
+            "domain": "self-build.co.uk"
+        },
+        {
+            "domain": "sellapersonalcredit.it"
+        },
+        {
+            "domain": "sena.lt"
+        },
+        {
+            "domain": "seniornews.dk"
+        },
+        {
+            "domain": "seoschmiede.at"
+        },
+        {
+            "domain": "sesamehr.es"
+        },
+        {
+            "domain": "seura.fi"
+        },
+        {
+            "domain": "sfilate.it"
+        },
+        {
+            "domain": "sfrbusiness.fr"
+        },
+        {
+            "domain": "sheffield.gov.uk"
+        },
+        {
+            "domain": "shippingwatch.dk"
+        },
+        {
+            "domain": "siciliafan.it"
+        },
+        {
+            "domain": "sicilianicreativiincucina.it"
+        },
+        {
+            "domain": "sicurauto.it"
+        },
+        {
+            "domain": "silvanaeditoriale.it"
+        },
+        {
+            "domain": "simonandthestars.it"
+        },
+        {
+            "domain": "simonmobile.de"
+        },
+        {
+            "domain": "simplybaby.co.uk"
+        },
+        {
+            "domain": "sindybomboniere.it"
+        },
+        {
+            "domain": "sirsafetyperugia.it"
+        },
+        {
+            "domain": "siviaggia.it"
+        },
+        {
+            "domain": "sjd.es"
+        },
+        {
+            "domain": "skaraborgslanstidning.se"
+        },
+        {
+            "domain": "skiclub.co.uk"
+        },
+        {
+            "domain": "skovdenyheter.se"
+        },
+        {
+            "domain": "skrastas.lt"
+        },
+        {
+            "domain": "slazag.pl"
+        },
+        {
+            "domain": "smalandsdagblad.se"
+        },
+        {
+            "domain": "smalanningen.se"
+        },
+        {
+            "domain": "smartworld.it"
+        },
+        {
+            "domain": "smp.se"
+        },
+        {
+            "domain": "smutba.se"
+        },
+        {
+            "domain": "sn.at"
+        },
+        {
+            "domain": "sn.dk"
+        },
+        {
+            "domain": "soccernet.ee"
+        },
+        {
+            "domain": "soderhamnskuriren.se"
+        },
+        {
+            "domain": "sodran.se"
+        },
+        {
+            "domain": "softres.it"
+        },
+        {
+            "domain": "soldionline.it"
+        },
+        {
+            "domain": "soldissimi.it"
+        },
+        {
+            "domain": "solinger-tageblatt.de"
+        },
+        {
+            "domain": "somfy.nl"
+        },
+        {
+            "domain": "sondriotoday.it"
+        },
+        {
+            "domain": "song-lyrics-generator.org.uk"
+        },
+        {
+            "domain": "soniaperonaci.it"
+        },
+        {
+            "domain": "soundi.fi"
+        },
+        {
+            "domain": "soundis.gr"
+        },
+        {
+            "domain": "sp-connect.de"
+        },
+        {
+            "domain": "sp-connect.eu"
+        },
+        {
+            "domain": "spaziogames.it"
+        },
+        {
+            "domain": "spaziointer.it"
+        },
+        {
+            "domain": "spazioj.it"
+        },
+        {
+            "domain": "spaziomilan.it"
+        },
+        {
+            "domain": "spazionapoli.it"
+        },
+        {
+            "domain": "spiegel.de"
+        },
+        {
+            "domain": "spiritacademy.it"
+        },
+        {
+            "domain": "spisbedre.dk"
+        },
+        {
+            "domain": "sportface.it"
+        },
+        {
+            "domain": "sportitalia.it"
+        },
+        {
+            "domain": "sportnet.hr"
+        },
+        {
+            "domain": "sportoutdoor24.it"
+        },
+        {
+            "domain": "spritkostenrechner.de"
+        },
+        {
+            "domain": "spunteblu.it"
+        },
+        {
+            "domain": "ssbm.ch"
+        },
+        {
+            "domain": "sss.fi"
+        },
+        {
+            "domain": "stadionews.it"
+        },
+        {
+            "domain": "stafftax.co.uk"
+        },
+        {
+            "domain": "stampdutycalculator.org.uk"
+        },
+        {
+            "domain": "starshiners.ro"
+        },
+        {
+            "domain": "starshop.it"
+        },
+        {
+            "domain": "start.no"
+        },
+        {
+            "domain": "startmag.it"
+        },
+        {
+            "domain": "stereo.de"
+        },
+        {
+            "domain": "steuernetz.de"
+        },
+        {
+            "domain": "steuertipps.de"
+        },
+        {
+            "domain": "stile.it"
+        },
+        {
+            "domain": "stilpalast.ch"
+        },
+        {
+            "domain": "stroudnewsandjournal.co.uk"
+        },
+        {
+            "domain": "sttidningen.se"
+        },
+        {
+            "domain": "studenti.it"
+        },
+        {
+            "domain": "studiarapido.it"
+        },
+        {
+            "domain": "stuttgarter-zeitung.de"
+        },
+        {
+            "domain": "styleupyourlife.at"
+        },
+        {
+            "domain": "suedkurier.de"
+        },
+        {
+            "domain": "sundaymail.co.uk"
+        },
+        {
+            "domain": "suomenmaa.fi"
+        },
+        {
+            "domain": "superauto.pl"
+        },
+        {
+            "domain": "superchat.dk"
+        },
+        {
+            "domain": "superguidatv.it"
+        },
+        {
+            "domain": "supermoney.eu"
+        },
+        {
+            "domain": "supermoney.it"
+        },
+        {
+            "domain": "supertydzien.pl"
+        },
+        {
+            "domain": "swan.sk"
+        },
+        {
+            "domain": "swarb.co.uk"
+        },
+        {
+            "domain": "swehockey.se"
+        },
+        {
+            "domain": "swisscare.it"
+        },
+        {
+            "domain": "swisshockeynews.ch"
+        },
+        {
+            "domain": "sydostran.se"
+        },
+        {
+            "domain": "sydsvenskan.se"
+        },
+        {
+            "domain": "tag24.it"
+        },
+        {
+            "domain": "tameteo.nl"
+        },
+        {
+            "domain": "tangoo.it"
+        },
+        {
+            "domain": "teatronaturale.it"
+        },
+        {
+            "domain": "technopolis.be"
+        },
+        {
+            "domain": "tecnoandroid.it"
+        },
+        {
+            "domain": "tekniikanmaailma.fi"
+        },
+        {
+            "domain": "teknikensvarld.se"
+        },
+        {
+            "domain": "tele.at"
+        },
+        {
+            "domain": "tele5.de"
+        },
+        {
+            "domain": "telefonai.eu"
+        },
+        {
+            "domain": "telen.no"
+        },
+        {
+            "domain": "televisionheaven.co.uk"
+        },
+        {
+            "domain": "tempi.it"
+        },
+        {
+            "domain": "tempo.pt"
+        },
+        {
+            "domain": "tempoitalia.it"
+        },
+        {
+            "domain": "tennis-compagnie.fr"
+        },
+        {
+            "domain": "tennisfever.it"
+        },
+        {
+            "domain": "ternitoday.it"
+        },
+        {
+            "domain": "testedich.de"
+        },
+        {
+            "domain": "the-streets.co.uk"
+        },
+        {
+            "domain": "theateraandeparade.nl"
+        },
+        {
+            "domain": "thecakes.pl"
+        },
+        {
+            "domain": "thegoodybag.co.uk"
+        },
+        {
+            "domain": "thelocal.it"
+        },
+        {
+            "domain": "themag.co.uk"
+        },
+        {
+            "domain": "thenationalleague.org.uk"
+        },
+        {
+            "domain": "thermosilesia.pl"
+        },
+        {
+            "domain": "thewom.it"
+        },
+        {
+            "domain": "thrillercafe.it"
+        },
+        {
+            "domain": "ticinonews.ch"
+        },
+        {
+            "domain": "ticketmaster.nl"
+        },
+        {
+            "domain": "tide.no"
+        },
+        {
+            "domain": "tidningenangermanland.se"
+        },
+        {
+            "domain": "tidningenharjedalen.se"
+        },
+        {
+            "domain": "tifosipalermo.it"
+        },
+        {
+            "domain": "tigros.it"
+        },
+        {
+            "domain": "tilt.fi"
+        },
+        {
+            "domain": "timeshighereducation.co.uk"
+        },
+        {
+            "domain": "tinyboxcompany.co.uk"
+        },
+        {
+            "domain": "tipsbladet.dk"
+        },
+        {
+            "domain": "tivify.es"
+        },
+        {
+            "domain": "tk.no"
+        },
+        {
+            "domain": "tko.pl"
+        },
+        {
+            "domain": "today.it"
+        },
+        {
+            "domain": "torinotoday.it"
+        },
+        {
+            "domain": "totalbet.pl"
+        },
+        {
+            "domain": "totalmoney.pl"
+        },
+        {
+            "domain": "towergateinsurance.co.uk"
+        },
+        {
+            "domain": "tp24.it"
+        },
+        {
+            "domain": "tpi.it"
+        },
+        {
+            "domain": "trackmusik.fr"
+        },
+        {
+            "domain": "traderlink.it"
+        },
+        {
+            "domain": "trading.it"
+        },
+        {
+            "domain": "tradingdepot.co.uk"
+        },
+        {
+            "domain": "tranastidning.se"
+        },
+        {
+            "domain": "transfermarkt.ch"
+        },
+        {
+            "domain": "transfermarkt.it"
+        },
+        {
+            "domain": "treccani.it"
+        },
+        {
+            "domain": "trelleborgsallehanda.se"
+        },
+        {
+            "domain": "trend.sk"
+        },
+        {
+            "domain": "trenitalia.it"
+        },
+        {
+            "domain": "trentotoday.it"
+        },
+        {
+            "domain": "trevisotoday.it"
+        },
+        {
+            "domain": "tribunatreviso.it"
+        },
+        {
+            "domain": "tribune.cz"
+        },
+        {
+            "domain": "tricher-scrabble.fr"
+        },
+        {
+            "domain": "triesteprima.it"
+        },
+        {
+            "domain": "trnews.it"
+        },
+        {
+            "domain": "trony.it"
+        },
+        {
+            "domain": "trovas.ch"
+        },
+        {
+            "domain": "trucks.nl"
+        },
+        {
+            "domain": "trueriders.it"
+        },
+        {
+            "domain": "ts.fi"
+        },
+        {
+            "domain": "tt.se"
+        },
+        {
+            "domain": "ttela.se"
+        },
+        {
+            "domain": "tu.co.uk"
+        },
+        {
+            "domain": "tulodz.pl"
+        },
+        {
+            "domain": "tuolawa.pl"
+        },
+        {
+            "domain": "turismo.it"
+        },
+        {
+            "domain": "turismodocentro.pt"
+        },
+        {
+            "domain": "turistipercaso.it"
+        },
+        {
+            "domain": "tuttocitta.it"
+        },
+        {
+            "domain": "tuttogreen.it"
+        },
+        {
+            "domain": "tv2000.it"
+        },
+        {
+            "domain": "tvguide.dk"
+        },
+        {
+            "domain": "tvheute.at"
+        },
+        {
+            "domain": "tvmania.ro"
+        },
+        {
+            "domain": "tvnow.de"
+        },
+        {
+            "domain": "tvplay.it"
+        },
+        {
+            "domain": "tvrinfo.ro"
+        },
+        {
+            "domain": "tvsudecka.pl"
+        },
+        {
+            "domain": "twentefans.nl"
+        },
+        {
+            "domain": "twojstyl.pl"
+        },
+        {
+            "domain": "u-power.it"
+        },
+        {
+            "domain": "ucavila.es"
+        },
+        {
+            "domain": "udeoghjemme.dk"
+        },
+        {
+            "domain": "udinetoday.it"
+        },
+        {
+            "domain": "uebungskoenig.de"
+        },
+        {
+            "domain": "ujbudamedicalcenter.hu"
+        },
+        {
+            "domain": "ulovdomov.cz"
+        },
+        {
+            "domain": "uloyola.es"
+        },
+        {
+            "domain": "umbria24.it"
+        },
+        {
+            "domain": "unes.it"
+        },
+        {
+            "domain": "unevuedemaplace.fr"
+        },
+        {
+            "domain": "uni-tel.dk"
+        },
+        {
+            "domain": "unica.ro"
+        },
+        {
+            "domain": "unidadeditorial.es"
+        },
+        {
+            "domain": "unionesarda.it"
+        },
+        {
+            "domain": "uniqkey.eu"
+        },
+        {
+            "domain": "univr.it"
+        },
+        {
+            "domain": "uriage.fr"
+        },
+        {
+            "domain": "urzadzamy.pl"
+        },
+        {
+            "domain": "ut.se"
+        },
+        {
+            "domain": "uwalls.co.uk"
+        },
+        {
+            "domain": "uwalls.de"
+        },
+        {
+            "domain": "uwalls.fr"
+        },
+        {
+            "domain": "uwalls.it"
+        },
+        {
+            "domain": "uwalls.pl"
+        },
+        {
+            "domain": "uwalls.ro"
+        },
+        {
+            "domain": "va.se"
+        },
+        {
+            "domain": "vademecum.es"
+        },
+        {
+            "domain": "valdarnopost.it"
+        },
+        {
+            "domain": "valdemarsro.dk"
+        },
+        {
+            "domain": "valenciabonita.es"
+        },
+        {
+            "domain": "valuta.se"
+        },
+        {
+            "domain": "vandale.nl"
+        },
+        {
+            "domain": "vanityfair.it"
+        },
+        {
+            "domain": "vardvaskan.se"
+        },
+        {
+            "domain": "varrialeprofumi.it"
+        },
+        {
+            "domain": "vastgotabladet.se"
+        },
+        {
+            "domain": "vatera.hu"
+        },
+        {
+            "domain": "vauva.fi"
+        },
+        {
+            "domain": "vdnews.it"
+        },
+        {
+            "domain": "veals.co.uk"
+        },
+        {
+            "domain": "veneziatoday.it"
+        },
+        {
+            "domain": "verkkouutiset.fi"
+        },
+        {
+            "domain": "veronasera.it"
+        },
+        {
+            "domain": "vetlandaposten.se"
+        },
+        {
+            "domain": "vetrinamotori.it"
+        },
+        {
+            "domain": "viabovag.nl"
+        },
+        {
+            "domain": "vicenzatoday.it"
+        },
+        {
+            "domain": "videnskab.dk"
+        },
+        {
+            "domain": "videostar.pl"
+        },
+        {
+            "domain": "viedemerde.fr"
+        },
+        {
+            "domain": "vindecoder.pl"
+        },
+        {
+            "domain": "vinspy.eu"
+        },
+        {
+            "domain": "vinted.it"
+        },
+        {
+            "domain": "vitalfootball.co.uk"
+        },
+        {
+            "domain": "vivaflirt.fr"
+        },
+        {
+            "domain": "viverepesaro.it"
+        },
+        {
+            "domain": "viversum.fr"
+        },
+        {
+            "domain": "vivienna.it"
+        },
+        {
+            "domain": "vl.no"
+        },
+        {
+            "domain": "vlt.se"
+        },
+        {
+            "domain": "vn.at"
+        },
+        {
+            "domain": "vn.se"
+        },
+        {
+            "domain": "voetbal24.be"
+        },
+        {
+            "domain": "voetbalvlaanderen.be"
+        },
+        {
+            "domain": "vogue.cz"
+        },
+        {
+            "domain": "vogue.it"
+        },
+        {
+            "domain": "vol.at"
+        },
+        {
+            "domain": "volksliederarchiv.de"
+        },
+        {
+            "domain": "volkswagen-comerciales.es"
+        },
+        {
+            "domain": "volkswagen-utilitaires.fr"
+        },
+        {
+            "domain": "volkswagen-vans.co.uk"
+        },
+        {
+            "domain": "volkswagen.co.uk"
+        },
+        {
+            "domain": "volkswagen.es"
+        },
+        {
+            "domain": "volkswagen.fr"
+        },
+        {
+            "domain": "volkswagen.ie"
+        },
+        {
+            "domain": "volkswagen.it"
+        },
+        {
+            "domain": "voxfm.pl"
+        },
+        {
+            "domain": "vp.pl"
+        },
+        {
+            "domain": "vriendin.nl"
+        },
+        {
+            "domain": "vrndstedt.de"
+        },
+        {
+            "domain": "vrouwenvoetbalnieuws.nl"
+        },
+        {
+            "domain": "vvsforum.se"
+        },
+        {
+            "domain": "vz.lt"
+        },
+        {
+            "domain": "wakacje.pl"
+        },
+        {
+            "domain": "walthamforestecho.co.uk"
+        },
+        {
+            "domain": "wandsworth.gov.uk"
+        },
+        {
+            "domain": "wasserburger-stimme.de"
+        },
+        {
+            "domain": "watchmedier.dk"
+        },
+        {
+            "domain": "watchwear.eu"
+        },
+        {
+            "domain": "wbieszczady.pl"
+        },
+        {
+            "domain": "webboh.it"
+        },
+        {
+            "domain": "webmailpec.it"
+        },
+        {
+            "domain": "webopskrifter.dk"
+        },
+        {
+            "domain": "websupport.cz"
+        },
+        {
+            "domain": "websupport.se"
+        },
+        {
+            "domain": "weekend.at"
+        },
+        {
+            "domain": "weekendavisen.dk"
+        },
+        {
+            "domain": "westmidlandsrailway.co.uk"
+        },
+        {
+            "domain": "wetterbote.de"
+        },
+        {
+            "domain": "wiadomoscihandlowe.pl"
+        },
+        {
+            "domain": "widefitshoes.co.uk"
+        },
+        {
+            "domain": "wij.nl"
+        },
+        {
+            "domain": "wildundhund.de"
+        },
+        {
+            "domain": "wilhelm-tel.de"
+        },
+        {
+            "domain": "wincanton.co.uk"
+        },
+        {
+            "domain": "winchester-cathedral.org.uk"
+        },
+        {
+            "domain": "windelprinz.de"
+        },
+        {
+            "domain": "windows-faq.de"
+        },
+        {
+            "domain": "wired.co.uk"
+        },
+        {
+            "domain": "wired.cz"
+        },
+        {
+            "domain": "wired.it"
+        },
+        {
+            "domain": "wirtualnygarwolin.pl"
+        },
+        {
+            "domain": "wiwo.de"
+        },
+        {
+            "domain": "wlw.at"
+        },
+        {
+            "domain": "wlw.de"
+        },
+        {
+            "domain": "wohnnet.at"
+        },
+        {
+            "domain": "womenshealthmag.nl"
+        },
+        {
+            "domain": "worldofwondertoys.ie"
+        },
+        {
+            "domain": "wp.pl"
+        },
+        {
+            "domain": "wszczecinie.pl"
+        },
+        {
+            "domain": "wtnet.de"
+        },
+        {
+            "domain": "wunderweib.de"
+        },
+        {
+            "domain": "x-trojmiasto.pl"
+        },
+        {
+            "domain": "xmenu.it"
+        },
+        {
+            "domain": "xsite.it"
+        },
+        {
+            "domain": "yahoo.de"
+        },
+        {
+            "domain": "yahoo.ie"
+        },
+        {
+            "domain": "yhoo.it"
+        },
+        {
+            "domain": "youmark.it"
+        },
+        {
+            "domain": "younipa.it"
+        },
+        {
+            "domain": "yourweather.co.uk"
+        },
+        {
+            "domain": "ystadsallehanda.se"
+        },
+        {
+            "domain": "zasobygwp.pl"
+        },
+        {
+            "domain": "zawszepomorze.pl"
+        },
+        {
+            "domain": "zenga.hu"
+        },
+        {
+            "domain": "zenzeroshop.it"
+        },
+        {
+            "domain": "zerocinquantuno.it"
+        },
+        {
+            "domain": "ziarulevenimentul.ro"
+        },
+        {
+            "domain": "ziarulromanesc.at"
+        },
+        {
+            "domain": "ziarulromanesc.de"
+        },
+        {
+            "domain": "zinsen-berechnen.de"
+        },
+        {
+            "domain": "zonadepadel.es"
+        },
+        {
+            "domain": "zoner-inshop.cz"
+        },
+        {
+            "domain": "zpleszewa.pl"
+        },
+        {
+            "domain": "zumi.pl"
+        },
+        {
+            "domain": "zwierciadlo.pl"
+        },
+        {
+          "domain": "t-online.de"
+        }
+    ]
+}

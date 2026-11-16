@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Your Cookie Preferences</title>
+    <!-- <link rel="stylesheet"  href="/css/button-toggle.css"> -->
+</head>
+<body>
+    <div class="container">
+        <div id="loading">Loading your cookie preference data...</div>
+
+        <!-- Combined Table with Both Most and Least Visited Websites -->
+        <div id="page1">
+            <table id="mostRecentTable" style="display: none;">
+            <thead>
+                <tr>
+                    <th class="website-cell">Website</th>
+                    <th>Extra Functionality Cookies</th>
+                    <th>Performance Cookies</th>
+                    <th>Personalized Advertising Cookies</th>
+                    <th>Cookie settings will be stored for:</th>
+                </tr>
+            </thead>
+            <tbody id="mostRecentWebsitesList">
+                <!-- Most frequently visited websites will be inserted here by JS -->
+            </tbody>
+            <tbody id="leastRecentWebsitesList">
+                <!-- Least frequently visited websites will be inserted here by JS -->
+            </tbody>
+        </table>
+    </div>
+    <script type="module" src="consent_history_and_discrepancies.js"></script>
+    <script src="ext-shim.js"></script>
+    </body>
+</html>
+    <!-- <script>
+      (function () {
+        const elementId = "pricrumbs_consent_history_top_websites";
+        let rafId = null;
+
+        function postHeight() {
+          const root = document.documentElement;
+          const body = document.body;
+          const height = Math.max(
+            root ? root.scrollHeight : 0,
+            body ? body.scrollHeight : 0
+          );
+
+          if (window.parent && height > 0) {
+            window.parent.postMessage(
+              {
+                type: "PRICRUMBS_EMBED_HEIGHT",
+                payload: { elementId, height }
+              },
+              "*"
+            );
+          }
+        }
+
+        function scheduleHeightPost() {
+          if (rafId !== null) {
+            cancelAnimationFrame(rafId);
+          }
+          rafId = requestAnimationFrame(() => {
+            rafId = null;
+            postHeight();
+          });
+        }
+
+        window.addEventListener("load", scheduleHeightPost);
+        window.addEventListener("resize", scheduleHeightPost);
+
+        const observer = new MutationObserver(scheduleHeightPost);
+        observer.observe(document.documentElement, {
+          childList: true,
+          subtree: true,
+          attributes: true,
+          characterData: true
+        });
+
+        setTimeout(scheduleHeightPost, 100);
+        setTimeout(scheduleHeightPost, 500);
+        setTimeout(scheduleHeightPost, 1200);
+
+        const intervalId = setInterval(scheduleHeightPost, 500);
+        setTimeout(() => clearInterval(intervalId), 10000);
+      })();
+    </script> -->
+

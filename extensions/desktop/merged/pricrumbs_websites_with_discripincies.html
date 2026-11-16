@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Your Cookie Preferences</title>
+    <!-- <link rel="stylesheet" href="button-toggle.css"> -->
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #333;
+            padding: 0;              /* was 20px */
+            margin: 0;
+            line-height: 1.6;
+            background-color: transparent;  /* was #f5f5f5 */
+        }
+       /* EMBED-FRIENDLY: let the host decide the width; no fixed max-width or centering */
+        .container {
+            width: 100%;
+            max-width: 100%;         /* was max-width: 800px */
+            margin: 0;               /* was margin: 0 auto; */
+            background-color: #fff;
+            border-radius: 0;        /* remove card styling if you want it flat; change if you prefer */
+            box-shadow: none;        /* remove extra shadow inside survey card */
+            padding: 0;              /* was 20px; keeps the panel tight */
+            margin-left: auto;
+            margin-right: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            /* margin: 20px 0; */
+        }
+        th, td {
+            padding: 12px;
+            border: 1px solid #ddd;
+            text-align: center;
+            font-size: 18px;
+        }
+        button:not(.toggle-btn) {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            margin: 0 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .save-btn {
+            background-color: #4CAF50;
+            color: white;
+            font-size: 16px;
+            padding: 12px 24px;
+        }
+        .actions {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .description {
+            text-align: center;
+            background-color: #d9ebf0;
+            font-size: 16px;
+            color: #080707;
+            line-height: 1.8;
+            font-weight: bold;
+            letter-spacing: 1px;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        
+        /* Center content in table cells */
+        td {
+            text-align: center;
+            vertical-align: middle;
+            overflow: visible;
+        }
+        
+        /* Website cell styling with favicon */
+        .website-cell {
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .website-cell img {
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        
+        /* Error handling for favicon */
+        img.favicon-error {
+            display: none;
+        }
+        
+        /* Toggle container and selection container */
+        .toggle-container, .selection-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0 auto;
+            gap: 10px;
+        }
+        
+        /* Read-only toggle buttons */
+        .toggle-btn {
+            width: 63px;
+            height: 40px;
+            border-radius: 10%;
+            border: 2px solid #919291;
+            background-color: transparent;
+            color: #666966;
+            margin: 5px;
+            outline: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            font-size: 13px; /* Keep Allowed/Not Allowed text size unchanged */
+            line-height: 1.1;
+            cursor: default;
+            pointer-events: none; /* Makes buttons non-clickable */
+        }
+        
+        /* Different styles for accept and reject buttons */
+        .toggle-btn.accept.selected {
+            background-color: #4c7aaf !important;
+            color: white !important;
+            border-color: #4c7aaf !important;
+        }
+        
+        .toggle-btn.reject.selected {
+            background-color: #919291 !important;
+            color: white !important;
+            border-color: #919291 !important;
+        }
+        
+        /* Table section headers */
+        .table-header {
+            background-color: #e8f4f8;
+            padding: 7px;
+            margin-top: 10px;
+            text-align: center;
+            border-radius: 5px;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        .NextTable {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            margin: 0 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-align: center;
+            margin-top: 20px;
+        }
+        /* Add this to your CSS */
+.selection-container {
+    position: relative;
+    overflow: visible;
+}
+
+/* === Discrepancy Marker Tooltip === */
+.discrepancy-marker {
+    position: absolute;
+    top: -1px;
+    right: -2px;
+    width: 20px;
+    height: 20px;
+    background-color: #ff9800;
+    color: white;
+    font-weight: bold;
+    font-size: 13px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+}
+
+.discrepancy-tooltiptext {
+    visibility: hidden;
+    width: max-content;
+    min-width: 240px;
+    max-width: 320px;
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 7px 10px;
+    font-size: 12px;
+    font-weight: normal;
+    position: absolute;
+    z-index: 100;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: normal;
+    overflow: visible;
+}
+
+/* Arrow pointing down toward the ! */
+.discrepancy-tooltiptext::before {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: #333;
+}
+
+.discrepancy-marker:hover .discrepancy-tooltiptext {
+    visibility: visible;
+    opacity: 1;
+}
+
+        
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- <h1>Your Cookie Preferences</h1>
+        <p class="description">
+            Below are the cookie preferences that have been saved in your browser. These settings show whether you've 
+            accepted or rejected cookies for different websites you've visited and the cookie's expiration date.
+        </p> -->
+
+        <div id="loading">Loading your cookie preference data...</div>
+
+        <!-- Page 1: Most Recently Visited Websites Table
+        <div id="page1">
+            <div class="table-header">Most Frequent Visited Websites</div>
+            <table id="mostRecentTable" style="display: none;">
+            <thead>
+                <tr>
+                    <th class="website-cell">Website</th>
+                    <th>Extra Functionality Cookies</th>
+                    <th>Performance Cookies</th>
+                    <th>Personalized Advertising Cookies</th>
+                    <th>Cookie Expiration Date</th>
+                    <th>Freq Visit (Total)</th>
+                </tr>
+            </thead>
+            <tbody id="mostRecentWebsitesList">
+            </tbody>
+        </table>
+        <div class="actions">
+            <button id="nextBtn1">Next</button>
+        </div>
+    </div> -->
+        
+        <!-- Websites with Discrepancies Table -->
+        <div id="page2" >
+            <!-- <div class="table-header">Websites with Discrepancies</div> -->
+            <div style="padding: 0; margin-bottom: 15px;margin-top: -15px; text-align: center;">
+                <!-- <span style="font-size: 16px;">The table below shows websites where there was a difference between your stated preferences earlier and the actual cookies consent settings stored in your browser.<br> The </span> -->
+                <span style="font-size: 18px;"> The </span>
+
+                <span style="color: #ff9800; font-weight: bold; font-size: 25px;">!</span>
+                <span style="font-size: 18px;"> indicates the specific cookie category with a discrepancy.</span>
+            </div>
+            <div id="noDiscrepanciesMessage" style="display: none; text-align: center; padding: 20px; background-color: #e8f4f8; border-radius: 5px; margin: 20px 0;">
+                <p style="font-size: 18px; color: #4c7aaf; font-weight: bold;"> No discrepancies found!</p>
+                <p style="font-size: 16px; color: #666;">All your cookie preferences match the settings stored in your browser.</p>
+            </div>
+            <table id="leastRecentTable" style="display: none;">
+            <thead>
+                <tr>
+                    <th class="website-cell">Website</th>
+                    <th>Extra Functionality Cookies</th>
+                    <th>Performance Cookies</th>
+                    <th>Personalized Advertising Cookies</th>
+                    <th>Cookie settings will be stored for:</th>
+                </tr>
+            </thead>
+            <tbody id="WebsitesWithDiscrepancies">
+            </tbody>
+        </table>
+        </div>
+       
+    </div>
+
+    
+    <!-- <script>
+        // Add a page identifier for the JavaScript to know which page is being viewed
+        window.currentPage = 'least-visited';
+    </script> -->
+    <script type="module" src="consent_history_and_discrepancies.js"></script>
+    <script src="ext-shim.js"></script>
+    <script>
+      (function () {
+        const elementId = "pricrumbs_websites_with_discrepancies";
+        let rafId = null;
+
+        function postHeight() {
+          const root = document.documentElement;
+          const body = document.body;
+          const height = Math.max(
+            root ? root.scrollHeight : 0,
+            body ? body.scrollHeight : 0
+          );
+
+          if (window.parent && height > 0) {
+            window.parent.postMessage(
+              {
+                type: "PRICRUMBS_EMBED_HEIGHT",
+                payload: { elementId, height }
+              },
+              "*"
+            );
+          }
+        }
+
+        function scheduleHeightPost() {
+          if (rafId !== null) {
+            cancelAnimationFrame(rafId);
+          }
+          rafId = requestAnimationFrame(() => {
+            rafId = null;
+            postHeight();
+          });
+        }
+
+        window.addEventListener("load", scheduleHeightPost);
+        window.addEventListener("resize", scheduleHeightPost);
+
+        const observer = new MutationObserver(scheduleHeightPost);
+        observer.observe(document.documentElement, {
+          childList: true,
+          subtree: true,
+          attributes: true,
+          characterData: true
+        });
+
+        setTimeout(scheduleHeightPost, 100);
+        setTimeout(scheduleHeightPost, 500);
+        setTimeout(scheduleHeightPost, 1200);
+
+        const intervalId = setInterval(scheduleHeightPost, 500);
+        setTimeout(() => clearInterval(intervalId), 10000);
+      })();
+    </script>
+</body>
+</html>

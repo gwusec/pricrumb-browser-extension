@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Performance Cookies Preferences</title>
+<link rel="stylesheet" href="button-toggle.css">
+<style>
+body {
+    margin: 0;
+    background-color: transparent;
+    font-family: sans-serif;
+}
+
+.container {
+    width: 100%;
+    background-color: white;
+    padding: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+/* Intro / Info */
+.intro-text, .cookie-info, .instructions {
+    font-size: 16px;
+    font-weight: bold;
+    line-height: 1.8;
+    text-align: center;
+    background-color: #d9ebf0;
+    color: #080707;
+    letter-spacing: 1px;
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 5px;
+}
+
+/* Category buttons */
+.category-selection {
+    display: flex;
+    justify-content: center;
+    margin: 30px 0;
+}
+
+.category-btn {
+    background-color: #9fd7e6;
+    color: #121111;
+    padding: 12px 20px;
+    margin: 0 10px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.category-btn.active {
+    background-color: #4682B4;
+    color: white;
+}
+
+/* Domain card */
+.domain-card {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    text-align: center;
+}
+
+.domain-name {
+    font-size: 1.95rem;
+    font-weight: bold;
+    margin: 36px 0 36px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+}
+
+.question {
+    font-size: 1.25rem;
+    margin-bottom: 15px;
+}
+
+.answer-lock-hint {
+    display: none;
+    margin: 6px auto 14px;
+    font-size: 0.9rem;
+    color: #475569;
+    font-weight: 600;
+}
+
+/* Toggle container */
+.toggle-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin: 15px 0;
+}
+
+/* Navigation buttons */
+.button-container {
+    display: flex;
+    justify-content: flex-start;
+    margin-top: 30px;
+}
+
+.nav-btn {
+    background-color: #3498db;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.nav-btn:disabled {
+    background-color: #bdc3c7;
+    cursor: not-allowed;
+}
+
+/* Progress bar */
+.progress-container {
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.progress-bar {
+    background-color: #eee;
+    height: 10px;
+    border-radius: 5px;
+    margin: 10px auto;
+    width: 90%;
+}
+
+.progress-fill {
+    background-color: #3498db;
+    height: 100%;
+    border-radius: 5px;
+    transition: width 0.3s ease;
+}
+
+/* Completion view */
+#completionView {
+    display: none;
+    text-align: center;
+    font-size: 1.125rem;
+    margin-top: 20px;
+}
+</style>
+</head>
+<body data-embed-id="pricrumbs_preferred_cookie_choices_functional">
+<div class="container">
+
+    <!-- Loading -->
+    <div id="loading">Loading your cookie history...</div>
+
+    <!-- Question view -->
+    <div id="questionView">
+        <div class="domain-card">
+            <div class="question">
+                <b>What is your preference for this website's use of <u>Extra Functionality</u> Cookies?</b>
+            </div>
+            <div class="domain-name" id="currentDomainName"></div>
+            <div id="answerLockHint" class="answer-lock-hint" aria-live="polite"></div>
+            <div class="toggle-container" cookie-category="functional"></div>
+        </div>
+
+        <div class="progress-container">
+            <div class="progress-bar">
+                <div class="progress-fill" style="width:10%;"></div>
+            </div>
+            <div>Website <span id="currentDomain">1</span>/<span id="totalDomains">10</span></div>
+        </div>
+
+        <div class="button-container">
+            <button id="previousButton" class="nav-btn">Previous</button>
+        </div>
+    </div>
+
+    <!-- Completion -->
+    <div id="completionView">
+        <h2>Your preferences have been saved.</h2>
+        <p>Click <b>Next</b> to proceed with the survey.</p>
+    </div>
+
+</div>
+
+<script type="module" src="pricrumbs_preferred_cookie_choices.js"></script>
+<script src="ext-shim.js"></script>
+</body>
+</html>

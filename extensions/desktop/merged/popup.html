@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cookie Checker</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4f4f9;
+      color: #333;
+      padding: 20px;
+      margin: 0;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 24px;
+      color: #555;
+      margin-bottom: 20px;
+    }
+
+    #refresh, #download, #downloadTable, #openConsentPage, #openConsentPage1, #openConsentPage2, #openConsentPage3, #openConsentPage4  {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      margin: 10px 5px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+     #pricrumbs_preferred_cookie_choices_functional , #pricrumbs_preferred_cookie_choices_performance, #pricrumbs_preferred_cookie_choices_advertising, #pricrumbs_consent_history_top_websites, #pricrumbs_consent_history_bottom_websites, #pricrumbs_website_all_cookies_accepted, #pricrumbs_website_all_cookies_rejected , #pricrumbs_website_advertising_cookies_rejected, #pricrumbs_website_all_cookies_default, #pricrumbs_websites_with_discripincies  {
+      background-color: #3c81cc;
+      color: white;
+      border: none;
+      padding: 7px 17px;
+      margin: 10px 5px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    #refresh:hover, #download:hover, #downloadTable:hover {
+      background-color: #0056b3;
+    }
+
+    #cookieTable {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+/*     #cookieTable th, #cookieTable td {
+    #cookieTable {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    } */
+
+    #cookieTable th, #cookieTable td {
+      border: 1px solid #ccc;
+      padding: 10px;
+      text-align: left;
+    }
+
+/*     #cookieTable th {
+      background-color: #f0f0f0;
+      font-weight: bold;
+    }
+
+    #cookieTable tr:nth-child(even) {
+    } */
+
+    #cookieTable th {
+      background-color: #f0f0f0;
+      font-weight: bold;
+    }
+
+    #cookieTable tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+  </style>
+</head>
+<body>
+  <h1>Cookie Checker</h1>
+  <button id="refresh">Refresh Cookies</button>
+  <button id="download">Download Cookies</button>
+  <button id="downloadTable">Download Table</button> <!-- New Button -->
+  <table id="cookieTable">
+    <thead>
+      <tr>
+        <th>Domain</th>
+        <th>CMP Name</th>
+        <th>Necessary</th>
+        <th>Functional</th>
+        <th>Performance</th>
+        <th>Advertising</th>
+        <th>Timestamp</th>
+        <th>Expiration</th>
+        <th>First Visited</th>
+        <th>Last Visited</th>
+        <th>Avg Visit/Day</th>
+        <th>Freq Visit (Total)</th>
+        <th>Action Taken</th>
+        <th>Raw Cookie - Debugging</th>
+      </tr>
+    </thead>
+    <tbody id="cookieTableBody"></tbody>
+  </table>
+   <br>
+   <br>
+<!-- <button id="openConsentPage" class="btn">Prefered Cookie Choices</button> <br> -->
+<!-- <button id="openConsentPage1" class="btn">Option1</button>
+<button id="openConsentPage2" class="btn">Option2</button>
+<button id="openConsentPage3" class="btn">Option3</button>
+<button id="openConsentPage4" class="btn">Option4</button> -->
+<br>
+<button id="pricrumbs_preferred_cookie_choices_functional" class="btn">Prefered_Functional_Choices
+</button>
+<button id="pricrumbs_preferred_cookie_choices_performance" class="btn">Prefered_Performance_Choices
+</button>
+<button id="pricrumbs_preferred_cookie_choices_advertising" class="btn">Prefered_Advertising_Choices
+</button>
+<br>
+<button id="pricrumbs_consent_history_top_websites" class="btn">Consent History Top Websites
+</button>
+<button id="pricrumbs_consent_history_bottom_websites" class="btn">Consent History Least Visited Websites
+</button>
+<br>
+<button id="pricrumbs_websites_with_discripincies" class="btn">Websites With Discripinces
+</button>
+<br>
+<button id="pricrumbs_websites_undecided" class="btn">Websites Undecided
+</button>
+<br>
+<button id="pricrumbs_website_all_cookies_accepted" class="btn">Website all cookies accepted
+</button>
+<button id="pricrumbs_website_all_cookies_rejected" class="btn">Website all cookies rejected
+</button>
+<button id="pricrumbs_website_advertising_cookies_rejected" class="btn">Website ads cookie rejected
+</button>
+<button id="pricrumbs_website_all_cookies_default" class="btn">Website all cookie default
+</button>
+  <script src="ext-shim.js"></script>
+  <script src="browser-polyfill.min.js"></script>
+  <script type="module" src="popup.js" defer></script>
+</body>
+</html>
