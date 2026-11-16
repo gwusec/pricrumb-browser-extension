@@ -43,6 +43,13 @@ sequenceDiagram
 
 ```
 
+## Note on Anonymization
+
+This repository has been anonymized for double-blind review. Apart from the change below, the code is identical to the version used in the study.
+
+* The hostname of the study's survey server was replaced with the placeholder `survey.example.org` in [background.js](extensions/desktop/merged/background.js) (`DEFAULT_SURVEY_API_BASE_URL`) and [content.js](extensions/desktop/merged/content.js).
+* The content script only bridges messages between a web page and the extension on `localhost` or on that survey host. The survey web application and its backend (which also provides the domain-hashing endpoint `/postsurvey/hash-domains`) are not part of this repository.
+
 # Documentation
 
 The browser extension retrieves cookies and browsing data, injects extension pages (HTML iframes) into matching websites, and exchanges messages between the website and background logic using a content-script bridge. It is compatible with Chromium-based browsers and Firefox.
@@ -164,7 +171,7 @@ Survey “Extension Check” Flow:
 
 
 ## The Shim and “Merged” Behavior
-This project uses a unified codebase that works on both Chrome (MV3) and Firefox (MV2):
+This project uses a unified codebase that works on both Chrome (MV3) and Firefox (MV3):
 * Both share the same scripts and logic.
 * Only manifest.json differs slightly (service worker vs background script).
 * The ext shim transparently detects the environment:
@@ -175,7 +182,7 @@ This project uses a unified codebase that works on both Chrome (MV3) and Firefox
 
 ## Build Guide
 
-Run the script from the repository root. Specify `chrome` or `firefox` as the target.
+Run the script from the repository root. Specify `chrome` or `firefox` as the target. The script requires `rsync` and `zip` and uses the BSD/macOS form of `sed -i ''`, so it runs as-is on macOS; on Linux, load the extension manually as described in the Installation Guide.
 
 ### Debug Build
 ```
@@ -189,7 +196,7 @@ By default, this creates a debug build. Output is written to `build/chrome` or `
 ./build-extension.sh chrome --production
 ./build-extension.sh firefox --production
 ```
-Production builds are automatically zipped. Output is written to `build/chrome.zip` or `build/firefox.zip`.
+Production builds are automatically zipped. Output is written to `build/chrome-extension.zip` or `build/firefox-extension.zip`.
 
 ### Production Build without Zip
 ```
@@ -197,16 +204,6 @@ Production builds are automatically zipped. Output is written to `build/chrome.z
 ./build-extension.sh firefox --production --no-zip
 ```
 Use `--no-zip` to skip zipping and keep the raw output folder.
-
-### Zipping the Extension
-
-To zip the build output, add the `--zip` flag. This can be combined with any other flags:
-```
-./build-extension.sh chrome --production --zip
-# or
-./build-extension.sh firefox --production --zip
-```
-The zip file is written to `build/chrome.zip` or `build/firefox.zip`.
 
 ## Installation Guide
 
